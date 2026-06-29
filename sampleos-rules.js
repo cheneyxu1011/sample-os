@@ -205,7 +205,7 @@
       sampleId: sample.id,
       reviewId,
       title: "新增重大问题",
-      description: "静态 demo 模拟新增问题后，所有页面同步刷新。",
+      description: "页面新增问题后，所有页面同步刷新。",
       sourceDepartment: "品质部",
       relatedArea: "前片",
       level: "major",

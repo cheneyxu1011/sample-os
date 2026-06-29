@@ -150,3 +150,11 @@ window.sampleOSData = {
 };
 
 window.sampleOSData.sampleWorkers = window.sampleOSData.workers;
+Object.assign(window.sampleOSData, {
+  currentStyleId: null,
+  currentReviewId: null,
+  styleList: [],
+  samples: [],
+  reviews: [],
+  issues: [],
+});
