@@ -268,7 +268,8 @@ function buildMaterialCards(summary) {
   const { style, sample, review, openIssues, blockingIssues } = summary;
   const peopleByScope = (scope) => os.data.users.filter((user) => user.scope?.some((item) => item.includes(scope)) || user.reviewResponsibility?.includes(scope) || user.currentResponsibility?.includes(scope));
   const ownerFor = (scope, fallback) => peopleByScope(scope)[0]?.name || fallback;
-  const hasMedia = Boolean(sample?.mediaList?.length || sample?.imageList?.length || sample?.videoList?.length);
+  const s3MediaCount = sample?.mediaList?.length || 0;
+  const hasMedia = Boolean(s3MediaCount);
   const prepBlocked = style?.currentGate === "preparation_gate";
   const materialIssueCount = (keyword) => openIssues.filter((issue) => `${issue.title} ${issue.description} ${issue.relatedArea} ${issue.sourceDepartment}`.includes(keyword)).length;
   return [
@@ -297,7 +298,7 @@ function buildMaterialCards(summary) {
       name: "样衣媒体",
       state: hasMedia ? "已上传" : "待上传",
       owner: os.userName(os.data.currentUserId),
-      note: hasMedia ? `${(sample.mediaList || []).length} 个 S3 文件，${sample.imageList?.length || 0} 个本地占位` : "照片或视频上传后会进入 S3",
+      note: hasMedia ? `${s3MediaCount} 个 S3 文件已同步` : "照片或视频上传后会进入 S3",
       time: dateText(sample?.updatedAt, "等待上传"),
     },
     {
@@ -363,7 +364,7 @@ function renderStyleWorkspace() {
     const timelineRows = [
       ["收到资料 / 建立款式", `款式 ${style.styleNo} · ${style.brand} · ${dateText(sample.createdAt, "创建时间未记录")}`, "complete"],
       ["样衣记录", `${sample.versionName} · ${sample.location} · 更新 ${dateText(sample.updatedAt, "未记录")}`, sample.status === "shipped" ? "complete" : "current"],
-      ["样衣媒体", `${(sample.mediaList || []).length} 个 S3 文件 · ${(sample.imageList || []).length + (sample.videoList || []).length} 个页面占位`, (sample.mediaList || []).length ? "complete" : ""],
+      ["样衣媒体", (sample.mediaList || []).length ? `${(sample.mediaList || []).length} 个 S3 文件已同步` : "暂无 S3 媒体，评审页可上传照片/视频", (sample.mediaList || []).length ? "complete" : ""],
       [`${os.phaseLabels[style.samplePhase] || style.samplePhase}评审`, `${os.reviewStatusLabels[review.status] || review.status} · ${openIssues.length} 个未关闭 / ${blockingIssues.length} 个阻塞 · 负责人：${gateOwner.name}`, blockingIssues.length ? "current risk" : "current"],
       ["寄样决策", `${summary.shipmentStatus.label} · 下一步：${summary.nextAction}`, summary.shipmentStatus.canShip ? "complete" : blockingIssues.length ? "current risk" : ""],
     ];
@@ -789,7 +790,7 @@ function renderStyleModal() {
       <section><h3>负责人设置</h3><div class="form-grid"><label>业务负责人<select name="businessOwner">${optionList(brandOwners, "user_guyao")}</select></label><label>版子负责人<select name="patternOwner">${optionList([{ value: "user_xuhaiyan", label: "徐海燕" }], "user_xuhaiyan")}</select></label><label>面料负责人<select name="fabricOwner">${optionList([{ value: "user_liweihong", label: "李卫红" }], "user_liweihong")}</select></label><label>辅料负责人<select name="trimOwner">${optionList([{ value: "user_dahong", label: "大红" }], "user_dahong")}</select></label><label>准备闸口<select name="prepOwner">${optionList([{ value: "user_wangbu", label: "王部长" }], "user_wangbu")}</select></label><label>普通打样派发<select name="normalDispatcher">${optionList([{ value: "user_dadai", label: "大戴" }], "user_dadai")}</select></label><label>压胶开发负责人<select name="bondingOwner">${optionList([{ value: "user_zhangbu", label: "张部长" }], "user_zhangbu")}</select></label><label>新长江派发人<select name="xcjDispatcher">${optionList([{ value: "user_xiahongxia", label: "夏红霞" }], "user_xiahongxia")}</select></label><label>评审负责人<select name="reviewOwner">${optionList(os.data.users.filter((u) => u.isGateOwner).map((u) => ({ value: u.id, label: u.name })), os.data.gateRules.sampleReviewGateOwner)}</select></label><label>例外放行<select name="finalApprover">${optionList(os.data.users.filter((u) => u.isFinalApprover).map((u) => ({ value: u.id, label: u.name })), os.data.gateRules.finalApprover)}</select></label></div></section>
       <section><h3>交期与日历同步</h3><div class="form-grid"><label>预计打样完成日期<input name="sampleDoneDate" type="date" required value="2026-07-03"></label><label>预计寄样日期<input name="plannedShipDate" type="date" required value="2026-07-05"></label><label>客户要求到样日期<input name="customerDueDate" type="date"></label><label class="inline-check"><input name="syncCalendar" type="checkbox" checked>同步到样衣日历</label><label class="inline-check"><input name="highRisk" type="checkbox">设为高风险</label></div></section>
       <section><h3>资料准备</h3>${checkList(["客户资料已收到", "TP / 技术包已收到", "版子准备", "面料准备", "辅料准备", "原样 / 样衣参考确认", "打样资料待王部长确认"], "prepItems", [])}</section>
-      <section><h3>附件 / 图片</h3><div class="fake-upload-grid"><div>上传客户资料</div><div>上传 TP</div><div>上传参考图片</div><div>上传原样图片</div></div><small class="muted-note">评审页照片和视频已接入 S3 上传，资料附件后续接入。</small></section>
+      <section><h3>附件 / 图片</h3><div class="attachment-status-grid"><div>客户资料：待接入 S3</div><div>TP：待接入 S3</div><div>参考图片：请在评审页上传</div><div>原样图片：请在评审页上传</div></div><small class="muted-note">当前已接入评审页照片和视频上传；资料附件不会伪造上传状态。</small></section>
       <div class="modal-actions"><button type="button" data-close-modal>取消</button><button type="button" data-save-draft>保存草稿</button><button class="primary-button" type="submit">创建款式</button></div>
     </form>`;
 }

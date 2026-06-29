@@ -266,7 +266,7 @@
     });
     console.groupCollapsed("Sample OS consistency check");
     if (warnings.length) console.warn(warnings);
-    else console.log("统一 mock data 检查通过");
+    else console.log("Sample OS 数据一致性检查通过");
     console.groupEnd();
     return warnings;
   }
