@@ -16,7 +16,13 @@ body.apple-ui {
   --red: #d70015;
   --red-bg: #fff0f0;
   --shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
+  --glow-blue: rgba(0, 113, 227, 0.18);
+  --glow-blue-soft: rgba(94, 164, 255, 0.12);
+  --glow-green: rgba(52, 199, 89, 0.14);
+  --glow-amber: rgba(255, 149, 0, 0.14);
   background:
+    radial-gradient(circle at 82% 8%, rgba(0, 113, 227, 0.1), transparent 28%),
+    radial-gradient(circle at 10% 28%, rgba(52, 199, 89, 0.055), transparent 22%),
     linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 42%, #f2f2f7 100%);
   color: var(--ink);
   font-family:
@@ -24,6 +30,18 @@ body.apple-ui {
     "PingFang SC", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
+}
+
+body.apple-ui::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 72% 18%, rgba(0, 113, 227, 0.12), transparent 18%),
+    radial-gradient(circle at 24% 84%, rgba(52, 199, 89, 0.08), transparent 24%);
+  filter: blur(18px);
 }
 
 .apple-ui .app-shell {
@@ -345,6 +363,7 @@ body.apple-ui {
 .apple-ui .section-block,
 .apple-ui .table-shell,
 .apple-ui .style-header {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -352,6 +371,38 @@ body.apple-ui {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   overflow: hidden;
+}
+
+.apple-ui .summary-card::before,
+.apple-ui .section-block::before,
+.apple-ui .table-shell::before,
+.apple-ui .style-header::before,
+.apple-ui .review-hero::before,
+.apple-ui .location-card::before,
+.apple-ui .gate-owner-card::before,
+.apple-ui .modal-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--mx, 86%) var(--my, 12%), rgba(0, 113, 227, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 42%);
+  opacity: 0.58;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.apple-ui .summary-card > *,
+.apple-ui .section-block > *,
+.apple-ui .table-shell > *,
+.apple-ui .style-header > *,
+.apple-ui .review-hero > *,
+.apple-ui .location-card > *,
+.apple-ui .gate-owner-card > *,
+.apple-ui .modal-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .apple-ui .summary-card {
@@ -4151,6 +4202,257 @@ body.apple-ui {
 
 .apple-ui .review-photo.upload-tile strong {
   font-size: 14px;
+}
+
+/* Luminous interaction pass */
+.apple-ui .summary-card,
+.apple-ui .section-block,
+.apple-ui .style-header,
+.apple-ui .review-hero,
+.apple-ui .location-card,
+.apple-ui .gate-owner-card,
+.apple-ui .modal-card,
+.apple-ui .review-photo,
+.apple-ui .row.data-row,
+.apple-ui .calendar-item,
+.apple-ui .training-card,
+.apple-ui .material-card,
+.apple-ui .blocker-card {
+  position: relative;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.apple-ui .summary-card:hover,
+.apple-ui .section-block:hover,
+.apple-ui .style-header:hover,
+.apple-ui .review-hero:hover,
+.apple-ui .location-card:hover,
+.apple-ui .gate-owner-card:hover,
+.apple-ui .review-photo:hover,
+.apple-ui .row.data-row:hover,
+.apple-ui .calendar-item:hover,
+.apple-ui .training-card:hover,
+.apple-ui .material-card:hover,
+.apple-ui .blocker-card:hover {
+  border-color: rgba(0, 113, 227, 0.22);
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.075),
+    0 0 0 1px rgba(0, 113, 227, 0.035),
+    0 0 46px rgba(0, 113, 227, 0.085);
+  transform: translateY(-2px);
+}
+
+.apple-ui .summary-card:hover::before,
+.apple-ui .section-block:hover::before,
+.apple-ui .style-header:hover::before,
+.apple-ui .review-hero:hover::before,
+.apple-ui .location-card:hover::before,
+.apple-ui .gate-owner-card:hover::before,
+.apple-ui .modal-card:hover::before {
+  opacity: 0.9;
+}
+
+.apple-ui .summary-card.exception,
+.apple-ui .summary-card.alert {
+  box-shadow:
+    0 14px 34px rgba(15, 23, 42, 0.055),
+    0 0 38px rgba(0, 113, 227, 0.08);
+}
+
+.apple-ui .summary-card.alert::before {
+  background:
+    radial-gradient(circle at var(--mx, 86%) var(--my, 12%), rgba(215, 0, 21, 0.13), transparent 30%),
+    radial-gradient(circle at 20% 100%, rgba(255, 149, 0, 0.1), transparent 34%);
+}
+
+.apple-ui .summary-card.exception::before {
+  background:
+    radial-gradient(circle at var(--mx, 86%) var(--my, 12%), rgba(0, 113, 227, 0.18), transparent 31%),
+    radial-gradient(circle at 16% 92%, rgba(94, 164, 255, 0.1), transparent 30%);
+}
+
+.apple-ui .tab,
+.apple-ui .filter-button,
+.apple-ui .workspace-tab,
+.apple-ui .primary-button,
+.apple-ui .row-action,
+.apple-ui .pipeline-actions button,
+.apple-ui .modal-actions button,
+.apple-ui .drawer-actions button,
+.apple-ui .decision-stack button,
+.apple-ui .icon-button,
+.apple-ui .user-account,
+.apple-ui .language-switch button {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.apple-ui .tab::after,
+.apple-ui .filter-button::after,
+.apple-ui .workspace-tab::after,
+.apple-ui .primary-button::after,
+.apple-ui .row-action::after,
+.apple-ui .pipeline-actions button::after,
+.apple-ui .modal-actions button::after,
+.apple-ui .drawer-actions button::after,
+.apple-ui .decision-stack button::after,
+.apple-ui .icon-button::after,
+.apple-ui .user-account::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, 0.72), transparent 30%),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.apple-ui .tab:hover,
+.apple-ui .filter-button:hover,
+.apple-ui .workspace-tab:hover,
+.apple-ui .row-action:hover,
+.apple-ui .pipeline-actions button:hover,
+.apple-ui .modal-actions button:hover,
+.apple-ui .drawer-actions button:hover,
+.apple-ui .icon-button:hover,
+.apple-ui .user-account:hover {
+  border-color: rgba(0, 113, 227, 0.2);
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.06),
+    0 0 26px rgba(0, 113, 227, 0.09);
+  transform: translateY(-1px);
+}
+
+.apple-ui .tab:hover::after,
+.apple-ui .filter-button:hover::after,
+.apple-ui .workspace-tab:hover::after,
+.apple-ui .primary-button:hover::after,
+.apple-ui .row-action:hover::after,
+.apple-ui .pipeline-actions button:hover::after,
+.apple-ui .modal-actions button:hover::after,
+.apple-ui .drawer-actions button:hover::after,
+.apple-ui .decision-stack button:hover::after,
+.apple-ui .icon-button:hover::after,
+.apple-ui .user-account:hover::after {
+  opacity: 0.74;
+}
+
+.apple-ui .tab:active,
+.apple-ui .filter-button:active,
+.apple-ui .workspace-tab:active,
+.apple-ui .primary-button:active,
+.apple-ui .row-action:active,
+.apple-ui .pipeline-actions button:active,
+.apple-ui .modal-actions button:active,
+.apple-ui .drawer-actions button:active,
+.apple-ui .decision-stack button:active,
+.apple-ui .icon-button:active,
+.apple-ui .user-account:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.apple-ui .nav-item.active,
+.apple-ui .tab.active,
+.apple-ui .workspace-tab.active,
+.apple-ui .filter-button:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 0 0 1px rgba(0, 113, 227, 0.06),
+    0 12px 28px rgba(0, 113, 227, 0.11);
+}
+
+.apple-ui .primary-button:hover,
+.apple-ui .row-action.primary:hover,
+.apple-ui .pipeline-actions button.primary:hover,
+.apple-ui .modal-actions .primary-button:hover,
+.apple-ui .drawer-actions .primary-button:hover {
+  box-shadow:
+    0 16px 32px rgba(0, 113, 227, 0.28),
+    0 0 42px rgba(0, 113, 227, 0.2);
+}
+
+.apple-ui .review-photo.upload-tile {
+  background:
+    radial-gradient(circle at 84% 12%, rgba(0, 113, 227, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  animation: uploadTileBreath 3.8s ease-in-out infinite;
+}
+
+.apple-ui .review-photo.upload-tile:hover {
+  border-color: rgba(0, 113, 227, 0.32);
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.08),
+    0 0 50px rgba(0, 113, 227, 0.16);
+}
+
+.apple-ui .review-photo.uploaded-media {
+  border-color: rgba(52, 199, 89, 0.22);
+  background:
+    radial-gradient(circle at 84% 14%, rgba(52, 199, 89, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 252, 249, 0.9));
+}
+
+.apple-ui .review-photo.has-issue:hover {
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.08),
+    0 0 46px rgba(255, 59, 48, 0.12);
+}
+
+.apple-ui .review-photo.has-issue.minor:hover {
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.08),
+    0 0 46px rgba(255, 149, 0, 0.13);
+}
+
+.apple-ui .vertical-timeline > div,
+.apple-ui .route-flow button,
+.apple-ui .department-chip,
+.apple-ui .status,
+.apple-ui .pill,
+.apple-ui .priority {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    filter 150ms ease;
+}
+
+.apple-ui .vertical-timeline > div:hover,
+.apple-ui .route-flow button:hover,
+.apple-ui .department-chip:hover,
+.apple-ui .status:hover,
+.apple-ui .pill:hover,
+.apple-ui .priority:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.06);
+}
+
+.apple-ui .vertical-timeline > div:hover {
+  box-shadow: inset 3px 0 0 rgba(0, 113, 227, 0.32);
+}
+
+@keyframes uploadTileBreath {
+  0%, 100% {
+    box-shadow:
+      0 10px 24px rgba(15, 23, 42, 0.04),
+      0 0 0 rgba(0, 113, 227, 0);
+  }
+  50% {
+    box-shadow:
+      0 14px 34px rgba(15, 23, 42, 0.06),
+      0 0 34px rgba(0, 113, 227, 0.12);
+  }
 }
 
 @media (max-width: 768px) {

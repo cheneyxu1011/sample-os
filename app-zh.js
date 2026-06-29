@@ -24,9 +24,44 @@ const topActions = document.querySelector(".top-actions");
 const topPrimaryButton = document.querySelector(".top-actions .primary-button");
 const userAccountRole = document.querySelector(".user-account small");
 const userAccountName = document.querySelector(".user-account strong");
+const glowTargets = [
+  ".summary-card",
+  ".section-block",
+  ".style-header",
+  ".review-hero",
+  ".location-card",
+  ".gate-owner-card",
+  ".review-photo",
+  ".row.data-row",
+  ".calendar-item",
+  ".training-card",
+  ".material-card",
+  ".blocker-card",
+  ".tab",
+  ".filter-button",
+  ".workspace-tab",
+  ".primary-button",
+  ".row-action",
+  ".pipeline-actions button",
+  ".modal-actions button",
+  ".drawer-actions button",
+  ".decision-stack button",
+  ".icon-button",
+  ".user-account",
+].join(",");
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+}
+
+function updatePointerGlow(event) {
+  const target = event.target.closest(glowTargets);
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * 100;
+  const y = ((event.clientY - rect.top) / rect.height) * 100;
+  target.style.setProperty("--mx", `${Math.max(0, Math.min(100, x)).toFixed(1)}%`);
+  target.style.setProperty("--my", `${Math.max(0, Math.min(100, y)).toFixed(1)}%`);
 }
 
 function showView(viewId) {
@@ -853,6 +888,8 @@ document.addEventListener("keydown", (event) => {
     closeModal();
   }
 });
+
+document.addEventListener("pointermove", updatePointerGlow, { passive: true });
 
 document.addEventListener("change", async (event) => {
   const input = event.target.closest("[data-media-upload]");
