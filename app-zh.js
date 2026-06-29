@@ -454,7 +454,8 @@ function renderMedia(sample, issues) {
   sample.videoList.forEach((video) => cards.push(`<div class="review-photo video-thumb"><div class="play">▶</div><span>${esc(video)}</span></div>`));
   (sample.mediaList || []).forEach((media) => {
     const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
-    const preview = !isVideo && media.url ? `<img class="media-preview" src="${esc(media.url)}" alt="${esc(media.label || media.fileName || "样衣照片")}" loading="lazy">` : "";
+    const isImage = media.mimeType?.startsWith("image/");
+    const preview = isImage && media.url ? `<img class="media-preview" src="${esc(media.url)}" alt="${esc(media.label || media.fileName || "样衣照片")}" loading="lazy">` : "";
     cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}">${preview}${isVideo ? `<div class="play">▶</div>` : ""}<input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签，例如正面、反面、拉链"><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3，标签可编辑</em></div>`);
   });
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
