@@ -219,7 +219,7 @@ function renderStyleWorkspace() {
     return;
   }
   if (header) {
-    header.innerHTML = `<div><div class="eyebrow">款式 ${esc(style.styleNo)} / ${esc(style.brand)} / ${esc(style.season)}</div><h2>${esc(style.styleName)}</h2></div><div class="header-badges"><span class="status ${statusClass(summary.shipmentStatus.key)}">${esc(summary.shipmentStatus.label)}</span><span class="status neutral">${esc(os.phaseLabels[style.samplePhase])}</span><span class="status neutral">位置：${esc(sample.location)}</span><span class="status neutral">路线：${esc(os.data.routeRules[style.route].label)}</span><span class="status neutral">评审负责人：${esc(gateOwner.name)}</span><span class="status neutral">例外放行：${esc(finalApprover.name)}</span></div>`;
+    header.innerHTML = `<div><div class="eyebrow">款式 ${esc(style.styleNo)} / ${esc(style.brand)} / ${esc(style.season)}</div><h2>${esc(style.styleName)}</h2></div><div class="header-badges"><span class="status ${statusClass(summary.shipmentStatus.key)}">${esc(summary.shipmentStatus.label)}</span><span class="status neutral">${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)}</span><span class="status neutral">位置：${esc(sample.location)}</span><span class="status neutral">路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</span><span class="status neutral">评审负责人：${esc(gateOwner.name)}</span><span class="status neutral">例外放行：${esc(finalApprover.name)}</span></div>`;
   }
   const timeline = document.querySelector("#style .timeline-large");
   if (timeline) {
@@ -548,7 +548,7 @@ function renderStyleDrawer(styleId, mode = "details") {
   body.innerHTML = `
     <div class="drawer-summary-card">
       <div><span>品牌 / 季节</span><strong>${esc(style.brand)} · ${esc(style.season)}</strong></div>
-      <div><span>阶段 / 路线</span><strong>${esc(os.phaseLabels[style.samplePhase])} · ${esc(os.data.routeRules[style.route].label)}</strong></div>
+      <div><span>阶段 / 路线</span><strong>${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</strong></div>
       <div><span>当前 Gate</span><strong>${esc(os.gateLabels[style.currentGate])}</strong></div>
       <div><span>当前责任人</span><strong>${esc(summary.ownerNames)}</strong></div>
       <div><span>样衣位置</span><strong>${esc(sample?.location || style.sampleLocation)}</strong></div>
@@ -712,70 +712,32 @@ function handleWorkerSubmit(form) {
   });
 }
 
-function handleStyleSubmit(form) {
+async function handleStyleSubmit(form) {
   const fields = form.elements;
-  const timestamp = Date.now();
-  const styleId = `style_${timestamp}`;
-  const sampleId = `sample_${timestamp}`;
-  const reviewId = `review_${timestamp}`;
   const locationOption = os.data.sampleLocationOptions.find((item) => item.id === fields.sampleLocation.value);
   const route = fields.route.value;
   const phase = fields.samplePhase.value;
-  const owners = route === "bonding_xinchangjiang"
-    ? [fields.businessOwner.value, fields.bondingOwner.value, fields.xcjDispatcher.value]
-    : [fields.businessOwner.value, fields.normalDispatcher.value, fields.prepOwner.value];
-  os.data.styleList.unshift({
-    id: styleId,
+  const payload = {
     styleNo: fields.styleNo.value.trim(),
     brand: fields.brand.value,
     season: fields.season.value,
     styleName: fields.styleName.value.trim(),
     category: fields.category.value,
     route,
-    currentGate: "preparation_gate",
     samplePhase: phase,
     sampleLocation: locationOption?.label || "样衣间",
-    currentOwner: owners,
-    gateOwner: fields.prepOwner.value,
-    finalApprover: fields.finalApprover.value,
     plannedShipDate: fields.plannedShipDate.value,
-    riskStatus: fields.highRisk.checked ? "approaching_due" : "normal",
-    nextAction: "准备材料齐套后由王部长确认",
-    blockerSummary: "准备闸口未完成",
-    quantity: Number(fields.quantity.value || 1),
-  });
-  os.data.samples.push({
-    id: sampleId,
-    styleId,
-    samplePhase: phase,
     versionName: os.phaseLabels[phase],
-    status: "preparation_blocked",
-    location: locationOption?.label || "样衣间",
-    holder: os.userName(fields.businessOwner.value),
-    createdAt: "2026-06-29 10:00",
-    updatedAt: "2026-06-29 10:00",
-    imageList: [],
-    videoList: [],
-    mediaList: [],
-    reviewId,
-    plannedShipDate: fields.plannedShipDate.value,
-  });
-  os.data.reviews.push({
-    id: reviewId,
-    styleId,
-    sampleId,
-    reviewNo: `SR-${fields.styleNo.value.trim() || timestamp}`,
-    status: "not_started",
-    gateOwner: fields.reviewOwner.value,
-    finalApprover: fields.finalApprover.value,
-    issueIds: [],
-    finalDecision: "none",
-    exceptionRequest: null,
-    timeline: [{ time: "现在", type: "black", text: "系统 · 新建开发任务并同步到样衣日历" }],
-    departmentReviews: [],
-  });
-  os.data.currentStyleId = styleId;
-  os.data.currentReviewId = reviewId;
+    highRisk: fields.highRisk.checked,
+    quantity: Number(fields.quantity.value || 1),
+  };
+  if (!window.SampleOSBackend?.syncData) throw new Error("后端同步接口未加载");
+  const response = await window.SampleOSBackend.syncData("createStyle", payload);
+  await loadBackendSnapshot();
+  os.data.currentStyleId = response.result.styleId;
+  os.data.currentReviewId = response.result.reviewId;
+  renderAll();
+  showToast("新建款式已同步到 Supabase 和样衣日历");
 }
 
 function updateRouteHint(locationId) {
@@ -1024,17 +986,21 @@ document.addEventListener("change", (event) => {
   }
 });
 
-document.addEventListener("submit", (event) => {
+document.addEventListener("submit", async (event) => {
   const form = event.target.closest("[data-modal-form]");
   if (!form) return;
   event.preventDefault();
   const type = form.dataset.modalForm;
-  if (type === "person") handlePersonSubmit(form);
-  if (type === "worker") handleWorkerSubmit(form);
-  if (type === "style") handleStyleSubmit(form);
-  renderAll();
-  closeModal();
-  if (type === "style") showView("pipeline");
+  try {
+    if (type === "person") handlePersonSubmit(form);
+    if (type === "worker") handleWorkerSubmit(form);
+    if (type === "style") await handleStyleSubmit(form);
+    renderAll();
+    closeModal();
+    if (type === "style") showView("pipeline");
+  } catch (error) {
+    showToast(`保存失败：${error.message}`);
+  }
 });
 
 closeDrawer?.addEventListener("click", () => {

@@ -166,6 +166,88 @@ async function createIssue(supabase, orgId, body) {
   return { issueId: data.id };
 }
 
+async function createStyle(supabase, orgId, body) {
+  const styleNo = String(body.styleNo || "").trim();
+  const styleName = String(body.styleName || "").trim();
+  if (!styleNo || !styleName) throw new Error("styleNo and styleName are required");
+
+  const samplePhase = body.samplePhase || "first_sample";
+  const plannedShipDate = body.plannedShipDate || null;
+  const now = new Date().toISOString();
+
+  const { data: style, error: styleError } = await supabase
+    .from("styles")
+    .insert({
+      org_id: orgId,
+      external_ref: `style_${styleNo}_${Date.now()}`,
+      style_no: styleNo,
+      brand: body.brand || "未指定品牌",
+      season: body.season || "",
+      style_name: styleName,
+      category: body.category || "",
+      route: body.route || "normal",
+      current_gate: "preparation_gate",
+      sample_phase: samplePhase,
+      risk_status: body.highRisk ? "approaching_due" : "normal",
+      planned_ship_date: plannedShipDate,
+      next_action: "准备材料齐套后由负责人确认",
+      blocker_summary: "准备闸口未完成",
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+  if (styleError) throw styleError;
+
+  const { data: sample, error: sampleError } = await supabase
+    .from("samples")
+    .insert({
+      org_id: orgId,
+      external_ref: `sample_${styleNo}_${Date.now()}`,
+      style_id: style.id,
+      sample_phase: samplePhase,
+      version_name: body.versionName || "一次样",
+      status: "preparation_blocked",
+      location: body.sampleLocation || "未设置",
+      planned_ship_date: plannedShipDate,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+  if (sampleError) throw sampleError;
+
+  const { data: review, error: reviewError } = await supabase
+    .from("reviews")
+    .insert({
+      org_id: orgId,
+      external_ref: `review_${styleNo}_${Date.now()}`,
+      style_id: style.id,
+      sample_id: sample.id,
+      review_no: `SR-${styleNo}`,
+      status: "not_started",
+      final_decision: "none",
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+  if (reviewError) throw reviewError;
+
+  return { styleId: style.id, sampleId: sample.id, reviewId: review.id };
+}
+
+async function deleteStyle(supabase, orgId, body) {
+  if (!body.styleId) throw new Error("styleId is required");
+  const { error } = await supabase
+    .from("styles")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("id", body.styleId);
+  if (error) throw error;
+  return { styleId: body.styleId };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -185,6 +267,8 @@ export default async function handler(req, res) {
       reviewDecision: updateReviewDecision,
       issueStatus: updateIssueStatus,
       createIssue,
+      createStyle,
+      deleteStyle,
     };
     const action = handlers[body.action];
     if (!action) return json(res, 400, { error: "Unknown sync action" });
