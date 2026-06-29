@@ -45,7 +45,7 @@ function ensureAdminActions() {
   wrapper.innerHTML = `
     <button class="row-action admin-only" type="button">+ 新增人员</button>
     <button class="row-action admin-only" type="button">+ 新增打样工人</button>
-    <button class="row-action admin-only" type="button">保存草稿</button>
+    <button class="row-action admin-only" type="button">保存配置</button>
   `;
   topActions?.insertBefore(wrapper, topPrimaryButton);
 }
@@ -74,7 +74,7 @@ function avatar(userId) {
 function statusClass(key) {
   if (["blocked", "hold_shipment", "overdue", "critical"].includes(key)) return "red";
   if (["waiting_exception", "gate_owner_decision", "approaching_due", "normal"].includes(key)) return "amber";
-  if (["can_ship", "can_ship_with_record", "shipped", "completed"].includes(key)) return "green";
+  if (["can_ship", "can_ship_with_record", "shipped", "completed", "exception_released"].includes(key)) return "green";
   return "blue";
 }
 
@@ -246,8 +246,8 @@ function renderCalendar() {
     groups[date].push(os.getStyleSummary(style.id));
   });
   grid.innerHTML = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => `<div class="calendar-day ${date <= "2026-06-28" ? "urgent" : ""}"><strong>${date.slice(5)} ${date === "2026-06-28" ? "今天" : ""}</strong>${items.map(({ style, sample, openIssues, blockingIssues, calendarRisk }) => `<div class="calendar-item" title="点击进入单款详情" data-style-drawer="details" data-style-id="${style.id}"><span class="brand-dot salomon"></span><div><b>${esc(style.brand)} ${esc(style.styleNo)}</b><small>${esc(os.phaseLabels[style.samplePhase])} · ${style.quantity || sample?.imageList.length || 1} 件 · ${esc(sample?.location || style.sampleLocation)}</small><em>状态：${esc(os.riskLabels[calendarRisk])} · 原因：${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : openIssues.length ? `${openIssues.length} 个待处理问题` : "无阻塞"}</em></div></div>`).join("")}</div>`).join("");
-  const riskOrder = { blocked: 1, overdue: 1, waiting_exception: 2, approaching_due: 3, normal: 4, shipped: 5 };
-  riskList.innerHTML = os.data.styleList.map((style) => os.getStyleSummary(style.id)).sort((a, b) => (riskOrder[a.calendarRisk] || 9) - (riskOrder[b.calendarRisk] || 9)).map(({ style, calendarRisk, blockingIssues, nextAction, ownerNames }) => `<div class="risk-row ${calendarRisk === "blocked" || calendarRisk === "overdue" ? "danger" : calendarRisk === "waiting_exception" ? "warning" : calendarRisk === "normal" ? "neutral" : "info"}"><strong>${esc(style.brand)} ${esc(style.styleNo)}</strong><span>${esc(os.riskLabels[calendarRisk])} · ${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : nextAction} · 当前责任：${esc(ownerNames)}</span></div>`).join("");
+  const riskOrder = { blocked: 1, overdue: 1, waiting_exception: 2, approaching_due: 3, normal: 4, exception_released: 5, shipped: 6 };
+  riskList.innerHTML = os.data.styleList.map((style) => os.getStyleSummary(style.id)).sort((a, b) => (riskOrder[a.calendarRisk] || 9) - (riskOrder[b.calendarRisk] || 9)).map(({ style, calendarRisk, blockingIssues, nextAction, ownerNames }) => `<div class="risk-row ${calendarRisk === "blocked" || calendarRisk === "overdue" ? "danger" : calendarRisk === "waiting_exception" ? "warning" : calendarRisk === "normal" ? "neutral" : calendarRisk === "exception_released" || calendarRisk === "shipped" ? "success" : "info"}"><strong>${esc(style.brand)} ${esc(style.styleNo)}</strong><span>${esc(os.riskLabels[calendarRisk])} · ${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : nextAction} · 当前责任：${esc(ownerNames)}</span></div>`).join("");
 }
 
 function renderSettings() {

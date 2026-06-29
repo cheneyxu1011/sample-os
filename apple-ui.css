@@ -3793,6 +3793,10 @@ body.apple-ui {
   border-left-color: var(--blue);
 }
 
+.apple-ui .risk-row.success {
+  border-left-color: var(--green);
+}
+
 .apple-ui .risk-row.neutral {
   border-left-color: #c7c7cc;
 }

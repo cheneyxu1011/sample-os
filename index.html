@@ -3,55 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sample OS</title>
+    <title>样衣系统苹果风格原型</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="apple-ui.css" />
   </head>
-  <body>
+  <body class="apple-ui">
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand-block">
-          <div class="brand-mark">WY</div>
+          <div class="brand-mark">万</div>
           <div>
-            <div class="brand-name">WANYU</div>
-            <div class="brand-sub">Factory OS</div>
+            <div class="brand-name">万誉</div>
+            <div class="brand-sub">工厂系统</div>
           </div>
         </div>
 
         <nav class="side-nav" aria-label="Main navigation">
           <button class="nav-item active" data-view="pipeline" type="button">
             <span class="nav-icon">▦</span>
-            Development
-          </button>
-          <button class="nav-item" data-view="style" type="button">
-            <span class="nav-icon">◎</span>
-            Style Workspace
+            开发流水线
           </button>
           <button class="nav-item" data-view="review" type="button">
             <span class="nav-icon">□</span>
-            Sample Review
+            样衣评审
           </button>
-          <button class="nav-item" data-view="handoff" type="button">
+          <button class="nav-item" data-view="calendar" type="button">
+            <span class="nav-icon">◷</span>
+            样衣日历
+          </button>
+          <button class="nav-item settings-entry" data-view="settings" type="button">
+            <span class="nav-icon">⚙</span>
+            设置
+          </button>
+          <button class="nav-item muted disabled" type="button" aria-disabled="true">
             <span class="nav-icon">↗</span>
-            Bulk Handoff
+            转大货交接
           </button>
-          <button class="nav-item muted" data-view="inbox" type="button">
+          <button class="nav-item muted disabled" type="button" aria-disabled="true">
             <span class="nav-icon">◇</span>
-            Communication
+            沟通入口
           </button>
         </nav>
 
         <div class="side-panel">
-          <div class="panel-label">Today</div>
+          <div class="panel-label">今日</div>
           <div class="side-metric">
-            <span>Open Issues</span>
+            <span>未关闭问题</span>
             <strong>17</strong>
           </div>
           <div class="side-metric">
-            <span>Blocking</span>
+            <span>阻塞问题</span>
             <strong>4</strong>
           </div>
           <div class="side-metric">
-            <span>Ready for Bulk</span>
+            <span>可转大货</span>
             <strong>2</strong>
           </div>
         </div>
@@ -60,135 +65,213 @@
       <main class="main">
         <header class="topbar">
           <div>
-            <div class="eyebrow">Development OS / Sample OS</div>
-            <h1 id="view-title">Development Pipeline</h1>
+            <div class="eyebrow">开发系统 / 样衣系统</div>
+            <h1 id="view-title">开发流水线</h1>
           </div>
           <div class="top-actions">
             <label class="search">
               <span>⌕</span>
-              <input type="search" placeholder="Search style, brand, owner" />
+              <input type="search" placeholder="搜索款号、品牌、负责人" />
             </label>
-            <button class="icon-button" type="button" title="Notifications">!</button>
-            <button class="primary-button" type="button">+ New Style</button>
+            <div class="language-switch" aria-label="语言选择">
+              <button class="active" type="button">中文</button>
+              <button type="button">日本語</button>
+            </div>
+            <button class="icon-button notify-button" type="button" title="通知中心" aria-label="通知中心">
+              <span aria-hidden="true">⌁</span>
+              <i></i>
+            </button>
+            <button class="user-account" type="button" aria-label="当前账号">
+              <span class="avatar avatar-zhang"></span>
+              <span>
+                <strong>张部长</strong>
+                <small>负责人</small>
+              </span>
+            </button>
+            <button class="primary-button" type="button">+ 新建款式</button>
           </div>
         </header>
 
         <section id="pipeline" class="view active">
           <div class="toolbar">
             <div class="tabs">
-              <button class="tab active" type="button">All</button>
-              <button class="tab" type="button">Salomon</button>
-              <button class="tab" type="button">Supreme</button>
-              <button class="tab" type="button">Descente</button>
-              <button class="tab" type="button">NB</button>
-              <button class="tab" type="button">Theory</button>
+              <button class="tab active" type="button">全部</button>
+              <button class="tab" type="button">萨洛蒙</button>
+              <button class="tab" type="button">SUPREME</button>
+              <button class="tab" type="button">迪桑特</button>
             </div>
             <div class="filter-row">
-              <button class="filter-button" type="button">Reviewing</button>
-              <button class="filter-button" type="button">Blocked</button>
-              <button class="filter-button" type="button">Ready for Bulk</button>
+              <button class="filter-button" type="button">评审中</button>
+              <button class="filter-button" type="button">已阻塞</button>
+              <button class="filter-button" type="button">可转大货</button>
+              <button class="filter-button" type="button">普通路线</button>
+              <button class="filter-button" type="button">压胶 / 新长江</button>
+              <button class="filter-button" type="button">有阻塞问题</button>
+              <button class="filter-button" type="button">待评审负责人</button>
+              <button class="filter-button" type="button">待例外放行人</button>
             </div>
           </div>
 
           <div class="summary-grid">
             <div class="summary-card">
-              <span>Styles in Development</span>
+              <span>开发中款式</span>
               <strong>38</strong>
-              <small>11 in active review</small>
+              <small>11 个正在评审</small>
             </div>
             <div class="summary-card">
-              <span>Samples in Room</span>
+              <span>样衣间样衣</span>
               <strong>24</strong>
-              <small>6 location updates today</small>
+              <small>今日 6 次位置更新</small>
             </div>
             <div class="summary-card">
-              <span>Pending Decisions</span>
+              <span>待负责人决策</span>
               <strong>7</strong>
-              <small>3 waiting for 张部长</small>
+              <small>3 个等待张部长确认</small>
             </div>
             <div class="summary-card alert">
-              <span>Blocking Issues</span>
+              <span>阻塞问题</span>
               <strong>4</strong>
-              <small>2 block shipment</small>
+              <small>2 个影响寄样</small>
+            </div>
+            <div class="summary-card exception">
+              <span>待例外放行</span>
+              <strong>3</strong>
+              <small>客户会议或交期风险</small>
             </div>
           </div>
 
           <div class="table-shell">
             <div class="table-header">
-              <h2>Development Pipeline</h2>
-              <span>Style lifecycle from proto to bulk handoff</span>
+              <h2>开发流水线</h2>
+              <span>从收到样衣、前期准备到 品质样确认的开发生命周期</span>
             </div>
             <div class="pipeline-table">
               <div class="row head">
-                <div>Style</div>
-                <div>Brand</div>
-                <div>Stage</div>
-                <div>Status</div>
-                <div>Pipeline</div>
-                <div>Issues</div>
-                <div>Location</div>
-                <div>Next Action</div>
+                <div>款式</div>
+                <div>当前闸口</div>
+                <div>开发闸口</div>
+                <div>卡点与下一步</div>
               </div>
-              <button class="row data-row" data-view="style" type="button">
+              <div class="row data-row" data-style-drawer="details" data-style-id="style_212" role="button" tabindex="0">
                 <div>
                   <strong>212</strong>
-                  <span>Alpine shell jacket</span>
+                  <span>户外冲锋衣 · 萨洛蒙 SS27</span>
                 </div>
-                <div>Salomon<br /><span>SS27</span></div>
-                <div>2nd Proto</div>
-                <div><span class="status blue">Reviewing</span></div>
-                <div class="stage-line" aria-label="1st Proto done, 2nd Proto active, SMS waiting, PPS waiting, TOP waiting">
-                  <span class="done">1P</span><span class="active">2P</span><span>SMS</span><span>PPS</span><span>TOP</span>
+                <div class="stage-status">
+                  <strong>样衣评审闸口</strong>
+                  <span class="status blue">评审中</span>
+                  <small>路线：普通打样</small>
                 </div>
-                <div><strong>6</strong><span>2 blocker</span></div>
-                <div>Sample Room</div>
-                <div>QC decision</div>
-              </button>
-              <button class="row data-row" data-view="review" type="button">
+                <div class="stage-line gate-flow" aria-label="准备闸口完成，打样执行完成，样衣评审进行中，寄样决策等待">
+                  <div class="prep-gate-wrap">
+                    <details class="prep-gate done">
+                      <summary><span>准备</span></summary>
+                      <div class="prep-detail-grid" aria-label="准备材料状态">
+                        <b class="ok">版子</b><b class="ok">面料</b><b class="warn">辅料</b><b class="ok">样衣</b>
+                      </div>
+                    </details>
+                    <small>辅料待确认</small>
+                  </div>
+                  <span class="done">打样</span><span class="active">评审</span><span>决策</span>
+                </div>
+                <div class="block-summary">
+                  <strong>卡点：2 个问题阻止寄样</strong>
+                  <span>责任：品质部赵经理 / 工艺部张部长</span>
+                  <span>评审负责人：大前</span>
+                  <span>阻塞问题：是 · 2 个</span>
+                  <span>下一步：评审负责人确认问题责任人与复验要求</span>
+                </div>
+              </div>
+              <div class="row data-row" data-view="review" role="button" tabindex="0">
                 <div>
                   <strong>305</strong>
-                  <span>Graphic fleece</span>
+                  <span>印花抓绒 · SUPREME FW26</span>
                 </div>
-                <div>Supreme<br /><span>FW26</span></div>
-                <div>SMS</div>
-                <div><span class="status amber">Modify</span></div>
-                <div class="stage-line">
-                  <span class="done">1P</span><span class="done">2P</span><span class="active">SMS</span><span>PPS</span><span>TOP</span>
+                <div class="stage-status">
+                  <strong>寄样决策</strong>
+                  <span class="status amber">待放行</span>
+                  <small>路线：压胶 / 新长江</small>
                 </div>
-                <div><strong>3</strong><span>0 blocker</span></div>
-                <div>Business</div>
-                <div>Pattern revise</div>
-              </button>
-              <button class="row data-row" data-view="review" type="button">
+                <div class="stage-line gate-flow">
+                  <div class="prep-gate-wrap">
+                    <details class="prep-gate done">
+                      <summary><span>准备</span></summary>
+                      <div class="prep-detail-grid" aria-label="准备材料状态">
+                        <b class="ok">版子</b><b class="ok">面料</b><b class="ok">辅料</b><b class="ok">样衣</b>
+                      </div>
+                    </details>
+                    <small>准备齐全</small>
+                  </div>
+                  <span class="done">打样</span><span class="done">评审</span><span class="active">决策</span>
+                </div>
+                <div class="block-summary">
+                  <strong>卡点：重大问题等待例外放行</strong>
+                  <span>责任：业务顾永宏</span>
+                  <span>评审负责人：大前 · 例外放行人：杨总</span>
+                  <span>阻塞问题：是 · 等待例外放行</span>
+                  <span>下一步：提交风险说明并等待审批</span>
+                </div>
+              </div>
+              <div class="row data-row" data-view="review" role="button" tabindex="0">
                 <div>
                   <strong>395</strong>
-                  <span>Trail vest</span>
+                  <span>越野背心 · 萨洛蒙 SS27</span>
                 </div>
-                <div>NB<br /><span>SS27</span></div>
-                <div>2nd Proto</div>
-                <div><span class="status red">Blocked</span></div>
-                <div class="stage-line">
-                  <span class="done">1P</span><span class="blocked">2P</span><span>SMS</span><span>PPS</span><span>TOP</span>
+                <div class="stage-status">
+                  <strong>准备闸口</strong>
+                  <span class="status red">阻塞</span>
+                  <small>路线：普通打样</small>
                 </div>
-                <div><strong>8</strong><span>2 blocker</span></div>
-                <div>Factory</div>
-                <div>Construction review</div>
-              </button>
-              <button class="row data-row" data-view="handoff" type="button">
+                <div class="stage-line gate-flow">
+                  <div class="prep-gate-wrap blocked">
+                    <details class="prep-gate blocked">
+                      <summary><span>准备</span></summary>
+                      <div class="prep-detail-grid" aria-label="准备材料状态">
+                        <b class="warn">版子</b><b class="ok">面料</b><b class="warn">辅料</b><b class="ok">样衣</b>
+                      </div>
+                    </details>
+                    <small>版子 / 辅料卡住</small>
+                  </div>
+                  <span>打样</span><span>评审</span><span>决策</span>
+                </div>
+                <div class="block-summary">
+                  <strong>卡点：面料未到 / 辅料未齐</strong>
+                  <span>责任：李卫红 / 大红 / 王部长</span>
+                  <span>闸口负责人：王部长</span>
+                  <span>阻塞问题：否 · 准备资料阻塞</span>
+                  <span>下一步：补齐准备资料后由王部长确认</span>
+                </div>
+              </div>
+              <div class="row data-row disabled-row" aria-disabled="true">
                 <div>
                   <strong>418</strong>
-                  <span>Urban rain coat</span>
+                  <span>城市雨衣 · 迪桑特 FW26</span>
                 </div>
-                <div>Descente<br /><span>FW26</span></div>
-                <div>TOP</div>
-                <div><span class="status green">Ready</span></div>
-                <div class="stage-line">
-                  <span class="done">1P</span><span class="done">2P</span><span class="done">SMS</span><span class="done">PPS</span><span class="active">TOP</span>
+                <div class="stage-status">
+                  <strong>寄样决策</strong>
+                  <span class="status green">可寄样</span>
+                  <small>路线：普通打样</small>
                 </div>
-                <div><strong>0</strong><span>clear</span></div>
-                <div>Office</div>
-                <div>Bulk handoff</div>
-              </button>
+                <div class="stage-line gate-flow">
+                  <div class="prep-gate-wrap">
+                    <details class="prep-gate done">
+                      <summary><span>准备</span></summary>
+                      <div class="prep-detail-grid" aria-label="准备材料状态">
+                        <b class="ok">版子</b><b class="ok">面料</b><b class="ok">辅料</b><b class="ok">样衣</b>
+                      </div>
+                    </details>
+                    <small>准备齐全</small>
+                  </div>
+                  <span class="done">打样</span><span class="done">评审</span><span class="done">决策</span>
+                </div>
+                <div class="block-summary">
+                  <strong>卡点：无阻塞问题</strong>
+                  <span>责任：评审负责人已放行</span>
+                  <span>评审负责人：大前</span>
+                  <span>阻塞问题：否</span>
+                  <span>下一步：业务确认寄样记录</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -196,60 +279,71 @@
         <section id="style" class="view">
           <div class="style-header">
             <div>
-              <div class="eyebrow">Style 212 / Salomon / SS27</div>
-              <h2>Alpine Shell Jacket</h2>
+              <div class="eyebrow">款式 212 / 萨洛蒙 / SS27</div>
+              <h2>户外冲锋衣</h2>
             </div>
             <div class="header-badges">
-              <span class="status blue">Reviewing</span>
-              <span class="status neutral">2nd Proto</span>
-              <span class="status neutral">Location: Sample Room</span>
+              <span class="status blue">评审中</span>
+              <span class="status neutral">二次样</span>
+              <span class="status neutral">位置：样衣间</span>
+              <span class="status neutral">路线：普通</span>
+              <span class="status neutral">评审负责人：大前</span>
+              <span class="status neutral">例外放行：杨总</span>
             </div>
           </div>
 
           <div class="workspace-tabs">
-            <button class="workspace-tab" type="button">Customer</button>
-            <button class="workspace-tab active" type="button">Sample</button>
-            <button class="workspace-tab" type="button">Production</button>
+            <button class="workspace-tab" type="button">客户</button>
+            <button class="workspace-tab active" type="button">样衣</button>
+            <button class="workspace-tab disabled" type="button" aria-disabled="true">生产 <small>转大货后开放</small></button>
           </div>
 
           <div class="two-column">
             <div class="section-block">
               <div class="section-title">
-                <h2>Development Timeline</h2>
-                <span>Style lifecycle</span>
+                <h2>开发时间线</h2>
+                <span>从收到样衣开始，到 品质样确认结束</span>
               </div>
               <div class="timeline-large">
                 <div class="timeline-item complete">
-                  <strong>1st Proto</strong>
-                  <span>Approved / 2026-06-18</span>
+                  <strong>收到样衣 / 资料</strong>
+                  <span>闸口：资料接收完成 · 2026-06-16 10:30 · 业务顾瑶登记</span>
+                </div>
+                <div class="timeline-item complete">
+                  <strong>前期准备</strong>
+                  <span>闸口：准备闸口 · 版子/面料/样衣完成，辅料待确认 · 责任：大红 / 王部长</span>
+                </div>
+                <div class="timeline-item complete">
+                  <strong>一次样</strong>
+                  <span>闸口：已通过 · 2026-06-18 · 无阻塞问题</span>
                 </div>
                 <div class="timeline-item current">
-                  <strong>2nd Proto</strong>
-                  <span>Reviewing / 6 open issues</span>
+                  <strong>二次样</strong>
+                  <span>闸口：样衣评审中 · 6 个未关闭问题 / 2 个阻塞问题 · 评审负责人：大前 · 当前动作：等待品质复验</span>
                 </div>
                 <div class="timeline-item">
-                  <strong>SMS</strong>
-                  <span>Waiting</span>
+                  <strong>三次样</strong>
+                  <span>等待中</span>
                 </div>
                 <div class="timeline-item">
-                  <strong>PPS</strong>
-                  <span>Not started</span>
+                  <strong>销售样</strong>
+                  <span>未开始</span>
                 </div>
                 <div class="timeline-item">
-                  <strong>TOP</strong>
-                  <span>Not started</span>
+                  <strong>产前样</strong>
+                  <span>未开始</span>
                 </div>
                 <div class="timeline-item">
-                  <strong>Bulk</strong>
-                  <span>Not ready</span>
+                  <strong>品质样</strong>
+                  <span>未就绪</span>
                 </div>
               </div>
             </div>
 
             <div class="section-block">
               <div class="section-title">
-                <h2>Active Review</h2>
-                <span>Current action</span>
+                <h2>当前评审</h2>
+                <span>当前动作</span>
               </div>
               <div class="review-snapshot">
                 <div class="sample-visual">
@@ -258,159 +352,829 @@
                   </div>
                 </div>
                 <div class="snapshot-content">
-                  <h3>2nd Proto Review</h3>
-                  <p>Cross-department review is open. QC and Pattern have blocking items before sample shipment.</p>
-                  <div class="mini-stats">
-                    <span><strong>6</strong> Open</span>
-                    <span><strong>2</strong> Blocker</span>
-                    <span><strong>5</strong> Dept.</span>
+                  <h3>二次样评审</h3>
+                  <p>跨部门评审正在进行。品质和版师还有阻塞问题，寄样前必须处理。</p>
+                  <div class="snapshot-gate">
+                    <span>当前不可寄样</span>
+                    <strong>原因：2 个阻塞问题 · 责任：赵经理 / 张部长 · 下一步：复验后大前确认</strong>
                   </div>
-                  <button class="primary-button" data-view="review" type="button">Open Review</button>
+                  <div class="mini-stats">
+                    <span><strong>6</strong> 未关闭</span>
+                    <span><strong>2</strong> 阻塞</span>
+                    <span><strong>5</strong> 部门</span>
+                  </div>
+                  <button class="primary-button" data-view="review" type="button">打开评审</button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block prep-inline">
+            <div class="section-title">
+              <h2>前期准备材料</h2>
+              <span>版子、样衣、面料、辅料并行准备，齐了才开始一次样</span>
+            </div>
+            <div class="parallel-materials">
+              <div class="material-card done checklist-card">
+                <strong>版子</strong>
+                <span>完成 · 徐海燕 · 2026-06-17</span>
+                <small>主版已齐，口袋小片待复核。</small>
+              </div>
+              <div class="material-card done checklist-card">
+                <strong>样衣</strong>
+                <span>完成 · 顾瑶 · 2026-06-16</span>
+                <small>客户原样已收到。</small>
+              </div>
+              <div class="material-card done checklist-card">
+                <strong>面料</strong>
+                <span>完成 · 李卫红 · 2026-06-17</span>
+                <small>主面料已确认，批次记录已留存。</small>
+              </div>
+              <div class="material-card waiting checklist-card">
+                <strong>辅料</strong>
+                <span>未齐 · 大红 · 阻塞</span>
+                <small>拉链色号等待客户确认；资料确认待王部长放行。</small>
+              </div>
+              <div class="material-card waiting checklist-card">
+                <strong>资料确认</strong>
+                <span>待确认 · 王部长 · 阻塞</span>
+                <small>版子、面料、辅料、原样齐套后推进打样。</small>
               </div>
             </div>
           </div>
         </section>
 
         <section id="review" class="view">
-          <div class="review-layout">
-            <div class="review-main">
-              <div class="style-header compact">
+          <div class="review-dashboard">
+            <div class="review-hero">
+              <div class="hero-garment">
+                <div class="garment front"></div>
+              </div>
+              <div class="hero-info">
+                <div class="crumb">首页 / 样衣评审 / SW4SS27-002</div>
+                <div class="hero-title">
+                  <h2>SW4SS27-002</h2>
+                  <span class="status blue">二次样</span>
+                </div>
+                <div class="hero-meta">
+                  <span>品牌：SUPREME</span>
+                  <span>季节：SS27</span>
+                  <span>款式：夹克</span>
+                  <span>颜色：04 灰</span>
+                  <span>阶段：二次样</span>
+                  <span>面料：尼龙 100%</span>
+                  <span>路线：压胶 / 新长江</span>
+                  <span>评审负责人：王部长</span>
+                  <span>创建人：开发部 李师傅</span>
+                  <span>创建时间：2026-06-28 10:30</span>
+                  <span>预计寄样：2026-06-30</span>
+                </div>
+              </div>
+              <div class="review-process">
+                <div class="process-step done"><b>✓</b><span>样衣完成</span><small>10:30</small></div>
+                <div class="process-line active"></div>
+                <div class="process-step active"><b>●</b><span>部门评审</span><small>11:15</small></div>
+                <div class="process-line"></div>
+                <div class="process-step"><b>○</b><span>问题归属</span><small>等待</small></div>
+                <div class="process-line"></div>
+                <div class="process-step"><b>○</b><span>整改复验</span><small>等待</small></div>
+                <div class="process-line"></div>
+                <div class="process-step"><b>○</b><span>寄样决策</span><small>等待</small></div>
+              </div>
+              <div class="location-card">
+                <span>样衣位置</span>
+                <strong>开发车间</strong>
+                <small>更新时间：06-28 11:10</small>
+                <button class="row-action" type="button">位置记录</button>
+              </div>
+            </div>
+
+            <div class="review-control-strip">
+              <div class="strip-main">
                 <div>
-                  <div class="eyebrow">Style 212 / Salomon / SS27 / 2nd Proto</div>
-                  <h2>Sample Review</h2>
+                  <span>当前是否可寄样</span>
+                  <strong>当前不可寄样</strong>
                 </div>
-                <div class="header-badges">
-                  <span class="status blue">Reviewing</span>
-                  <span class="status red">2 Blockers</span>
+                <div>
+                  <span>不可寄样原因</span>
+                  <strong>2 个阻塞问题：领口起皱 / 压胶剥离风险</strong>
+                </div>
+                <div class="blocking-alert">
+                  <span>责任人与下一步</span>
+                  <strong>赵经理 / 张部长复验后，由大前确认</strong>
                 </div>
               </div>
-
-              <div class="info-grid">
-                <div><span>Sample No.</span><strong>S-212-P2</strong></div>
-                <div><span>Created</span><strong>2026/06/28</strong></div>
-                <div><span>Size</span><strong>M</strong></div>
-                <div><span>Color</span><strong>Black</strong></div>
-                <div><span>Decision Owner</span><strong>张部长</strong></div>
-                <div><span>Location</span><strong>Sample Room</strong></div>
+              <div class="quality-gate-panel compact">
+                <div class="gate-step done"><span>1</span><strong>样衣完成</strong><small>打样上传</small></div>
+                <div class="gate-step active"><span>2</span><strong>部门评审</strong><small>意见独立</small></div>
+                <div class="gate-step warning"><span>3</span><strong>问题归属</strong><small>责任到人</small></div>
+                <div class="gate-step warning"><span>4</span><strong>整改复验</strong><small>品质确认</small></div>
+                <div class="gate-step"><span>5</span><strong>寄样决策</strong><small>大前确认</small></div>
               </div>
+            </div>
 
-              <div class="section-block">
+            <div class="review-board">
+              <div class="section-block media-panel">
                 <div class="section-title">
-                  <h2>Photos</h2>
-                  <span>Front, back, sides, details, video</span>
+                  <h2>样衣图片 & 视频 <span class="badge-count">9</span></h2>
+                  <div class="panel-actions">
+                    <button class="row-action primary" type="button">上传照片</button>
+                    <button class="row-action" type="button">上传视频</button>
+                  </div>
                 </div>
-                <div class="media-grid">
-                  <div class="media-card large">
-                    <div class="garment front"></div>
-                    <span>Front</span>
+                <div class="review-media-grid">
+                  <div class="review-photo main"><div class="garment front jacket-render"><i></i></div><span>正面</span></div>
+                  <div class="review-photo"><div class="garment back jacket-render"><i></i></div><span>背面</span></div>
+                  <div class="review-photo part-photo collar has-issue critical"><span>领口 / 帽口</span><em>1 个重大问题</em></div>
+                  <div class="review-photo part-photo cuff has-issue minor"><span>袖口</span><em>1 个轻微问题</em></div>
+                  <div class="review-photo part-photo hem"><span>下摆抽绳</span></div>
+                  <div class="review-photo part-photo tape has-issue critical"><span>压胶缝</span><em>1 个严重问题</em></div>
+                  <div class="review-photo part-photo pocket"><span>口袋</span></div>
+                  <div class="review-photo video-thumb"><div class="play">▶</div><span>整体视频 00:32</span></div>
+                </div>
+              </div>
+
+              <div class="section-block department-panel">
+                <div class="section-title">
+                  <h2>部门评审</h2>
+                  <span>请每位负责人完成后保存</span>
+                </div>
+                <div class="review-table">
+                  <div class="review-table-row head"><span>部门</span><span>角色</span><span>负责人</span><span>状态</span><span>评审意见 / 关注点</span><span>产生问题</span><span>时间</span><span></span></div>
+                  <div class="review-table-row" data-focus="客户需求、TP、物料清单、邮件要求、颜色辅料包装、客户会议和交期">
+                    <strong>业务部</strong><em>业务负责人</em><span><i class="avatar avatar-guyao"></i>顾瑶</span><span class="pill green">通过</span>
+                    <p>颜色、辅料、物料清单 与邮件要求一致。<small>客户需求 · 技术包/物料清单 · 寄样需求</small></p><em class="issue-created none">无</em><time>11:05</time><button>✓</button>
                   </div>
-                  <div class="media-card">
-                    <div class="garment back"></div>
-                    <span>Back</span>
+                  <div class="review-table-row" data-focus="版型、尺寸公差、结构合理性、左右对称、纸样和尺寸表一致性">
+                    <strong>版师</strong><em>版型评审员</em><span><i class="avatar avatar-xu"></i>徐海燕</span><span class="pill green">通过</span>
+                    <p>版型符合要求，尺寸符合公差。<small>版型 · 尺寸 · 纸样一致</small></p><em class="issue-created none">无</em><time>11:08</time><button>✓</button>
                   </div>
-                  <div class="media-card">
-                    <div class="garment side"></div>
-                    <span>Left</span>
+                  <div class="review-table-row" data-focus="外观质量、历史问题复现、关键质量风险、测试需求、是否可以寄样">
+                    <strong>品质部</strong><em>质量评审员</em><span><i class="avatar avatar-zhao"></i>赵经理</span><span class="pill red">不通过</span>
+                    <p>领口起皱，需整改并复验。<small>外观 · 历史问题 · 测试/复验</small></p><em class="issue-created major">1 个重大问题</em><time>11:12</time><button>✎</button>
                   </div>
-                  <div class="media-card">
-                    <div class="garment detail"></div>
-                    <span>Detail</span>
+                  <div class="review-table-row" data-focus="缝制工艺、压胶/无缝稳定性、TP 一致性、量产难点、工艺小样验证">
+                    <strong>工艺部</strong><em>工艺评审员</em><span><i class="avatar avatar-chen"></i>陈工艺</span><span class="pill amber">需要改进</span>
+                    <p>帽子缝合建议双压线，压胶参数需确认。<small>工艺可行 · 压胶稳定 · 技术包一致</small></p><em class="issue-created normal">1 个一般问题</em><time>11:10</time><button>✎</button>
                   </div>
-                  <div class="media-card video">
-                    <div class="play">▶</div>
-                    <span>Video</span>
+                  <div class="review-table-row" data-focus="工序复杂度、工时、瓶颈、模板夹具专机、是否影响大货产能">
+                    <strong>工业工程部</strong><em>工业工程评审员</em><span><i class="avatar avatar-mike"></i>麦克</span><span class="pill green">通过</span>
+                    <p>工序可行，无明显瓶颈。<small>工时 · 瓶颈 · 量产产能</small></p><em class="issue-created none">无</em><time>11:00</time><button>✓</button>
+                  </div>
+                  <div class="review-table-row" data-focus="打样异常、制作困难、资料不清、材料不齐、工艺不明确、是否需要重新派发">
+                    <strong>打样部</strong><em>打样反馈人</em><span><i class="avatar avatar-li"></i>李师傅</span><span class="pill green">通过</span>
+                    <p>制作完成，袖口松紧需复核。<small>打样异常 · 资料清晰 · 制作困难</small></p><em class="issue-created minor">1 个轻微问题</em><time>10:45</time><button>✓</button>
                   </div>
                 </div>
               </div>
 
-              <div class="section-block">
-                <div class="section-title">
-                  <h2>Department Review</h2>
-                  <span>Pass / Improve / Reject</span>
+              <div class="section-block issue-panel">
+                <div class="section-title"><h2>质量闸口问题 <span class="badge-count">4</span></h2><button class="row-action primary" type="button">新增 问题</button></div>
+                <div class="issue-table">
+                  <div class="issue-table-row head"><span>问题</span><span>来源/证据</span><span>等级</span><span>是否阻塞</span><span>负责人</span><span>复验要求</span><span>状态</span></div>
+                  <div class="issue-table-row issue-blocking">
+                    <strong>领口起皱 <small>领口内侧</small></strong><span>品质部 · 图片证据</span>
+                    <b class="priority major">重大</b><span class="shipment no">是</span><span><i class="avatar avatar-zhao"></i>赵经理</span><time>整改后品质复验</time><em>处理中</em>
+                  </div>
+                  <div class="issue-table-row issue-note">
+                    <strong>帽子缝合建议双压线 <small>帽子接缝</small></strong><span>工艺部 · 技术包对照</span>
+                    <b class="priority normal">一般</b><span class="shipment note">否</span><span><i class="avatar avatar-chen"></i>陈工艺</span><time>工艺复核</time><em>待处理</em>
+                  </div>
+                  <div class="issue-table-row">
+                    <strong>袖口松紧不平 <small>左袖口</small></strong><span>打样部 · 视频证据</span>
+                    <b class="priority minor">轻微</b><span class="shipment yes">否</span><span><i class="avatar avatar-li"></i>李师傅</span><time>无需复验</time><em>未开始</em>
+                  </div>
+                  <div class="issue-table-row issue-critical">
+                    <strong>压胶剥离风险未验证 <small>肩缝压胶</small></strong><span>工艺部 · 待测试</span>
+                    <b class="priority critical">严重</b><span class="shipment no">是</span><span><i class="avatar avatar-zhang"></i>张部长</span><time>剥离测试后复验</time><em>待验证</em>
+                  </div>
                 </div>
-                <div class="dept-list">
-                  <div class="dept-row">
-                    <strong>Business</strong>
-                    <span class="pill amber">Improve</span>
-                    <p>Pocket too high. Customer may ask to lower by 1.5 cm.</p>
+              </div>
+
+              <div class="section-block decision-panel">
+                <div class="section-title">
+                  <h2>评审结论</h2>
+                  <span>寄样结论权限：评审负责人 / 例外放行人</span>
+                </div>
+                <div class="gate-owner-card">
+                  <div><i class="avatar avatar-zhao"></i><strong>大前</strong><small>评审负责人，可做普通寄样结论</small></div>
+                  <span class="status red">当前用户无最终放行权限</span>
+                </div>
+                <div class="decision-stack">
+                  <button class="approve disabled" type="button" aria-disabled="true">可以寄样</button>
+                  <button class="revise disabled" type="button" aria-disabled="true">修改后寄样</button>
+                  <button class="hold disabled" type="button" aria-disabled="true">暂停寄样</button>
+                  <button class="exception disabled" type="button" aria-disabled="true">例外放行</button>
+                  <button class="primary-button" type="button">提交评审结论</button>
+                  <small>可以寄样 / 修改后寄样 / 暂停寄样仅评审负责人可操作；例外放行仅杨总可批准。</small>
+                </div>
+                <div class="exception-box exception-form">
+                  <strong>例外放行申请</strong>
+                  <label>例外原因 <span>客户会议 / 交期风险 / 样衣用途</span></label>
+                  <label>风险说明 <span>必填：重大问题带说明寄样，客户需知晓风险。</span></label>
+                  <label>申请人 <span>顾瑶 · 业务负责人</span></label>
+                  <label>审批人 <span>杨总 · 例外放行人</span></label>
+                  <label>是否通知客户 <span>否，待审批后通知</span></label>
+                  <label>审批结论 <span>待审批</span></label>
+                </div>
+              </div>
+
+              <div class="section-block timeline-panel"><div class="section-title"><h2>评审记录时间线</h2></div><div class="vertical-timeline"><div><b>10:30</b><span>李师傅 · 样衣制作完成并上传图片</span></div><div><b>10:45</b><span>系统 · 自动生成 评审任务 SR-002</span></div><div><b>11:00</b><span>工业工程部 · 完成独立评审</span></div><div><b>11:10</b><span>工艺部 · 意见转问题：帽子缝合建议双压线</span></div><div class="danger"><b>11:12</b><span>品质部 · 重大 问题 阻止寄样：领口起皱</span></div><div class="danger"><b>11:18</b><span>工艺部 · 严重 问题：压胶剥离风险需复验</span></div></div></div>
+
+              <div class="section-block version-panel"><div class="section-title"><h2>样衣历史版本</h2><button class="row-action" type="button">新增版本</button></div><div class="version-list"><div><div class="mini-garment"></div><strong>一次样</strong><span>已寄样</span></div><div class="active"><div class="mini-garment"></div><strong>二次样</strong><span>评审中</span></div><div><div class="mini-garment"></div><strong>销售样</strong><span>待制作</span></div><div><div class="mini-garment"></div><strong>产前样</strong><span>待制作</span></div></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="calendar" class="view">
+          <div class="style-header">
+            <div>
+              <div class="eyebrow">样衣日历</div>
+              <h2>样衣交期日历</h2>
+            </div>
+            <div class="header-badges">
+              <span class="status red">今日到期 4</span>
+              <span class="status amber">本周到期 18</span>
+              <span class="status neutral">按品牌 / 日期 / 件数查看</span>
+            </div>
+          </div>
+
+          <div class="calendar-filters">
+            <button class="filter-button" type="button">只看我的款式</button>
+            <button class="filter-button" type="button">只看阻塞寄样</button>
+            <button class="filter-button" type="button">只看本周到期</button>
+            <button class="filter-button" type="button">只看压胶 / 新长江</button>
+            <button class="filter-button" type="button">按品牌筛选</button>
+          </div>
+
+          <div class="calendar-layout">
+            <div class="section-block">
+              <div class="section-title">
+                <h2>本周交期</h2>
+                <span>所有需要交样的品牌、款式、件数</span>
+              </div>
+              <div class="calendar-grid">
+                <div class="calendar-day urgent">
+                  <strong>6/28 今天</strong>
+                  <div class="calendar-item">
+                    <span class="brand-dot salomon"></span>
+                    <div><b>萨洛蒙 212</b><small>二次样 · 2 件 · 样衣间</small><em>状态：阻止寄样 · 原因：品质复验未完成</em></div>
                   </div>
-                  <div class="dept-row">
-                    <strong>Pattern</strong>
-                    <span class="pill amber">Improve</span>
-                    <p>Chest needs +0.5 cm and pocket position needs new pattern mark.</p>
+                  <div class="calendar-item">
+                    <span class="brand-dot supreme"></span>
+                    <div><b>SUPREME 305</b><small>销售样 · 3 件 · 业务</small><em>状态：等待例外放行 · 原因：客户会议临近</em></div>
                   </div>
-                  <div class="dept-row">
-                    <strong>QC</strong>
-                    <span class="pill red">Reject</span>
-                    <p>Loose thread at sleeve opening. Must fix before sending.</p>
+                </div>
+                <div class="calendar-day">
+                  <strong>6/29 周一</strong>
+                  <div class="calendar-item">
+                    <span class="brand-dot nb"></span>
+                    <div><b>萨洛蒙 395</b><small>二次样 · 1 件 · 工厂</small><em>状态：已逾期 · 原因：面料未到</em></div>
                   </div>
-                  <div class="dept-row">
-                    <strong>IE</strong>
-                    <span class="pill amber">Improve</span>
-                    <p>Current pocket construction is low efficiency for bulk.</p>
+                </div>
+                <div class="calendar-day">
+                  <strong>6/30 周二</strong>
+                  <div class="calendar-item">
+                    <span class="brand-dot descente"></span>
+                    <div><b>迪桑特 418</b><small>品质样 · 2 件 · 办公室</small><em>状态：正常 · 原因：无阻塞</em></div>
                   </div>
-                  <div class="dept-row">
-                    <strong>Technique</strong>
-                    <span class="pill green">Pass</span>
-                    <p>No major process issue for this round.</p>
+                  <div class="calendar-item">
+                    <span class="brand-dot theory"></span>
+                    <div><b>SUPREME 512</b><small>一次样 · 1 件 · 打样中</small><em>状态：临近交期 · 原因：待复核</em></div>
+                  </div>
+                </div>
+                <div class="calendar-day quiet">
+                  <strong>7/01 周三</strong>
+                  <div class="calendar-item">
+                    <span class="brand-dot salomon"></span>
+                    <div><b>萨洛蒙 221</b><small>产前样 · 4 件 · 待寄样</small><em>状态：已寄样 · 原因：已放行</em></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <aside class="review-side">
-              <div class="section-block">
-                <div class="section-title">
-                  <h2>Issue List</h2>
-                  <span>Opinion to owner to completed</span>
+            <div class="section-block">
+              <div class="section-title">
+                <h2>交期风险</h2>
+                <span>系统自动按卡点排序</span>
+              </div>
+              <div class="risk-list">
+                <div class="risk-row danger">
+                  <strong>萨洛蒙 395</strong>
+                  <span>红色：已逾期 / 阻止寄样 · 当前卡在李卫红</span>
                 </div>
-                <div class="issue-list">
-                  <button class="issue-row" type="button" data-issue="Pocket too high|Pattern|Major|Open|Business Review|Tomorrow">
-                    <strong>Pocket too high</strong>
-                    <span>Pattern · Major · Tomorrow</span>
-                  </button>
-                  <button class="issue-row blocker" type="button" data-issue="Loose thread at sleeve|QC|Blocker|Open|QC Review|Today">
-                    <strong>Loose thread at sleeve</strong>
-                    <span>QC · Blocker · Today</span>
-                  </button>
-                  <button class="issue-row" type="button" data-issue="Chest needs +0.5 cm|Pattern|Minor|In Progress|Pattern Review|6/30">
-                    <strong>Chest needs +0.5 cm</strong>
-                    <span>Pattern · Minor · 6/30</span>
-                  </button>
-                  <button class="issue-row" type="button" data-issue="Pocket construction inefficient|IE|Major|Open|IE Review|7/01">
-                    <strong>Pocket construction inefficient</strong>
-                    <span>IE · Major · 7/01</span>
-                  </button>
+                <div class="risk-row warning">
+                  <strong>萨洛蒙 212</strong>
+                  <span>橙色：今日到期 / 等待决策 · 品质复验未完成</span>
+                </div>
+                <div class="risk-row info">
+                  <strong>SUPREME 305</strong>
+                  <span>蓝色：待复核 · 等待杨总例外放行</span>
+                </div>
+                <div class="risk-row neutral">
+                  <strong>迪桑特 418</strong>
+                  <span>灰色：普通提醒 · 已寄样记录待补充</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block month-section">
+            <div class="section-title">
+              <h2>7月计划月历</h2>
+              <span>下个月所有品牌交样计划，一格一天</span>
+            </div>
+            <div class="month-toolbar">
+              <button type="button">‹ 6月</button>
+              <strong>2026年 7月</strong>
+              <button type="button">8月 ›</button>
+              <span class="status neutral">蓝 萨洛蒙</span>
+              <span class="status neutral">黑 SUPREME</span>
+              <span class="status neutral">绿 迪桑特</span>
+              <span class="status green">正常</span>
+              <span class="status amber">临近/例外</span>
+              <span class="status red">逾期/阻止</span>
+              <span class="status blue">已寄样</span>
+            </div>
+            <div class="month-calendar">
+              <div class="weekday">周一</div>
+              <div class="weekday">周二</div>
+              <div class="weekday">周三</div>
+              <div class="weekday">周四</div>
+              <div class="weekday">周五</div>
+              <div class="weekday">周六</div>
+              <div class="weekday">周日</div>
+
+              <div class="month-cell muted-date">
+                <b>6/29</b>
+                <span class="month-event nb overdue">萨洛蒙 395 · 已逾期 · 1件</span>
+              </div>
+              <div class="month-cell muted-date">
+                <b>6/30</b>
+                <span class="month-event descente normal">迪桑特 418 · 品质样 · 2件</span>
+                <span class="month-event theory near">SUPREME 512 · 临近交期 · 1件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/01</b>
+                <span class="month-event salomon">萨洛蒙 221 · 产前样 · 4件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/02</b>
+                <span class="month-event supreme exception">SUPREME 305 · 等待例外放行 · 3件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/03</b>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/04</b>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/05</b>
+              </div>
+
+              <div class="month-cell">
+                <b>7/06</b>
+                <span class="month-event salomon blocked">萨洛蒙 212 · 阻止寄样 · 2件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/07</b>
+              </div>
+              <div class="month-cell">
+                <b>7/08</b>
+                <span class="month-event nb">萨洛蒙 395 · 修改样 · 1件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/09</b>
+                <span class="month-event descente">迪桑特 422 · 一次样 · 2件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/10</b>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/11</b>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/12</b>
+              </div>
+
+              <div class="month-cell">
+                <b>7/13</b>
+                <span class="month-event supreme">SUPREME 318 · 销售样 · 4件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/14</b>
+              </div>
+              <div class="month-cell">
+                <b>7/15</b>
+                <span class="month-event salomon">萨洛蒙 230 · 二次样 · 2件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/16</b>
+              </div>
+              <div class="month-cell">
+                <b>7/17</b>
+                <span class="month-event theory">SUPREME 520 · 初样 · 1件</span>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/18</b>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/19</b>
+              </div>
+
+              <div class="month-cell">
+                <b>7/20</b>
+                <span class="month-event descente">迪桑特 418 · 转大货交接</span>
+              </div>
+              <div class="month-cell">
+                <b>7/21</b>
+              </div>
+              <div class="month-cell">
+                <b>7/22</b>
+                <span class="month-event nb">萨洛蒙 401 · 销售样 · 2件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/23</b>
+              </div>
+              <div class="month-cell">
+                <b>7/24</b>
+                <span class="month-event salomon">萨洛蒙 240 · 产前样 · 3件</span>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/25</b>
+              </div>
+              <div class="month-cell weekend">
+                <b>7/26</b>
+              </div>
+
+              <div class="month-cell">
+                <b>7/27</b>
+              </div>
+              <div class="month-cell">
+                <b>7/28</b>
+                <span class="month-event supreme">SUPREME 330 · 品质样 · 2件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/29</b>
+              </div>
+              <div class="month-cell">
+                <b>7/30</b>
+                <span class="month-event descente">迪桑特 430 · 二次样 · 1件</span>
+              </div>
+              <div class="month-cell">
+                <b>7/31</b>
+                <span class="month-event salomon">萨洛蒙 250 · 月底汇总</span>
+              </div>
+              <div class="month-cell muted-date weekend">
+                <b>8/01</b>
+                <span class="month-event nb">萨洛蒙 410 · 下月计划</span>
+              </div>
+              <div class="month-cell muted-date weekend">
+                <b>8/02</b>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="prep" class="view">
+          <div class="style-header">
+            <div>
+              <div class="eyebrow">开发准备</div>
+              <h2>开发准备 / 卡点追踪</h2>
+            </div>
+            <div class="header-badges">
+              <span class="status red">当前卡在品质确认</span>
+              <span class="status amber">总耗时 12 天</span>
+              <span class="status neutral">款式 212</span>
+            </div>
+          </div>
+
+          <div class="prep-grid">
+            <div class="section-block">
+              <div class="section-title">
+                <h2>前期准备</h2>
+                <span>版子、样衣、面料、辅料是否齐全</span>
+              </div>
+              <div class="prep-checks">
+                <div><span class="check ok">✓</span><strong>样衣</strong><small>6/16 10:30 收到客户原样 · 业务李娜</small></div>
+                <div><span class="check warn">!</span><strong>版子</strong><small>主版已齐 · 口袋小片缺确认</small></div>
+                <div><span class="check ok">✓</span><strong>面料</strong><small>主面料已确认 · 颜色黑色</small></div>
+                <div><span class="check warn">!</span><strong>辅料</strong><small>拉链色号等待客户确认</small></div>
+                <div><span class="check ok">✓</span><strong>物料清单</strong><small>18 项物料 · 2 项待确认替代料</small></div>
+              </div>
+            </div>
+
+            <div class="section-block">
+              <div class="section-title">
+                <h2>环节耗时</h2>
+                <span>哪个环节拖久，直接公开</span>
+              </div>
+              <div class="duration-list">
+                <div>
+                  <strong>资料接收</strong>
+                  <span>0.5 天</span>
+                  <meter min="0" max="7" value="0.5"></meter>
+                </div>
+                <div>
+                  <strong>面辅料 / 物料清单 准备</strong>
+                  <span>2 天</span>
+                  <meter min="0" max="7" value="2"></meter>
+                </div>
+                <div class="slow">
+                  <strong>版子确认</strong>
+                  <span>4 天 · 卡版师王工</span>
+                  <meter min="0" max="7" value="4"></meter>
+                </div>
+                <div>
+                  <strong>打样制作</strong>
+                  <span>3 天</span>
+                  <meter min="0" max="7" value="3"></meter>
+                </div>
+                <div class="slow">
+                  <strong>品质确认</strong>
+                  <span>2.5 天 · 卡品质 赵敏</span>
+                  <meter min="0" max="7" value="2.5"></meter>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-title">
+              <h2>公开卡点</h2>
+              <span>当前这件样衣为什么没有往下走</span>
+            </div>
+            <div class="blocker-board">
+              <div class="blocker-card danger">
+                <strong>当前卡点：品质赵敏</strong>
+                <p>袖口线头问题未关闭，今天 17:00 前需要确认是否返修。</p>
+                <span>已停留 2.5 天</span>
+              </div>
+              <div class="blocker-card">
+                <strong>下一个动作：版师复核</strong>
+                <p>如果品质 通过，版师需要复核口袋下移后的纸样。</p>
+                <span>负责人：王工</span>
+              </div>
+              <div class="blocker-card">
+                <strong>交样风险：中</strong>
+                <p>6/30 前仍可寄样，但如果今天不关闭品质 问题会转为高风险。</p>
+                <span>影响：萨洛蒙 212 二次样</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="settings" class="view">
+          <div class="settings-page">
+            <div class="style-header">
+              <div>
+                <div class="eyebrow">系统设置</div>
+                <h2>人员与打样派发规则</h2>
+              </div>
+              <div class="header-badges">
+                <span class="status blue">开发准备阶段</span>
+                <span class="status neutral">派发到打样为止</span>
+              </div>
+            </div>
+
+            <div class="settings-summary-grid">
+              <div><span>系统角色</span><strong>10</strong><small>业务、版型、材料、派发、评审、放行</small></div>
+              <div><span>评审负责人</span><strong>2</strong><small>王部长 / 大前，可按品牌切换</small></div>
+              <div><span>例外放行</span><strong>1</strong><small>杨总，总经理级别审批</small></div>
+              <div><span>路线规则</span><strong>2</strong><small>普通款式 / 压胶新长江</small></div>
+            </div>
+
+            <div class="permission-filter">
+              <span>权限筛选</span>
+              <button class="permission-chip active" type="button" data-permission-filter="all">全部</button>
+              <button class="permission-chip" type="button" data-permission-filter="发起开发">发起开发</button>
+              <button class="permission-chip" type="button" data-permission-filter="资料确认">资料确认</button>
+              <button class="permission-chip" type="button" data-permission-filter="派发打样">派发打样</button>
+              <button class="permission-chip" type="button" data-permission-filter="提交意见">提交意见</button>
+              <button class="permission-chip" type="button" data-permission-filter="创建问题">创建问题</button>
+              <button class="permission-chip" type="button" data-permission-filter="最终放行">最终放行</button>
+              <button class="permission-chip" type="button" data-permission-filter="例外放行">例外放行</button>
+            </div>
+
+            <div class="section-block people-panel">
+              <div class="section-title">
+                <h2>人员角色与系统权限</h2>
+                  <span>点击人员行查看完整评审职责、角色矩阵、可操作权限和适用闸口</span>
+              </div>
+              <div class="people-table permission-table">
+                <div class="people-row head">
+                  <span>姓名</span>
+                  <span>部门</span>
+                  <span>当前职责</span>
+                  <span>系统角色</span>
+                  <span>适用范围</span>
+                  <span>权限标签</span>
+                </div>
+                <button class="people-row" type="button" data-person="顾瑶|业务部|业务负责人|萨洛蒙业务员，收到客户信息资料后发起开发准备。|从客户要求角度评审样衣是否符合客户邮件、技术包、物料清单、客户意见、交期及寄样目的。|R：发起开发准备；C：参与质量、工艺、版型判断；I：接收最终结论。|发起开发、补充资料、提交意见、创建问题、申请寄样|萨洛蒙|准备闸口 / 样衣评审闸口|不可最终决定寄样。">
+                  <strong><i class="avatar avatar-guyao"></i>顾瑶</strong><span>业务部</span><p>收到客户信息后发起开发准备。</p><em>业务负责人</em><small>萨洛蒙</small><div class="permission-tags"><i>发起开发</i><i>提交意见</i><i>创建问题</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="顾永宏|业务部|业务负责人|萨洛蒙业务员，收到资料后补齐客户要求和交样日期。|补充客户要求、交期、寄样目的和风险说明；可申请寄样或例外放行，但不能最终批准。|R：补充客户资料；C：参与寄样风险判断；I：接收最终结论。|补充资料、提交意见、创建问题、申请寄样|萨洛蒙|准备闸口 / 寄样决策|可申请例外放行，但不可批准。">
+                  <strong><i class="avatar avatar-guyonghong"></i>顾永宏</strong><span>业务部</span><p>补齐客户要求和交样日期。</p><em>业务负责人</em><small>萨洛蒙</small><div class="permission-tags"><i>补充资料</i><i>提交意见</i><i>创建问题</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="徐海燕|打版组|版型评审员|打版负责人，确认版子是否完整并安排版师处理。|评审版型、尺寸、公差、结构、左右对称、纸样与实物一致性。|R：版型尺寸评审；C：工艺和质量问题；I：最终结论。|版型评审、创建问题、复核问题|版子|准备闸口 / 样衣评审闸口|不可决定寄样。">
+                  <strong><i class="avatar avatar-xu"></i>徐海燕</strong><span>打版组</span><p>确认版子完整并安排处理。</p><em>版型评审员</em><small>版子</small><div class="permission-tags"><i>版型评审</i><i>创建问题</i><i>复验问题</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="李卫红|打样面料|面料负责人|打样面料负责人，确认开发样所需面料。|确认面料是否正确、是否齐套、颜色、批次、缩率、预缩是否存在风险。|R：面料齐套确认；C：材料替代风险；I：资料确认结果。|面料确认、创建问题、更新状态|面料|准备闸口|不可决定寄样。">
+                  <strong><i class="avatar avatar-liweihong"></i>李卫红</strong><span>打样面料</span><p>确认开发样所需面料。</p><em>面料负责人</em><small>面料</small><div class="permission-tags"><i>面料确认</i><i>创建问题</i><i>更新状态</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="大红|打样辅料|辅料负责人|打样辅料负责人，确认拉链、扣具、织带等辅料。|确认辅料规格、颜色、功能、替代料、齐套性是否符合要求。|R：辅料齐套确认；C：替代料风险；I：资料确认结果。|辅料确认、创建问题、更新状态|辅料|准备闸口|不可决定寄样。">
+                  <strong><i class="avatar avatar-dahong"></i>大红</strong><span>打样辅料</span><p>确认拉链、扣具、织带等辅料。</p><em>辅料负责人</em><small>辅料</small><div class="permission-tags"><i>辅料确认</i><i>创建问题</i><i>更新状态</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="王部长|开发管理|资料确认人 / 评审负责人|确认打样资料是否齐全，确认后进入派发打样。|如设为 评审负责人，则组织样衣评审、确认问题归属，并作出最终寄样结论；否则只负责 准备闸口。|A：资料齐套确认；R：推进到打样；可作为 样衣评审负责人。|资料确认、推进打样、组织评审、最终放行、评审负责人|资料确认 / 样衣评审|准备闸口 / 样衣评审闸口 / 寄样决策|王部长既可做资料确认，也可被配置为最终评审负责人。">
+                  <strong><i class="avatar avatar-wangbu"></i>王部长</strong><span>开发管理</span><p>确认资料齐套，推进到派发打样。</p><em>资料确认 / 评审负责人</em><small>资料确认</small><div class="permission-tags"><i>资料确认</i><i>评审负责人</i><i>最终放行</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="大戴|打样间|打样派发人|打样间主管，负责普通款式的打样人员分配。|反馈普通打样过程异常、资料不清、返工原因、实际打样难点。|R：普通打样派发；C：工艺、版型、业务；I：评审结论。|派发打样、普通打样、更新状态、提交异常|普通打样|打样执行|不可最终决定寄样。">
+                  <strong><i class="avatar avatar-dadai"></i>大戴</strong><span>打样间</span><p>负责普通款式打样人员分配。</p><em>打样派发人</em><small>普通打样</small><div class="permission-tags"><i>派发打样</i><i>普通打样</i><i>提交异常</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="张部长|新长江工厂|压胶开发负责人|压胶开发部长，压胶款式资料确认后进入此节点。|评审压胶工艺可行性、压胶参数、胶带/面料匹配、量产稳定性、工艺风险。|R：压胶开发确认；C：工艺、品质、工业工程；I：业务和 评审负责人。|压胶开发、压胶工艺评审、创建问题、要求验证|压胶开发|压胶开发闸口 / 样衣评审闸口|压胶款式为什么要经过张部长：因为他确认压胶开发风险是否可进入新长江执行。">
+                  <strong><i class="avatar avatar-zhang"></i>张部长</strong><span>新长江工厂</span><p>确认压胶开发，评审工艺风险。</p><em>压胶开发负责人</em><small>压胶开发</small><div class="permission-tags"><i>压胶开发</i><i>创建问题</i><i>要求验证</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="夏红霞|新长江工厂|打样派发人 / 新长江派发人|生产主管，负责新长江打样人员分配。|反馈新长江打样执行、人员安排、压胶/缝制落地异常、现场执行风险。|R：新长江派发；C：压胶开发、工艺、业务；I：评审结论。|新长江派发、派发打样、更新状态、提交异常|新长江派发|打样执行|新长江打样由夏红霞分配。">
+                  <strong><i class="avatar avatar-xia"></i>夏红霞</strong><span>新长江工厂</span><p>负责新长江打样人员分配。</p><em>打样派发人</em><small>新长江派发</small><div class="permission-tags"><i>新长江派发</i><i>派发打样</i><i>提交异常</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="大前|品质管理|评审负责人 / Quality Owner|质量管理负责人。|作为 样衣评审负责人，负责最终质量判断、问题阻断、整改复验要求、是否允许寄样。|A：最终评审结论；R：主持评审和问题闭环；I：杨总和相关部门。|组织评审、确认问题等级、复验问题、冻结寄样、最终放行、评审负责人|样衣评审 / 质量放行|样衣评审闸口 / 寄样决策|默认建议作为样衣评审负责人之一。">
+                  <strong><i class="avatar avatar-zhao"></i>大前</strong><span>品质管理</span><p>质量判断、问题阻断、整改复验。</p><em>评审负责人</em><small>质量放行</small><div class="permission-tags"><i>评审负责人</i><i>复验问题</i><i>最终放行</i></div>
+                </button>
+                <button class="people-row" type="button" data-person="杨总|管理层|例外放行审批人|总经理 / 系统负责人。|只处理例外放行、重大争议、跨部门责任冲突。|A：例外放行；I：所有相关部门。|例外放行、重大争议裁决|例外放行|例外放行审批|只有存在重大问题但客户会议或交期要求必须寄样时才进入此审批。">
+                  <strong><i class="avatar avatar-wangayi"></i>杨总</strong><span>管理层</span><p>处理例外放行和重大争议。</p><em>例外放行人</em><small>例外放行</small><div class="permission-tags"><i>例外放行</i><i>争议裁决</i></div>
+                </button>
+              </div>
+            </div>
+
+            <div class="section-block worker-panel">
+              <div class="section-title">
+                <h2>打样工人池</h2>
+                <span>主管派发时选择，不做复杂排产，只显示可派发状态</span>
+              </div>
+              <div class="worker-list worker-list-rich">
+                <div><span class="avatar avatar-liayi"></span><strong>李阿姨</strong><small>普通打样 · 梭织 / 修改</small><em class="status green">可派发</em><b>任务 1</b><time>昨天完成</time></div>
+                <div><span class="avatar avatar-zhangayi"></span><strong>张阿姨</strong><small>普通打样 · 针织 / 小样</small><em class="status amber">忙碌</em><b>任务 3</b><time>今天 16:00</time></div>
+                <div><span class="avatar avatar-wangayi"></span><strong>王阿姨</strong><small>普通打样 · 梭织 / 返修</small><em class="status green">可派发</em><b>任务 0</b><time>06-28 完成</time></div>
+                <div><span class="avatar avatar-zhuxiaoli"></span><strong>朱晓丽</strong><small>新长江 · 压胶 / 验证</small><em class="status blue">压胶优先</em><b>任务 2</b><time>今天上午</time></div>
+              </div>
+            </div>
+
+            <div class="section-block routing-panel">
+              <div class="section-title">
+                <h2>流程规则：开发准备到样衣评审</h2>
+                <span>节点规则会决定下一步是否可推进、是否需要负责人确认</span>
+              </div>
+              <div class="routing-grid">
+                <div class="routing-card">
+                  <div class="route-title">
+                    <strong>普通款式</strong>
+                    <span>不压胶，不经过新长江张部长</span>
+                  </div>
+                  <div class="route-flow">
+                    <button type="button" data-node="业务收资料|业务负责人|顾瑶 / 顾永宏|必须完成|阻塞下一步|不可跳过|生成开发准备记录"><b>1</b><span>业务员收到客户信息资料</span><small>业务负责人 · 顾瑶 / 顾永宏</small></button>
+                    <button type="button" data-node="并行准备资料|版型/面料/辅料负责人|徐海燕 / 李卫红 / 大红|必须完成|缺一项会阻塞|不可跳过|生成材料齐套记录"><b>2</b><span>版子 / 面料 / 辅料并行准备</span><small>三类材料分别确认齐套</small></button>
+                    <button type="button" data-node="资料确认|资料确认人|王部长|必须完成|阻塞派发打样|不可跳过|生成资料确认记录"><b>3</b><span>王部长确认打样资料</span><small>确认后才能进入派发打样</small></button>
+                    <button type="button" data-node="普通打样派发|打样派发人|大戴|必须完成|阻塞打样执行|不可跳过|生成打样派发记录"><b>4</b><span>大戴分配打样人员</span><small>李阿姨 / 张阿姨 / 王阿姨</small></button>
+                    <button type="button" data-node="打样完成|打样部|被派发工人|必须完成|阻塞评审创建|不可跳过|生成样衣完成记录"><b>5</b><span>打样完成</span><small>上传图片后进入样衣评审闸口</small></button>
+                  </div>
+                </div>
+
+                <div class="routing-card highlight">
+                  <div class="route-title">
+                    <strong>压胶 / 新长江款式</strong>
+                    <span>压胶款式直接走新长江；不压胶但在新长江做，也按此流程走</span>
+                  </div>
+                  <div class="route-flow">
+                    <button type="button" data-node="业务收资料|业务负责人|顾瑶 / 顾永宏|必须完成|阻塞下一步|不可跳过|生成开发准备记录"><b>1</b><span>业务员收到客户信息资料</span><small>业务负责人 · 顾瑶 / 顾永宏</small></button>
+                    <button type="button" data-node="并行准备资料|版型/面料/辅料负责人|徐海燕 / 李卫红 / 大红|必须完成|缺一项会阻塞|不可跳过|生成材料齐套记录"><b>2</b><span>版子 / 面料 / 辅料并行准备</span><small>三类材料分别确认齐套</small></button>
+                    <button type="button" data-node="资料确认|资料确认人|王部长|必须完成|阻塞压胶确认|不可跳过|生成资料确认记录"><b>3</b><span>王部长确认打样资料</span><small>判断是否压胶 / 是否新长江执行</small></button>
+                    <button type="button" data-node="压胶开发确认|压胶开发负责人|张部长|压胶款必须完成|阻塞新长江派发|不压胶可跳过|生成压胶开发确认记录"><b>4</b><span>张部长确认压胶开发</span><small>确认压胶参数和工艺风险</small></button>
+                    <button type="button" data-node="新长江派发|打样派发人|夏红霞|必须完成|阻塞打样执行|不可跳过|生成新长江派发记录"><b>5</b><span>夏红霞分配打样</span><small>主要打样工人：朱晓丽</small></button>
+                    <button type="button" data-node="新长江打样完成|新长江打样工人|朱晓丽|必须完成|阻塞评审创建|不可跳过|生成样衣完成记录"><b>6</b><span>新长江 / 压胶打样完成</span><small>上传图片后进入样衣评审闸口</small></button>
+                  </div>
+                </div>
+              </div>
+              <div class="route-inspector" id="route-inspector">
+                <div>
+                  <span>当前选中节点</span>
+                  <strong id="route-node-name">资料确认</strong>
+                </div>
+                <div><span>责任角色</span><strong id="route-node-role">资料确认人</strong></div>
+                <div><span>默认负责人</span><strong id="route-node-owner">王部长</strong></div>
+                <div><span>完成要求</span><strong id="route-node-required">必须完成</strong></div>
+                <div><span>阻塞规则</span><strong id="route-node-blocking">阻塞派发打样</strong></div>
+                <div><span>是否可跳过</span><strong id="route-node-skip">不可跳过</strong></div>
+                <div><span>系统记录</span><strong id="route-node-record">生成资料确认记录</strong></div>
+              </div>
+            </div>
+
+            <div class="settings-rules-grid">
+              <div class="section-block gate-settings-card">
+                <div class="section-title">
+                  <h2>闸口与放行规则</h2>
+                  <span>这些设置决定系统推进下一步时找谁确认</span>
+                </div>
+                <div class="gate-settings">
+                  <div><span>准备闸口</span><strong>王部长</strong><small>资料齐套后推进到打样</small></div>
+                  <div><span>样衣评审闸口</span><strong>大前</strong><small>确认问题阻断和最终结论</small></div>
+                  <div><span>例外放行人</span><strong>杨总</strong><small>例外放行和重大争议</small></div>
+                  <div><span>压胶闸口</span><strong>张部长</strong><small>压胶工艺开发确认</small></div>
+                  <div><span>新长江派发</span><strong>夏红霞</strong><small>新长江打样派发</small></div>
+                  <div><span>普通打样派发</span><strong>大戴</strong><small>普通款式派发打样</small></div>
                 </div>
               </div>
 
               <div class="section-block">
                 <div class="section-title">
-                  <h2>Final Decision</h2>
-                  <span>张部长 only</span>
+                  <h2>部门维护</h2>
+                  <span>参与评审和被通知的组织单元</span>
                 </div>
-                <div class="decision-grid">
-                  <button type="button">Approve Next Stage</button>
-                  <button class="selected" type="button">Modify</button>
-                  <button type="button">Hold</button>
-                  <button type="button">Approve for Bulk</button>
+                <div class="department-enums">
+                  <span>业务部</span><span>打版组</span><span>品质部</span><span>工艺部</span><span>工业工程部</span><span>打样部</span><span>打样面料</span><span>打样辅料</span><span>新长江工厂</span><span>压胶车间</span><span>管理层</span>
                 </div>
               </div>
 
               <div class="section-block">
                 <div class="section-title">
-                  <h2>Timeline</h2>
-                  <span>Audit trail</span>
+                  <h2>角色权限矩阵</h2>
+                  <span>部门可评审，评审负责人才能放行</span>
                 </div>
-                <div class="audit-list">
-                  <div><strong>6/28</strong><span>Review started</span></div>
-                  <div><strong>6/28</strong><span>QC rejected sleeve issue</span></div>
-                  <div><strong>6/29</strong><span>Pattern modification started</span></div>
-                  <div><strong>6/30</strong><span>Waiting for verification</span></div>
+                <div class="raci-list">
+                  <div><strong>业务负责人</strong><span>负责：发起评审 / 咨询：参与判断 / 通知：接收结论</span></div>
+                  <div><strong>版师</strong><span>负责：版型尺寸评审 / 咨询：工艺质量问题 / 通知：最终结论</span></div>
+                  <div><strong>面料负责人</strong><span>负责：面料齐套确认 / 可创建面料问题 / 通知：资料确认结果</span></div>
+                  <div><strong>辅料负责人</strong><span>负责：辅料齐套确认 / 可创建辅料问题 / 通知：资料确认结果</span></div>
+                  <div><strong>品质部</strong><span>负责：质量识别与复验 / 批准：质量判断建议 / 通知：最终结论</span></div>
+                  <div><strong>工艺部</strong><span>负责：工艺可行性评审 / 咨询：工业工程、品质、版师 / 通知：最终结论</span></div>
+                  <div><strong>工业工程部</strong><span>负责：工时、瓶颈、量产风险评估 / 咨询：工艺与生产</span></div>
+                  <div><strong>打样部</strong><span>负责：反馈实际打样异常 / 咨询：工艺、版师、业务</span></div>
+                  <div><strong>资料确认人</strong><span>批准：资料齐套 / 负责：推进准备闸口到打样执行</span></div>
+                  <div><strong>打样派发人</strong><span>负责：选择打样工人 / 更新打样状态 / 反馈打样异常</span></div>
+                  <div><strong>压胶开发负责人</strong><span>负责：压胶开发确认 / 可要求压胶小样验证 / 创建压胶问题</span></div>
+                  <div><strong>评审负责人</strong><span>批准：最终结论 / 负责：主持合议和问题闭环 / 通知：杨总</span></div>
+                  <div><strong>例外放行人</strong><span>批准：例外放行 / 通知：所有相关部门</span></div>
                 </div>
               </div>
-            </aside>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>闸口负责人设置</h2>
+                  <span>可按品牌 / 路线维护</span>
+                </div>
+                <div class="owner-settings">
+                  <div><span>默认评审负责人</span><strong>王部长</strong></div>
+                  <div><span>备用评审负责人</span><strong>大前</strong></div>
+                  <div><span>例外放行</span><strong>杨总 / 总经理</strong></div>
+                  <div><span>压胶路线确认</span><strong>张部长 · 夏红霞</strong></div>
+                </div>
+              </div>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>问题等级与寄样规则</h2>
+                  <span>决定是否阻止寄样</span>
+                </div>
+                <div class="issue-rule-list">
+                  <div><b class="priority minor">轻微</b><span>不锁寄样按钮；可寄样，但必须记录。</span></div>
+                  <div><b class="priority normal">一般</b><span>提示评审负责人判断是否修改后寄样。</span></div>
+                  <div><b class="priority major">重大</b><span>锁定寄样按钮；需要整改或例外放行。</span></div>
+                  <div><b class="priority critical">严重</b><span>锁定寄样按钮；不允许普通放行，复验后重新评审。</span></div>
+                </div>
+              </div>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>样衣位置枚举</h2>
+                  <span>后续扫码/位置记录使用</span>
+                </div>
+                <div class="location-enums rich">
+                  <span><b>开发车间</b><small>默认持有人：打样部 · 原因：制作/返修</small></span>
+                  <span><b>样衣间</b><small>默认持有人：样衣管理员 · 原因：待评审/保管</small></span>
+                  <span><b>业务</b><small>默认持有人：业务负责人 · 原因：寄样准备</small></span>
+                  <span><b>客户</b><small>默认持有人：客户 · 原因：已送样</small></span>
+                  <span><b>快递</b><small>默认持有人：快递单号 · 原因：寄出中</small></span>
+                  <span><b>新长江</b><small>默认持有人：夏红霞 · 原因：压胶打样</small></span>
+                  <span><b>压胶车间</b><small>默认持有人：张部长 · 原因：压胶验证</small></span>
+                  <span><b>待返修</b><small>默认持有人：责任部门 · 原因：问题整改</small></span>
+                  <span><b>已寄出</b><small>默认持有人：业务 · 原因：交样完成</small></span>
+                </div>
+              </div>
+
+              <div class="section-block training-panel">
+                <div class="section-title">
+                  <h2>评审员培训</h2>
+                  <span>评审员培训：让不同角色知道自己要看什么、能决定什么</span>
+                </div>
+                <div class="training-grid">
+                  <div><strong>业务评审员</strong><span>客户邮件、技术包、物料清单、交期和寄样目的。</span></div>
+                  <div><strong>版师</strong><span>版型、尺寸、公差、结构、纸样与实物一致性。</span></div>
+                  <div><strong>品质</strong><span>外观、历史问题、关键质量风险和复验要求。</span></div>
+                  <div><strong>工艺</strong><span>缝制、压胶、工艺可行性、量产难点。</span></div>
+                  <div><strong>工业工程</strong><span>工时、瓶颈、夹具专机、产能风险。</span></div>
+                  <div><strong>打样</strong><span>资料不清、材料不齐、实际制作异常和返工原因。</span></div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -418,64 +1182,64 @@
           <div class="handoff-page">
             <div class="style-header">
               <div>
-                <div class="eyebrow">Style 418 / Descente / FW26</div>
-                <h2>Bulk Handoff Preview</h2>
+                <div class="eyebrow">款式 418 / 迪桑特 / FW26</div>
+                <h2>转大货交接预览</h2>
               </div>
-              <span class="status green">Ready for Factory OS</span>
+              <span class="status green">可进入 工厂系统</span>
             </div>
 
             <div class="handoff-grid">
               <div class="section-block">
                 <div class="section-title">
-                  <h2>Approved Development Style</h2>
-                  <span>Sample OS output</span>
+                  <h2>已确认开发款</h2>
+                  <span>样衣系统输出</span>
                 </div>
                 <div class="handoff-summary">
-                  <div><span>Approved Stage</span><strong>TOP / Final Sample</strong></div>
-                  <div><span>Approved By</span><strong>张部长</strong></div>
-                  <div><span>Approved At</span><strong>2026/07/01</strong></div>
-                  <div><span>Approved Review</span><strong>SR-418-TOP</strong></div>
+                  <div><span>确认阶段</span><strong>品质样 / 最终样</strong></div>
+                  <div><span>确认人</span><strong>张部长</strong></div>
+                  <div><span>确认时间</span><strong>2026/07/01</strong></div>
+                  <div><span>确认评审</span><strong>SR-418-QC</strong></div>
                 </div>
               </div>
 
               <div class="section-block">
                 <div class="section-title">
-                  <h2>Readiness</h2>
-                  <span>Before production setup</span>
+                  <h2>交接准备</h2>
+                  <span>生产建档前检查</span>
                 </div>
                 <div class="check-list">
-                  <div><span>✓</span> Sample approved</div>
-                  <div><span>✓</span> Blocking issues closed</div>
-                  <div><span>✓</span> Customer comments closed</div>
-                  <div><span>✓</span> Sample location known</div>
-                  <div><span>✓</span> Development changes confirmed</div>
+                  <div><span>✓</span> 样衣已通过</div>
+                  <div><span>✓</span> 阻塞问题已关闭</div>
+                  <div><span>✓</span> 客户意见已关闭</div>
+                  <div><span>✓</span> 样衣位置已确认</div>
+                  <div><span>✓</span> 开发修改已确认</div>
                 </div>
               </div>
             </div>
 
             <div class="section-block">
               <div class="section-title">
-                <h2>Factory OS Handoff</h2>
-                <span>Production information is entered after handoff</span>
+                <h2>工厂系统交接</h2>
+                <span>交接后再录入大货生产信息</span>
               </div>
               <div class="handoff-flow">
-                <div class="flow-step done">Sample Review Approved</div>
-                <div class="flow-step done">Bulk Handoff Created</div>
-                <div class="flow-step active">Create Factory OS Production Record</div>
-                <div class="flow-step">Enter BOM / Routing / QC Plan</div>
-                <div class="flow-step">Bulk Production Start</div>
+                <div class="flow-step done">样衣评审已通过</div>
+                <div class="flow-step done">转大货交接已创建</div>
+                <div class="flow-step active">创建 工厂系统 生产档案</div>
+                <div class="flow-step">录入物料清单 / 工艺路线 / 品质计划</div>
+                <div class="flow-step">大货生产启动</div>
               </div>
               <div class="production-fields">
-                <span>Bulk Qty</span>
-                <span>Size Ratio</span>
-                <span>Colorways</span>
-                <span>Factory</span>
-                <span>Line</span>
-                <span>Delivery</span>
-                <span>BOM</span>
-                <span>QC Standard</span>
+                <span>大货数量</span>
+                <span>尺码配比</span>
+                <span>颜色</span>
+                <span>工厂</span>
+                <span>产线</span>
+                <span>交期</span>
+                <span>物料清单</span>
+                <span>品质标准</span>
               </div>
-              <button class="primary-button" type="button">Create Factory OS Production Record</button>
+              <button class="primary-button" type="button">创建 工厂系统 生产档案</button>
             </div>
           </div>
         </section>
@@ -483,37 +1247,37 @@
         <section id="inbox" class="view">
           <div class="style-header">
             <div>
-              <div class="eyebrow">Future Module</div>
-              <h2>Communication Inbox</h2>
+              <div class="eyebrow">未来模块</div>
+              <h2>沟通收件箱</h2>
             </div>
-            <span class="status neutral">Planned after V0</span>
+            <span class="status neutral">V0 之后规划</span>
           </div>
           <div class="section-block">
             <div class="section-title">
-              <h2>Message to Issue</h2>
-              <span>WeChat / Enterprise WeChat / Email / Customer Portal</span>
+              <h2>消息转问题</h2>
+              <span>微信 / 企业微信 / 邮件 / 客户入口</span>
             </div>
             <div class="comm-table">
               <div class="row head">
-                <div>Source</div>
-                <div>Contact</div>
-                <div>Message</div>
-                <div>Suggested Issue</div>
-                <div>Action</div>
+                <div>来源</div>
+                <div>联系人</div>
+                <div>消息</div>
+                <div>建议问题</div>
+                <div>操作</div>
               </div>
               <div class="row">
-                <div>Enterprise WeChat</div>
-                <div>Salomon PM</div>
-                <div>Pocket is still too high.</div>
-                <div>Pocket too high</div>
-                <div><button type="button">Confirm</button></div>
+                <div>企业微信</div>
+                <div>萨洛蒙 客户</div>
+                <div>口袋还是偏高。</div>
+                <div>口袋位置偏高</div>
+                <div><button type="button">确认</button></div>
               </div>
               <div class="row">
-                <div>Email</div>
-                <div>Supreme</div>
-                <div>Please revise sleeve opening.</div>
-                <div>Sleeve opening issue</div>
-                <div><button type="button">Confirm</button></div>
+                <div>邮件</div>
+                <div>SUPREME</div>
+                <div>请修改袖口。</div>
+                <div>袖口问题</div>
+                <div><button type="button">确认</button></div>
               </div>
             </div>
           </div>
@@ -524,44 +1288,119 @@
     <aside class="issue-drawer" id="issue-drawer" aria-hidden="true">
       <div class="drawer-header">
         <div>
-          <div class="eyebrow">Issue</div>
-          <h2 id="drawer-title">Pocket too high</h2>
+          <div class="eyebrow">问题</div>
+          <h2 id="drawer-title">口袋位置偏高</h2>
         </div>
-        <button class="icon-button" id="close-drawer" type="button" title="Close">×</button>
+        <button class="icon-button" id="close-drawer" type="button" title="关闭">×</button>
       </div>
       <div class="drawer-body">
         <div class="drawer-field">
-          <span>Related Style</span>
-          <strong>212 / Salomon / 2nd Proto</strong>
+          <span>关联款式</span>
+          <strong>212 / 萨洛蒙 / 二次样</strong>
         </div>
         <div class="drawer-field">
-          <span>Severity</span>
-          <strong id="drawer-severity">Major</strong>
+          <span>严重程度</span>
+          <strong id="drawer-severity">主要</strong>
         </div>
         <div class="drawer-field">
-          <span>Owner</span>
-          <strong id="drawer-owner">Pattern</strong>
+          <span>负责人</span>
+          <strong id="drawer-owner">版师</strong>
         </div>
         <div class="drawer-field">
-          <span>Source</span>
-          <strong id="drawer-source">Business Review</strong>
-          <small>Future: WeChat / Enterprise WeChat / Email</small>
+          <span>来源</span>
+          <strong id="drawer-source">业务评审</strong>
+          <small>未来：微信 / 企业微信 / 邮件</small>
         </div>
         <div class="drawer-field">
-          <span>Status</span>
-          <strong id="drawer-status">Open</strong>
+          <span>状态</span>
+          <strong id="drawer-status">未关闭</strong>
         </div>
         <div class="drawer-field">
-          <span>Deadline</span>
-          <strong id="drawer-deadline">Tomorrow</strong>
+          <span>截止时间</span>
+          <strong id="drawer-deadline">明天</strong>
         </div>
         <div class="drawer-actions">
-          <button type="button">Mark In Progress</button>
-          <button class="primary-button" type="button">Resolve</button>
+          <button type="button">标记为处理中</button>
+          <button class="primary-button" type="button">解决</button>
         </div>
       </div>
     </aside>
 
-    <script src="app.js"></script>
+    <aside class="issue-drawer person-drawer" id="person-drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <div class="eyebrow">人员权限</div>
+          <h2 id="person-name">顾瑶</h2>
+        </div>
+        <button class="icon-button" id="close-person-drawer" type="button" title="关闭">×</button>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-field">
+          <span>部门</span>
+          <strong id="person-dept">业务部</strong>
+        </div>
+        <div class="drawer-field">
+          <span>系统角色</span>
+          <strong id="person-role">业务负责人</strong>
+        </div>
+        <div class="drawer-field">
+          <span>当前职责</span>
+          <strong id="person-duty">收到客户信息资料后发起开发准备。</strong>
+        </div>
+        <div class="drawer-field">
+          <span>评审职责</span>
+          <strong id="person-review-duty">从客户要求角度评审样衣。</strong>
+        </div>
+        <div class="drawer-field">
+          <span>角色矩阵 角色</span>
+          <strong id="person-raci">R：发起开发准备。</strong>
+        </div>
+        <div class="drawer-field">
+          <span>可操作权限</span>
+          <div class="drawer-tags" id="person-permissions"></div>
+        </div>
+        <div class="drawer-field">
+          <span>适用流程</span>
+          <strong id="person-scope">萨洛蒙</strong>
+        </div>
+        <div class="drawer-field">
+          <span>可参与 Gate</span>
+          <strong id="person-gates">准备闸口</strong>
+        </div>
+        <div class="drawer-field">
+          <span>是否可参与评审</span>
+          <strong id="person-can-review">是</strong>
+        </div>
+        <div class="drawer-field">
+          <span>是否可最终放行</span>
+          <strong id="person-can-final">否</strong>
+        </div>
+        <div class="drawer-field">
+          <span>是否可例外放行</span>
+          <strong id="person-can-exception">否</strong>
+        </div>
+        <div class="drawer-field">
+          <span>备注</span>
+          <strong id="person-note">不可最终决定寄样。</strong>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="issue-drawer style-drawer" id="style-drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <div class="eyebrow">单款详情</div>
+          <h2 id="style-drawer-title">款式详情</h2>
+        </div>
+        <button class="icon-button" id="close-style-drawer" type="button" title="关闭">×</button>
+      </div>
+      <div class="drawer-body" id="style-drawer-body"></div>
+    </aside>
+
+    <div class="modal-root" id="modal-root" aria-hidden="true"></div>
+
+    <script src="sampleos-data.js"></script>
+    <script src="sampleos-rules.js"></script>
+    <script src="app-zh.js"></script>
   </body>
 </html>

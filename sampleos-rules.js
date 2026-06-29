@@ -52,6 +52,7 @@
     overdue: "已逾期",
     blocked: "阻止寄样",
     waiting_exception: "等待例外放行",
+    exception_released: "例外已放行",
     shipped: "已寄样",
   };
 
@@ -125,8 +126,11 @@
     const style = getStyleById(styleId);
     const review = getActiveReviewByStyle(styleId);
     const blocking = review ? getBlockingIssues(review.id) : [];
+    const shipment = review ? getShipmentStatus(review.id) : null;
     if (!style) return "等待资料";
     if (style.currentGate === "preparation_gate") return style.nextAction;
+    if (shipment?.key === "waiting_exception") return style.nextAction || "等待例外放行人审批";
+    if (shipment?.key === "hold_shipment") return "严重问题整改复验后重新评审";
     if (blocking.length > 0) return "确认质量与工艺问题责任人";
     if (review?.status === "shipment_decision") return "评审负责人确认寄样结论";
     return style.nextAction || "等待下一步";
@@ -135,9 +139,14 @@
   function getShipmentStatus(reviewId) {
     const openIssues = getOpenIssues(reviewId);
     const review = getReviewById(reviewId);
-    if (review?.finalDecision === "exception_release") return { key: "exception_release", label: "例外放行", canShip: true };
-    if (openIssues.some((issue) => issue.level === "critical")) return { key: "hold_shipment", label: "暂停寄样", canShip: false };
-    if (openIssues.some((issue) => issue.level === "major")) return { key: "blocked", label: "阻止寄样", canShip: false };
+    const hasCritical = openIssues.some((issue) => issue.level === "critical" && isBlockingIssue(issue));
+    const hasMajorBlocking = openIssues.some((issue) => issue.level === "major" && isBlockingIssue(issue));
+    const exceptionApproved = review?.finalDecision === "exception_release" && review?.exceptionRequest?.approvalStatus === "已批准";
+    const exceptionPending = review?.finalDecision === "exception_release" || review?.exceptionRequest?.approvalStatus === "待审批";
+    if (hasCritical) return { key: "hold_shipment", label: "暂停寄样", canShip: false };
+    if (hasMajorBlocking && exceptionApproved) return { key: "exception_released", label: "例外已放行", canShip: true };
+    if (hasMajorBlocking && exceptionPending) return { key: "waiting_exception", label: "等待例外放行", canShip: false };
+    if (hasMajorBlocking) return { key: "blocked", label: "阻止寄样", canShip: false };
     if (openIssues.some((issue) => issue.level === "normal")) return { key: "gate_owner_decision", label: "待评审负责人判断", canShip: false };
     if (openIssues.some((issue) => issue.level === "minor")) return { key: "can_ship_with_record", label: "可寄样，需记录", canShip: true };
     return { key: "can_ship", label: "可以寄样", canShip: true };
@@ -149,7 +158,9 @@
     const shipment = review ? getShipmentStatus(review.id) : { key: "normal" };
     if (!style) return "normal";
     if (shipment.key === "hold_shipment" || shipment.key === "blocked") return "blocked";
-    if (shipment.key === "exception_release" || style.riskStatus === "waiting_exception") return "waiting_exception";
+    if (shipment.key === "waiting_exception") return "waiting_exception";
+    if (shipment.key === "exception_released") return "exception_released";
+    if (style.riskStatus === "waiting_exception") return "waiting_exception";
     return style.riskStatus || "normal";
   }
 
@@ -172,7 +183,7 @@
       sampleRoomCount: data.samples.filter((sample) => sample.location === "样衣间" || sample.location === "开发车间").length,
       pendingOwnerDecision: summaries.filter((item) => ["gate_owner_decision", "blocked", "hold_shipment"].includes(item.shipmentStatus.key)).length,
       blockingIssues: data.issues.filter(isBlockingIssue).length,
-      waitingException: summaries.filter((item) => item.shipmentStatus.key === "exception_release" || item.style?.riskStatus === "waiting_exception").length,
+      waitingException: summaries.filter((item) => item.shipmentStatus.key === "waiting_exception" || item.style?.riskStatus === "waiting_exception").length,
     };
   }
 
@@ -241,7 +252,8 @@
     });
     data.issues.forEach((issue) => {
       if (!issue.owner) warnings.push(`问题 ${issue.id} 没有负责人`);
-      if (isBlockingIssue(issue) && getShipmentStatus(issue.reviewId).canShip) warnings.push(`阻塞问题 ${issue.id} 没有影响寄样状态`);
+      const shipment = getShipmentStatus(issue.reviewId);
+      if (isBlockingIssue(issue) && shipment.canShip && shipment.key !== "exception_released") warnings.push(`阻塞问题 ${issue.id} 没有影响寄样状态`);
     });
     data.styleList.forEach((style) => {
       if (!style.currentGate) warnings.push(`款式 ${style.styleNo} 没有当前闸口`);
