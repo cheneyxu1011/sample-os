@@ -28,6 +28,15 @@ S3_UPLOAD_MAX_BYTES
 The browser helper lives at `window.SampleOSBackend`. It stores the Supabase access token in `localStorage` under `sampleos.supabaseAccessToken` until the real login UI is wired in.
 
 ```js
+window.SampleOSBackend.setAccessToken("supabase access token");
+
+await window.SampleOSBackend.bootstrapProfile({
+  orgName: "万誉",
+  displayName: "张部长",
+  department: "管理层",
+  roleName: "后台管理员"
+});
+
 await window.SampleOSBackend.uploadFile(file, {
   styleId: "style uuid",
   sampleId: "sample uuid",

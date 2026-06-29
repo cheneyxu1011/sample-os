@@ -38,6 +38,14 @@
     return runtimeConfigPromise;
   }
 
+  async function bootstrapProfile(profile = {}) {
+    return requestJson("/api/bootstrap/profile", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(profile),
+    });
+  }
+
   async function createUpload(file, context) {
     if (!file) throw new Error("Missing file");
     const mediaKind = file.type.startsWith("image/")
@@ -107,6 +115,7 @@
     getRuntimeConfig,
     getAccessToken,
     setAccessToken,
+    bootstrapProfile,
     createUpload,
     uploadFile,
   };
