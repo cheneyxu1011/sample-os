@@ -400,8 +400,33 @@ function renderReview() {
   }
   const hero = document.querySelector("#review .review-hero");
   if (hero) {
-    hero.querySelector(".hero-info").innerHTML = `<div class="crumb">首页 / 样衣评审 / ${esc(review.reviewNo)}</div><div class="hero-title"><h2>${esc(style.styleNo)}-${esc(review.reviewNo)}</h2><span class="status blue">${esc(sample.versionName)}</span></div><div class="hero-meta"><span>品牌：${esc(style.brand)}</span><span>季节：${esc(style.season)}</span><span>款式：${esc(style.category)}</span><span>阶段：${esc(sample.versionName)}</span><span>路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</span><span>评审负责人：${esc(gateOwner.name)}</span><span>创建时间：${esc(sample.createdAt)}</span><span>预计寄样：${esc(sample.plannedShipDate)}</span></div>`;
-    hero.querySelector(".location-card").innerHTML = `<span>样衣位置</span><strong>${esc(sample.location)}</strong><small>更新时间：${esc(sample.updatedAt)}</small><select id="sample-location-select">${os.data.sampleLocations.map((loc) => `<option ${loc.name === sample.location ? "selected" : ""}>${esc(loc.name)}</option>`).join("")}</select>`;
+    hero.innerHTML = `
+      <div class="hero-garment">
+        <div class="garment front"></div>
+      </div>
+      <div class="hero-info">
+        <div class="crumb">首页 / 样衣评审 / ${esc(review.reviewNo)}</div>
+        <div class="hero-title"><h2>${esc(style.styleNo)}-${esc(review.reviewNo)}</h2><span class="status blue">${esc(sample.versionName)}</span></div>
+        <div class="hero-meta"><span>品牌：${esc(style.brand)}</span><span>季节：${esc(style.season)}</span><span>款式：${esc(style.category)}</span><span>阶段：${esc(sample.versionName)}</span><span>路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</span><span>评审负责人：${esc(gateOwner.name)}</span><span>创建时间：${esc(sample.createdAt)}</span><span>预计寄样：${esc(sample.plannedShipDate)}</span></div>
+      </div>
+      <div class="review-process">
+        <div class="process-step done"><b>✓</b><span>样衣完成</span><small>${esc(sample.createdAt || "")}</small></div>
+        <div class="process-line active"></div>
+        <div class="process-step active"><b>●</b><span>部门评审</span><small>${esc(os.reviewStatusLabels[review.status] || review.status)}</small></div>
+        <div class="process-line"></div>
+        <div class="process-step ${blockingIssues.length ? "warning" : "done"}"><b>${blockingIssues.length ? "!" : "✓"}</b><span>问题归属</span><small>${blockingIssues.length ? `${blockingIssues.length} 个阻塞` : "无阻塞"}</small></div>
+        <div class="process-line"></div>
+        <div class="process-step"><b>○</b><span>整改复验</span><small>${openIssues.length ? "待处理" : "无需复验"}</small></div>
+        <div class="process-line"></div>
+        <div class="process-step"><b>○</b><span>寄样决策</span><small>${esc(shipmentStatus.label)}</small></div>
+      </div>
+      <div class="location-card">
+        <span>样衣位置</span>
+        <strong>${esc(sample.location)}</strong>
+        <small>更新时间：${esc(sample.updatedAt)}</small>
+        <select id="sample-location-select">${os.data.sampleLocations.map((loc) => `<option ${loc.name === sample.location ? "selected" : ""}>${esc(loc.name)}</option>`).join("")}</select>
+      </div>
+    `;
   }
   const strip = document.querySelector("#review .strip-main");
   if (strip) {
