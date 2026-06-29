@@ -99,9 +99,9 @@ function showView(viewId) {
 function updateLanguageChrome() {
   const lang = currentLang === "ja" ? "ja" : "zh";
   document.documentElement.lang = lang === "ja" ? "ja" : "zh-CN";
-  document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
+  document.querySelectorAll(".nav-item[data-view], .nav-item[data-nav-key]").forEach((item) => {
     const icon = item.querySelector(".nav-icon")?.textContent || "";
-    const label = navLabelMap[item.dataset.view]?.[lang];
+    const label = navLabelMap[item.dataset.view || item.dataset.navKey]?.[lang];
     if (label) item.innerHTML = `<span class="nav-icon">${esc(icon)}</span>${esc(label)}`;
   });
   const eyebrow = document.querySelector(".topbar .eyebrow");
