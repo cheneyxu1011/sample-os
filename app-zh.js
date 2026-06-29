@@ -46,6 +46,7 @@ const topActions = document.querySelector(".top-actions");
 const topPrimaryButton = document.querySelector(".top-actions .primary-button");
 const userAccountRole = document.querySelector(".user-account small");
 const userAccountName = document.querySelector(".user-account strong");
+const editingReviewRows = new Set();
 const glowTargets = [
   ".summary-card",
   ".section-block",
@@ -456,11 +457,35 @@ function renderMedia(sample, issues) {
     const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
     const isImage = media.mimeType?.startsWith("image/");
     const preview = isImage && media.url ? `<img class="media-preview" src="${esc(media.url)}" alt="${esc(media.label || media.fileName || "样衣照片")}" loading="lazy">` : "";
-    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}">${preview}${isVideo ? `<div class="play">▶</div>` : ""}<input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签，例如正面、反面、拉链"><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3，标签可编辑</em></div>`);
+    const canOpen = Boolean(media.url);
+    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}" ${canOpen ? `data-open-media="${esc(media.id)}" role="button" tabindex="0"` : ""}>${preview}${isVideo ? `<div class="play">▶</div>` : ""}<input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签，例如正面、反面、拉链"><small class="media-meta">${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</small></div>`);
   });
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
   grid.innerHTML = cards.join("");
+}
+
+function getCurrentMedia(mediaId) {
+  const review = os.getReviewById(os.data.currentReviewId);
+  const sample = os.getSampleById(review?.sampleId);
+  return sample?.mediaList?.find((media) => media.id === mediaId);
+}
+
+function openMediaViewer(mediaId) {
+  if (!modalRoot) return;
+  const media = getCurrentMedia(mediaId);
+  if (!media?.url) {
+    showToast("这个文件还没有可预览链接，请稍后刷新");
+    return;
+  }
+  const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
+  const label = media.label || media.fileName || (isVideo ? "样衣视频" : "样衣照片");
+  const content = isVideo
+    ? `<video class="media-viewer-content" src="${esc(media.url)}" controls autoplay playsinline></video>`
+    : `<img class="media-viewer-content" src="${esc(media.url)}" alt="${esc(label)}">`;
+  modalRoot.innerHTML = `<div class="modal-backdrop" data-close-modal></div><section class="media-viewer" role="dialog" aria-modal="true" aria-label="${esc(label)}"><button class="media-viewer-close" type="button" data-close-modal aria-label="关闭预览">×</button>${content}<div class="media-viewer-caption"><strong>${esc(label)}</strong><span>${esc(media.uploadedAt || "")}</span></div></section>`;
+  modalRoot.classList.add("open", "media-viewer-open");
+  modalRoot.setAttribute("aria-hidden", "false");
 }
 
 function triggerMediaUpload(mediaKind) {
@@ -492,7 +517,12 @@ function renderDepartmentReviews(review) {
   table.innerHTML = `<div class="review-table-row head"><span>部门</span><span>角色</span><span>负责人</span><span>状态</span><span>评审意见 / 关注点</span><span>产生问题</span><span>时间</span><span></span></div>` + rows.map((item, index) => {
     const issueCount = item.issueIds.filter((id) => os.getIssuesByReview(review.id).some((issue) => issue.id === id && issue.status !== "closed")).length;
     const pill = item.status === "pass" ? "green" : item.status === "fail" ? "red" : "amber";
-    return `<div class="review-table-row editable-review-row" data-review-row="${index}" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${item.reviewer ? avatar(item.reviewer) : avatar(os.data.currentUserId)}</span><select data-review-status><option value="pending" ${item.status === "pending" ? "selected" : ""}>待评审</option><option value="pass" ${item.status === "pass" ? "selected" : ""}>通过</option><option value="needs_improvement" ${item.status === "needs_improvement" ? "selected" : ""}>需要改进</option><option value="fail" ${item.status === "fail" ? "selected" : ""}>不通过</option></select><label><textarea data-review-opinion placeholder="在这里输入评审意见">${esc(item.opinion)}</textarea><small>${esc(item.focusTags.join(" · ") || "可直接填写真实评审意见")}</small></label><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} 个问题` : "无"}</em><time>${esc(item.reviewedAt || "未保存")}</time><button class="row-action ${pill}" type="button" data-save-department-review="${index}">保存</button></div>`;
+    const rowKey = item.id || `${review.id}:${item.department}`;
+    const isLocked = Boolean((item.opinion || "").trim() || item.reviewedAt) && !editingReviewRows.has(rowKey);
+    const action = isLocked
+      ? `<button class="row-action" type="button" data-edit-department-review="${index}">编辑</button>`
+      : `<button class="row-action ${pill}" type="button" data-save-department-review="${index}">保存</button>`;
+    return `<div class="review-table-row editable-review-row ${isLocked ? "is-locked" : ""}" data-review-row="${index}" data-review-row-key="${esc(rowKey)}" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${item.reviewer ? avatar(item.reviewer) : avatar(os.data.currentUserId)}</span><select data-review-status ${isLocked ? "disabled" : ""}><option value="pending" ${item.status === "pending" ? "selected" : ""}>待评审</option><option value="pass" ${item.status === "pass" ? "selected" : ""}>通过</option><option value="needs_improvement" ${item.status === "needs_improvement" ? "selected" : ""}>需要改进</option><option value="fail" ${item.status === "fail" ? "selected" : ""}>不通过</option></select><label><textarea data-review-opinion ${isLocked ? "readonly" : ""} placeholder="在这里输入评审意见">${esc(item.opinion)}</textarea><small>${esc(item.focusTags.join(" · ") || "可直接填写真实评审意见")}</small></label><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} 个问题` : "无"}</em><time>${esc(item.reviewedAt || "未保存")}</time>${action}</div>`;
   }).join("");
   review.departmentReviews = rows;
 }
@@ -831,7 +861,7 @@ function openModal(type) {
 }
 
 function closeModal() {
-  modalRoot?.classList.remove("open");
+  modalRoot?.classList.remove("open", "media-viewer-open");
   modalRoot?.setAttribute("aria-hidden", "true");
   if (modalRoot) modalRoot.innerHTML = "";
 }
@@ -998,6 +1028,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const mediaCard = event.target.closest("[data-open-media]");
+  if (mediaCard && !event.target.closest("[data-media-label]")) {
+    openMediaViewer(mediaCard.dataset.openMedia);
+    return;
+  }
+
   const modalClose = event.target.closest("[data-close-modal]");
   if (modalClose) {
     closeModal();
@@ -1101,6 +1137,18 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const editDepartmentReview = event.target.closest("[data-edit-department-review]");
+  if (editDepartmentReview) {
+    const review = os.getReviewById(os.data.currentReviewId);
+    const index = Number(editDepartmentReview.dataset.editDepartmentReview);
+    const item = review.departmentReviews[index];
+    const rowKey = item?.id || `${review.id}:${item?.department}`;
+    if (item) editingReviewRows.add(rowKey);
+    renderDepartmentReviews(review);
+    document.querySelector(`[data-review-row="${index}"] [data-review-opinion]`)?.focus();
+    return;
+  }
+
   const saveDepartmentReview = event.target.closest("[data-save-department-review]");
   if (saveDepartmentReview) {
     const review = os.getReviewById(os.data.currentReviewId);
@@ -1110,6 +1158,8 @@ document.addEventListener("click", (event) => {
     item.status = row.querySelector("[data-review-status]")?.value || "pending";
     item.opinion = row.querySelector("[data-review-opinion]")?.value.trim() || "";
     item.reviewer = item.reviewer || os.data.currentUserId;
+    const rowKey = row.dataset.reviewRowKey || item.id || `${review.id}:${item.department}`;
+    editingReviewRows.delete(rowKey);
     window.SampleOSBackend?.syncData?.("departmentReview", {
       reviewId: review.id,
       department: item.department,
@@ -1235,6 +1285,13 @@ document.addEventListener("keydown", (event) => {
   if (mediaLabel && event.key === "Enter") {
     event.preventDefault();
     mediaLabel.blur();
+    return;
+  }
+
+  const mediaCard = event.target.closest?.("[data-open-media]");
+  if (mediaCard && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    openMediaViewer(mediaCard.dataset.openMedia);
     return;
   }
 
