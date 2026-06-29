@@ -20,6 +20,15 @@ const titleMapJa = {
   inbox: "コミュニケーション受信箱",
 };
 
+const navLabelMap = {
+  pipeline: { zh: "开发流水线", ja: "開発パイプライン" },
+  review: { zh: "样衣评审", ja: "サンプルレビュー" },
+  calendar: { zh: "样衣日历", ja: "サンプルカレンダー" },
+  settings: { zh: "设置", ja: "設定" },
+  handoff: { zh: "转大货交接", ja: "量産引き継ぎ" },
+  inbox: { zh: "沟通入口", ja: "連絡入口" },
+};
+
 let currentLang = "zh";
 
 const views = document.querySelectorAll(".view");
@@ -82,8 +91,22 @@ function showView(viewId) {
   views.forEach((view) => view.classList.toggle("active", view.id === viewId));
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === viewId));
   title.textContent = (currentLang === "ja" ? titleMapJa : titleMap)[viewId];
+  updateLanguageChrome();
   updateTopbar(viewId);
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function updateLanguageChrome() {
+  const lang = currentLang === "ja" ? "ja" : "zh";
+  document.documentElement.lang = lang === "ja" ? "ja" : "zh-CN";
+  document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
+    const icon = item.querySelector(".nav-icon")?.textContent || "";
+    const label = navLabelMap[item.dataset.view]?.[lang];
+    if (label) item.innerHTML = `<span class="nav-icon">${esc(icon)}</span>${esc(label)}`;
+  });
+  const eyebrow = document.querySelector(".topbar .eyebrow");
+  if (eyebrow) eyebrow.textContent = lang === "ja" ? "開発システム / サンプルOS" : "开发系统 / 样衣系统";
+  renderSidebarMetrics();
 }
 
 function showToast(message) {
@@ -198,6 +221,28 @@ function renderSummary() {
     <div class="summary-card"><span>待负责人决策</span><strong>${stats.pendingOwnerDecision}</strong><small>由评审负责人判断</small></div>
     <div class="summary-card alert"><span>阻塞问题</span><strong>${stats.blockingIssues}</strong><small>影响寄样状态</small></div>
     <div class="summary-card exception"><span>待例外放行</span><strong>${stats.waitingException}</strong><small>客户会议或交期风险</small></div>
+  `;
+}
+
+function renderSidebarMetrics() {
+  const panel = document.querySelector(".side-panel");
+  if (!panel) return;
+  const stats = os.getStats();
+  const activeStyle = os.getStyleById(os.data.currentStyleId);
+  panel.innerHTML = `
+    <div class="panel-label">${currentLang === "ja" ? "今日" : "今日"}</div>
+    <div class="side-metric">
+      <span>${currentLang === "ja" ? "未解決課題" : "未关闭问题"}</span>
+      <strong>${os.data.issues.filter((issue) => issue.status !== "closed").length}</strong>
+    </div>
+    <div class="side-metric">
+      <span>${currentLang === "ja" ? "ブロック課題" : "阻塞问题"}</span>
+      <strong>${stats.blockingIssues}</strong>
+    </div>
+    <div class="side-metric">
+      <span>${currentLang === "ja" ? "現在スタイル" : "当前款式"}</span>
+      <strong>${activeStyle?.styleNo || os.data.styleList.length}</strong>
+    </div>
   `;
 }
 
@@ -828,6 +873,7 @@ function updateRouteHint(locationId) {
 }
 
 function renderAll() {
+  renderSidebarMetrics();
   renderPipeline();
   renderStyleWorkspace();
   renderReview();
