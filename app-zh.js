@@ -123,7 +123,7 @@ function updateLanguageChrome() {
     if (label) item.innerHTML = `<span class="nav-icon">${esc(icon)}</span>${esc(label)}`;
   });
   const eyebrow = document.querySelector(".topbar .eyebrow");
-  if (eyebrow) eyebrow.textContent = lang === "ja" ? "開発システム / サンプルOS" : "开发系统 / 样衣系统";
+  if (eyebrow) eyebrow.textContent = lang === "ja" ? "VANWELL / サンプルレビューシステム" : "万誉服饰 / 样衣评审系统";
   renderSidebarMetrics();
 }
 
