@@ -4826,6 +4826,17 @@ body.apple-ui::before {
     0 12px 28px rgba(0, 113, 227, 0.11);
 }
 
+.apple-ui .filter-button.active {
+  border-color: rgba(0, 113, 227, 0.36);
+  background:
+    radial-gradient(circle at var(--mx, 82%) var(--my, 18%), rgba(0, 113, 227, 0.18), transparent 38%),
+    rgba(234, 244, 255, 0.86);
+  color: var(--brand);
+  box-shadow:
+    0 0 0 4px rgba(0, 113, 227, 0.08),
+    0 14px 30px rgba(0, 113, 227, 0.1);
+}
+
 .apple-ui .primary-button:hover,
 .apple-ui .row-action.primary:hover,
 .apple-ui .pipeline-actions button.primary:hover,

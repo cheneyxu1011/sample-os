@@ -100,12 +100,12 @@
               <button class="tab" type="button">萨洛蒙</button>
             </div>
             <div class="filter-row">
-              <button class="filter-button" type="button">评审中</button>
-              <button class="filter-button" type="button">已阻塞</button>
-              <button class="filter-button" type="button">普通路线</button>
-              <button class="filter-button" type="button">有阻塞问题</button>
-              <button class="filter-button" type="button">待评审负责人</button>
-              <button class="filter-button" type="button">待例外放行人</button>
+              <button class="filter-button" type="button" data-pipeline-filter="reviewing">评审中</button>
+              <button class="filter-button" type="button" data-pipeline-filter="blocked">已阻塞</button>
+              <button class="filter-button" type="button" data-pipeline-filter="normal_route">普通路线</button>
+              <button class="filter-button" type="button" data-pipeline-filter="has_blocking_issue">有阻塞问题</button>
+              <button class="filter-button" type="button" data-pipeline-filter="gate_owner_decision">待评审负责人</button>
+              <button class="filter-button" type="button" data-pipeline-filter="waiting_exception">待例外放行人</button>
             </div>
           </div>
 
@@ -597,11 +597,11 @@
           </div>
 
           <div class="calendar-filters">
-            <button class="filter-button" type="button">只看我的款式</button>
-            <button class="filter-button" type="button">只看阻塞寄样</button>
-            <button class="filter-button" type="button">只看本周到期</button>
-            <button class="filter-button" type="button">只看压胶 / 新长江</button>
-            <button class="filter-button" type="button">按品牌筛选</button>
+            <button class="filter-button" type="button" data-calendar-filter="mine">只看我的款式</button>
+            <button class="filter-button" type="button" data-calendar-filter="blocked">只看阻塞寄样</button>
+            <button class="filter-button" type="button" data-calendar-filter="week">只看本周到期</button>
+            <button class="filter-button" type="button" data-calendar-filter="special_route">只看压胶 / 新长江</button>
+            <button class="filter-button" type="button" data-calendar-filter="brand">按品牌筛选</button>
           </div>
 
           <div class="calendar-layout">
@@ -611,42 +611,7 @@
                 <span>所有需要交样的品牌、款式、件数</span>
               </div>
               <div class="calendar-grid">
-                <div class="calendar-day urgent">
-                  <strong>6/28 今天</strong>
-                  <div class="calendar-item">
-                    <span class="brand-dot salomon"></span>
-                    <div><b>萨洛蒙 212</b><small>二次样 · 2 件 · 样衣间</small><em>状态：阻止寄样 · 原因：品质复验未完成</em></div>
-                  </div>
-                  <div class="calendar-item">
-                    <span class="brand-dot supreme"></span>
-                    <div><b>萨洛蒙 212</b><small>销售样 · 3 件 · 业务</small><em>状态：等待例外放行 · 原因：客户会议临近</em></div>
-                  </div>
-                </div>
-                <div class="calendar-day">
-                  <strong>6/29 周一</strong>
-                  <div class="calendar-item">
-                    <span class="brand-dot nb"></span>
-                    <div><b>萨洛蒙 212</b><small>二次样 · 1 件 · 工厂</small><em>状态：已逾期 · 原因：面料未到</em></div>
-                  </div>
-                </div>
-                <div class="calendar-day">
-                  <strong>6/30 周二</strong>
-                  <div class="calendar-item">
-                    <span class="brand-dot descente"></span>
-                    <div><b>萨洛蒙 212</b><small>品质样 · 2 件 · 办公室</small><em>状态：正常 · 原因：无阻塞</em></div>
-                  </div>
-                  <div class="calendar-item">
-                    <span class="brand-dot theory"></span>
-                    <div><b>萨洛蒙 212</b><small>一次样 · 1 件 · 打样中</small><em>状态：临近交期 · 原因：待复核</em></div>
-                  </div>
-                </div>
-                <div class="calendar-day quiet">
-                  <strong>7/01 周三</strong>
-                  <div class="calendar-item">
-                    <span class="brand-dot salomon"></span>
-                    <div><b>萨洛蒙 221</b><small>产前样 · 4 件 · 待寄样</small><em>状态：已寄样 · 原因：已放行</em></div>
-                  </div>
-                </div>
+                <div class="empty-state"><strong>等待真实交期</strong><span>连接 Supabase 后显示数据库里的样衣交期。</span></div>
               </div>
             </div>
 
@@ -656,22 +621,7 @@
                 <span>系统自动按卡点排序</span>
               </div>
               <div class="risk-list">
-                <div class="risk-row danger">
-                  <strong>萨洛蒙 212</strong>
-                  <span>红色：已逾期 / 阻止寄样 · 当前卡在李卫红</span>
-                </div>
-                <div class="risk-row warning">
-                  <strong>萨洛蒙 212</strong>
-                  <span>橙色：今日到期 / 等待决策 · 品质复验未完成</span>
-                </div>
-                <div class="risk-row info">
-                  <strong>萨洛蒙 212</strong>
-                  <span>蓝色：待复核 · 等待杨总例外放行</span>
-                </div>
-                <div class="risk-row neutral">
-                  <strong>萨洛蒙 212</strong>
-                  <span>灰色：普通提醒 · 已寄样记录待补充</span>
-                </div>
+                <div class="risk-row neutral"><strong>等待真实风险数据</strong><span>不会显示本地演示月历。</span></div>
               </div>
             </div>
           </div>
@@ -694,141 +644,7 @@
               <span class="status blue">已寄样</span>
             </div>
             <div class="month-calendar">
-              <div class="weekday">周一</div>
-              <div class="weekday">周二</div>
-              <div class="weekday">周三</div>
-              <div class="weekday">周四</div>
-              <div class="weekday">周五</div>
-              <div class="weekday">周六</div>
-              <div class="weekday">周日</div>
-
-              <div class="month-cell muted-date">
-                <b>6/29</b>
-                <span class="month-event nb overdue">萨洛蒙 212 · 已逾期 · 1件</span>
-              </div>
-              <div class="month-cell muted-date">
-                <b>6/30</b>
-                <span class="month-event descente normal">萨洛蒙 212 · 品质样 · 2件</span>
-                <span class="month-event theory near">萨洛蒙 212 · 临近交期 · 1件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/01</b>
-                <span class="month-event salomon">萨洛蒙 221 · 产前样 · 4件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/02</b>
-                <span class="month-event supreme exception">萨洛蒙 212 · 等待例外放行 · 3件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/03</b>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/04</b>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/05</b>
-              </div>
-
-              <div class="month-cell">
-                <b>7/06</b>
-                <span class="month-event salomon blocked">萨洛蒙 212 · 阻止寄样 · 2件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/07</b>
-              </div>
-              <div class="month-cell">
-                <b>7/08</b>
-                <span class="month-event nb">萨洛蒙 212 · 修改样 · 1件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/09</b>
-                <span class="month-event descente">萨洛蒙 212 · 一次样 · 2件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/10</b>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/11</b>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/12</b>
-              </div>
-
-              <div class="month-cell">
-                <b>7/13</b>
-                <span class="month-event supreme">萨洛蒙 212 · 销售样 · 4件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/14</b>
-              </div>
-              <div class="month-cell">
-                <b>7/15</b>
-                <span class="month-event salomon">萨洛蒙 230 · 二次样 · 2件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/16</b>
-              </div>
-              <div class="month-cell">
-                <b>7/17</b>
-                <span class="month-event theory">萨洛蒙 520 · 初样 · 1件</span>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/18</b>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/19</b>
-              </div>
-
-              <div class="month-cell">
-                <b>7/20</b>
-                <span class="month-event descente">萨洛蒙 212 · 转大货交接</span>
-              </div>
-              <div class="month-cell">
-                <b>7/21</b>
-              </div>
-              <div class="month-cell">
-                <b>7/22</b>
-                <span class="month-event nb">萨洛蒙 401 · 销售样 · 2件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/23</b>
-              </div>
-              <div class="month-cell">
-                <b>7/24</b>
-                <span class="month-event salomon">萨洛蒙 240 · 产前样 · 3件</span>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/25</b>
-              </div>
-              <div class="month-cell weekend">
-                <b>7/26</b>
-              </div>
-
-              <div class="month-cell">
-                <b>7/27</b>
-              </div>
-              <div class="month-cell">
-                <b>7/28</b>
-                <span class="month-event supreme">萨洛蒙 212 · 品质样 · 2件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/29</b>
-              </div>
-              <div class="month-cell">
-                <b>7/30</b>
-                <span class="month-event descente">萨洛蒙 212 · 二次样 · 1件</span>
-              </div>
-              <div class="month-cell">
-                <b>7/31</b>
-                <span class="month-event salomon">萨洛蒙 250 · 月底汇总</span>
-              </div>
-              <div class="month-cell muted-date weekend">
-                <b>8/01</b>
-                <span class="month-event nb">萨洛蒙 410 · 下月计划</span>
-              </div>
-              <div class="month-cell muted-date weekend">
-                <b>8/02</b>
-              </div>
+              <div class="empty-state"><strong>暂无真实月历数据</strong><span>等待 Supabase 同步。</span></div>
             </div>
           </div>
         </section>

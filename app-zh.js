@@ -47,6 +47,9 @@ const topPrimaryButton = document.querySelector(".top-actions .primary-button");
 const userAccountRole = document.querySelector(".user-account small");
 const userAccountName = document.querySelector(".user-account strong");
 const editingReviewRows = new Set();
+const pipelineFilters = new Set();
+const calendarFilters = new Set();
+const calendarState = { monthOffset: 0, brand: "" };
 const glowTargets = [
   ".summary-card",
   ".section-block",
@@ -226,6 +229,100 @@ function statusClass(key) {
   return "blue";
 }
 
+function parseDate(value) {
+  if (!value) return null;
+  const [datePart] = String(value).split(/[ T]/);
+  const parts = datePart.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function dateKey(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(date, days) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function startOfWeek(date) {
+  const copy = new Date(date);
+  const day = copy.getDay() || 7;
+  copy.setDate(copy.getDate() - day + 1);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function getCalendarDate(summary) {
+  return summary?.style?.plannedShipDate || summary?.sample?.plannedShipDate || "";
+}
+
+function isSpecialRoute(style) {
+  const route = `${style?.route || ""} ${os.data.routeRules?.[style?.route]?.label || ""} ${os.data.sampleRoutes?.[style?.route] || ""}`;
+  return /压胶|新长江|bond|xinchangjiang/i.test(route);
+}
+
+function styleMatchesCurrentUser(summary) {
+  const userId = os.data.currentUserId;
+  return summary.style?.currentOwner?.includes(userId)
+    || summary.style?.gateOwner === userId
+    || summary.style?.finalApprover === userId
+    || summary.review?.gateOwner === userId
+    || summary.review?.finalApprover === userId
+    || summary.review?.departmentReviews?.some((item) => item.reviewer === userId);
+}
+
+function isBlockedSummary(summary) {
+  return summary.blockingIssues.length > 0 || ["blocked", "hold_shipment", "waiting_exception"].includes(summary.shipmentStatus.key) || ["blocked", "waiting_exception"].includes(summary.calendarRisk);
+}
+
+function matchesPipelineFilters(summary) {
+  for (const filter of pipelineFilters) {
+    if (filter === "reviewing" && !(summary.review?.status === "reviewing" || summary.style.currentGate === "sample_review_gate")) return false;
+    if (filter === "blocked" && !isBlockedSummary(summary)) return false;
+    if (filter === "normal_route" && summary.style.route !== "normal") return false;
+    if (filter === "has_blocking_issue" && !summary.blockingIssues.length) return false;
+    if (filter === "gate_owner_decision" && !["gate_owner_decision", "blocked", "hold_shipment"].includes(summary.shipmentStatus.key)) return false;
+    if (filter === "waiting_exception" && !(summary.shipmentStatus.key === "waiting_exception" || summary.calendarRisk === "waiting_exception")) return false;
+  }
+  return true;
+}
+
+function matchesCalendarFilters(summary) {
+  const date = parseDate(getCalendarDate(summary));
+  const today = new Date();
+  const weekStart = startOfWeek(today);
+  const weekEnd = addDays(weekStart, 6);
+  for (const filter of calendarFilters) {
+    if (filter === "mine" && !styleMatchesCurrentUser(summary)) return false;
+    if (filter === "blocked" && !isBlockedSummary(summary)) return false;
+    if (filter === "week" && (!date || date < weekStart || date > weekEnd)) return false;
+    if (filter === "special_route" && !isSpecialRoute(summary.style)) return false;
+    if (filter === "brand" && calendarState.brand && !String(summary.style.brand || "").includes(calendarState.brand)) return false;
+  }
+  return true;
+}
+
+function monthEventClass(risk) {
+  if (risk === "blocked" || risk === "overdue") return "blocked";
+  if (risk === "waiting_exception") return "exception";
+  if (risk === "approaching_due") return "near";
+  if (risk === "exception_released" || risk === "shipped") return "normal";
+  return "normal";
+}
+
+function syncFilterButtons() {
+  document.querySelectorAll("[data-pipeline-filter]").forEach((button) => button.classList.toggle("active", pipelineFilters.has(button.dataset.pipelineFilter)));
+  document.querySelectorAll("[data-calendar-filter]").forEach((button) => {
+    const active = button.dataset.calendarFilter === "brand" ? Boolean(calendarState.brand) : calendarFilters.has(button.dataset.calendarFilter);
+    button.classList.toggle("active", active);
+    if (button.dataset.calendarFilter === "brand") button.textContent = calendarState.brand ? `品牌：${calendarState.brand}` : "按品牌筛选";
+  });
+}
+
 function renderSummary() {
   const stats = os.getStats();
   const el = document.querySelector("#pipeline .summary-grid");
@@ -332,12 +429,19 @@ function renderPipeline() {
   renderSummary();
   const table = document.querySelector("#pipeline .pipeline-table");
   if (!table) return;
+  const summaries = os.data.styleList.map((style) => os.getStyleSummary(style.id)).filter(({ style }) => style).filter(matchesPipelineFilters);
   if (!os.data.styleList.length) {
     table.innerHTML = `<div class="empty-state"><strong>暂无真实款式数据</strong><span>新建款式或上传样衣后，这里会从 Supabase 同步显示。</span></div>`;
+    syncFilterButtons();
     return;
   }
-  table.innerHTML = `<div class="row head"><div>款式</div><div>当前闸口</div><div>开发闸口</div><div>卡点与下一步</div></div>` + os.data.styleList.map((style) => {
-    const summary = os.getStyleSummary(style.id);
+  if (!summaries.length) {
+    table.innerHTML = `<div class="empty-state"><strong>没有符合筛选的款式</strong><span>可以取消上方筛选条件，或等待 Supabase 同步新的款式。</span></div>`;
+    syncFilterButtons();
+    return;
+  }
+  table.innerHTML = `<div class="row head"><div>款式</div><div>当前闸口</div><div>开发闸口</div><div>卡点与下一步</div></div>` + summaries.map((summary) => {
+    const { style } = summary;
     return `
       <div class="row data-row pipeline-row" data-style-id="${style.id}">
         <div><strong>${esc(style.styleNo)}</strong><span>${esc(style.styleName)} · ${esc(style.brand)} ${esc(style.season)}</span></div>
@@ -346,6 +450,7 @@ function renderPipeline() {
         <div class="block-summary"><strong>卡点：${esc(style.blockerSummary || `${summary.blockingIssues.length} 个阻塞问题`)}</strong><span>责任：${esc(summary.ownerNames)}</span><span>评审负责人：${esc(summary.gateOwner?.name)}</span><span>阻塞问题：${summary.blockingIssues.length ? `是 · ${summary.blockingIssues.length} 个` : "否"}</span><span>下一步：${esc(summary.nextAction)}</span><div class="pipeline-actions"><button type="button" data-style-drawer="timeline" data-style-id="${style.id}">时间线</button><button type="button" data-style-drawer="details" data-style-id="${style.id}">详情</button><button type="button" data-style-drawer="prep" data-style-id="${style.id}">准备材料</button><button class="primary" type="button" data-open-review="${style.id}">打开评审</button></div></div>
       </div>`;
   }).join("");
+  syncFilterButtons();
 }
 
 function renderStyleWorkspace() {
@@ -581,27 +686,102 @@ function renderCalendar() {
   const riskList = document.querySelector("#calendar .risk-list");
   if (!grid || !riskList) return;
   const badges = document.querySelector("#calendar .header-badges");
-  const today = new Date().toISOString().slice(0, 10);
-  const datedStyles = os.data.styleList.filter((style) => style.plannedShipDate);
-  const todayCount = datedStyles.filter((style) => style.plannedShipDate <= today).length;
-  const blockedCount = datedStyles.map((style) => os.getStyleSummary(style.id)).filter((summary) => ["blocked", "hold_shipment", "waiting_exception"].includes(summary.shipmentStatus.key)).length;
-  if (badges) {
-    badges.innerHTML = `<span class="status ${todayCount ? "red" : "green"}">今日/逾期 ${todayCount}</span><span class="status ${blockedCount ? "amber" : "green"}">风险 ${blockedCount}</span><span class="status neutral">Supabase 同步</span>`;
-  }
-  if (!datedStyles.length) {
-    grid.innerHTML = `<div class="empty-state"><strong>暂无真实交期</strong><span>只有 Supabase 款式里填写了预计寄样日期，才会出现在样衣日历。</span></div>`;
-    riskList.innerHTML = `<div class="risk-row neutral"><strong>无交期风险</strong><span>当前没有真实样衣日历数据。</span></div>`;
+  const monthTitle = document.querySelector("#calendar .month-section .section-title h2");
+  const monthSubTitle = document.querySelector("#calendar .month-section .section-title span");
+  const monthToolbar = document.querySelector("#calendar .month-toolbar");
+  const monthCalendar = document.querySelector("#calendar .month-calendar");
+  const hasRealSource = os.data.source?.kind === "supabase";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = dateKey(today);
+  if (!hasRealSource) {
+    if (badges) badges.innerHTML = `<span class="status neutral">等待 Supabase</span>`;
+    grid.innerHTML = `<div class="empty-state"><strong>正在等待真实交期</strong><span>连接 Supabase 后，这里只显示数据库里的样衣交期。</span></div>`;
+    riskList.innerHTML = `<div class="risk-row neutral"><strong>等待真实风险数据</strong><span>不会显示本地演示月历。</span></div>`;
+    if (monthToolbar) monthToolbar.innerHTML = `<strong>暂无计划月历</strong><span class="status neutral">等待 Supabase 交期</span>`;
+    if (monthCalendar) monthCalendar.innerHTML = `<div class="empty-state"><strong>暂无真实月历数据</strong><span>正在等待 Supabase 同步。</span></div>`;
+    syncFilterButtons();
     return;
   }
-  const groups = {};
-  datedStyles.forEach((style) => {
-    const date = style.plannedShipDate;
-    groups[date] ||= [];
-    groups[date].push(os.getStyleSummary(style.id));
+  const allSummaries = os.data.styleList
+    .map((style) => os.getStyleSummary(style.id))
+    .filter((summary) => summary.style && parseDate(getCalendarDate(summary)));
+  const summaries = allSummaries.filter(matchesCalendarFilters);
+  const todayCount = summaries.filter((summary) => getCalendarDate(summary) <= todayKey).length;
+  const blockedCount = summaries.filter(isBlockedSummary).length;
+  const weekStart = startOfWeek(today);
+  const weekEnd = addDays(weekStart, 6);
+  if (badges) {
+    badges.innerHTML = `<span class="status ${todayCount ? "red" : "green"}">今日/逾期 ${todayCount}</span><span class="status ${blockedCount ? "amber" : "green"}">风险 ${blockedCount}</span><span class="status neutral">真实交期 ${summaries.length}</span>`;
+  }
+  if (!allSummaries.length) {
+    grid.innerHTML = `<div class="empty-state"><strong>暂无真实交期</strong><span>只有 Supabase 款式或样衣里填写了预计寄样日期，才会出现在样衣日历。</span></div>`;
+    riskList.innerHTML = `<div class="risk-row neutral"><strong>无交期风险</strong><span>当前没有真实样衣日历数据。</span></div>`;
+    if (monthToolbar) monthToolbar.innerHTML = `<strong>暂无计划月历</strong><span class="status neutral">等待 Supabase 交期</span>`;
+    if (monthCalendar) monthCalendar.innerHTML = `<div class="empty-state"><strong>暂无真实月历数据</strong><span>请先为款式或样衣填写预计寄样日期。</span></div>`;
+    syncFilterButtons();
+    return;
+  }
+  if (!summaries.length) {
+    grid.innerHTML = `<div class="empty-state"><strong>没有符合筛选的交期</strong><span>可以取消筛选条件或调整品牌。</span></div>`;
+    riskList.innerHTML = `<div class="risk-row neutral"><strong>当前筛选无风险</strong><span>没有符合条件的真实交期记录。</span></div>`;
+  }
+
+  const weekSummaries = summaries.filter((summary) => {
+    const date = parseDate(getCalendarDate(summary));
+    return date >= weekStart && date <= weekEnd;
   });
-  grid.innerHTML = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => `<div class="calendar-day ${date <= today ? "urgent" : ""}"><strong>${date.slice(5)} ${date === today ? "今天" : ""}</strong>${items.map(({ style, sample, openIssues, blockingIssues, calendarRisk }) => `<div class="calendar-item" title="点击进入单款详情" data-style-drawer="details" data-style-id="${style.id}"><span class="brand-dot salomon"></span><div><b>${esc(style.brand)} ${esc(style.styleNo)}</b><small>${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${style.quantity || 1} 件 · ${esc(sample?.location || style.sampleLocation || "未设置")}</small><em>状态：${esc(os.riskLabels[calendarRisk] || calendarRisk)} · 原因：${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : openIssues.length ? `${openIssues.length} 个待处理问题` : "无阻塞"}</em></div></div>`).join("")}</div>`).join("");
+  const gridItems = weekSummaries.length ? weekSummaries : summaries.slice(0, 8);
+  const groups = {};
+  gridItems.forEach((summary) => {
+    const date = getCalendarDate(summary);
+    groups[date] ||= [];
+    groups[date].push(summary);
+  });
+  if (Object.keys(groups).length) {
+    grid.innerHTML = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => `<div class="calendar-day ${date <= todayKey ? "urgent" : ""}"><strong>${date.slice(5)} ${date === todayKey ? "今天" : ""}</strong>${items.map(({ style, sample, openIssues, blockingIssues, calendarRisk }) => `<div class="calendar-item" title="点击进入单款详情" data-style-drawer="details" data-style-id="${style.id}"><span class="brand-dot salomon"></span><div><b>${esc(style.brand)} ${esc(style.styleNo)}</b><small>${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${style.quantity || 1} 件 · ${esc(sample?.location || style.sampleLocation || "未设置")}</small><em>状态：${esc(os.riskLabels[calendarRisk] || calendarRisk)} · 原因：${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : openIssues.length ? `${openIssues.length} 个待处理问题` : "无阻塞"}</em></div></div>`).join("")}</div>`).join("");
+  }
   const riskOrder = { blocked: 1, overdue: 1, waiting_exception: 2, approaching_due: 3, normal: 4, exception_released: 5, shipped: 6 };
-  riskList.innerHTML = datedStyles.map((style) => os.getStyleSummary(style.id)).sort((a, b) => (riskOrder[a.calendarRisk] || 9) - (riskOrder[b.calendarRisk] || 9)).map(({ style, calendarRisk, blockingIssues, nextAction, ownerNames }) => `<div class="risk-row ${calendarRisk === "blocked" || calendarRisk === "overdue" ? "danger" : calendarRisk === "waiting_exception" ? "warning" : calendarRisk === "normal" ? "neutral" : calendarRisk === "exception_released" || calendarRisk === "shipped" ? "success" : "info"}"><strong>${esc(style.brand)} ${esc(style.styleNo)}</strong><span>${esc(os.riskLabels[calendarRisk] || calendarRisk)} · ${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : nextAction || "暂无下一步"} · 当前责任：${esc(ownerNames || "未指定")}</span></div>`).join("");
+  if (summaries.length) {
+    riskList.innerHTML = summaries.slice().sort((a, b) => (riskOrder[a.calendarRisk] || 9) - (riskOrder[b.calendarRisk] || 9)).map(({ style, calendarRisk, blockingIssues, nextAction, ownerNames }) => `<div class="risk-row ${calendarRisk === "blocked" || calendarRisk === "overdue" ? "danger" : calendarRisk === "waiting_exception" ? "warning" : calendarRisk === "normal" ? "neutral" : calendarRisk === "exception_released" || calendarRisk === "shipped" ? "success" : "info"}"><strong>${esc(style.brand)} ${esc(style.styleNo)}</strong><span>${esc(os.riskLabels[calendarRisk] || calendarRisk)} · ${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : nextAction || "暂无下一步"} · 当前责任：${esc(ownerNames || "未指定")}</span></div>`).join("");
+  }
+
+  const baseMonthDate = parseDate(getCalendarDate(summaries[0] || allSummaries[0])) || today;
+  const activeMonth = new Date(baseMonthDate.getFullYear(), baseMonthDate.getMonth() + calendarState.monthOffset, 1);
+  const activeYear = activeMonth.getFullYear();
+  const activeMonthIndex = activeMonth.getMonth();
+  const monthStart = new Date(activeYear, activeMonthIndex, 1);
+  const monthGridStart = startOfWeek(monthStart);
+  const monthEnd = new Date(activeYear, activeMonthIndex + 1, 0);
+  const monthGridEnd = addDays(startOfWeek(monthEnd), 6);
+  const monthItems = summaries.filter((summary) => {
+    const date = parseDate(getCalendarDate(summary));
+    return date >= monthGridStart && date <= monthGridEnd;
+  });
+  const monthGroups = {};
+  monthItems.forEach((summary) => {
+    const key = getCalendarDate(summary);
+    monthGroups[key] ||= [];
+    monthGroups[key].push(summary);
+  });
+  if (monthTitle) monthTitle.textContent = `${activeMonthIndex + 1}月真实计划月历`;
+  if (monthSubTitle) monthSubTitle.textContent = `来自 Supabase 的预计寄样日期，共 ${monthItems.length} 条`;
+  if (monthToolbar) {
+    monthToolbar.innerHTML = `<button type="button" data-calendar-month-nav="-1">‹ ${activeMonthIndex === 0 ? 12 : activeMonthIndex}月</button><strong>${activeYear}年 ${activeMonthIndex + 1}月</strong><button type="button" data-calendar-month-nav="1">${activeMonthIndex === 11 ? 1 : activeMonthIndex + 2}月 ›</button><span class="status green">正常</span><span class="status amber">临近/例外</span><span class="status red">逾期/阻止</span><span class="status blue">已寄样</span><span class="status neutral">真实数据</span>`;
+  }
+  if (monthCalendar) {
+    const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"].map((day) => `<div class="weekday">${day}</div>`).join("");
+    const cells = [];
+    for (let cursor = new Date(monthGridStart); cursor <= monthGridEnd; cursor = addDays(cursor, 1)) {
+      const key = dateKey(cursor);
+      const items = monthGroups[key] || [];
+      const muted = cursor.getMonth() !== activeMonthIndex;
+      const weekend = [0, 6].includes(cursor.getDay());
+      cells.push(`<div class="month-cell ${muted ? "muted-date" : ""} ${weekend ? "weekend" : ""}"><b>${cursor.getMonth() + 1}/${String(cursor.getDate()).padStart(2, "0")}</b>${items.map(({ style, sample, calendarRisk }) => `<span class="month-event ${monthEventClass(calendarRisk)}" data-style-drawer="details" data-style-id="${style.id}">${esc(style.brand)} ${esc(style.styleNo)} · ${esc(sample?.versionName || os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${style.quantity || 1}件</span>`).join("")}</div>`);
+    }
+    monthCalendar.innerHTML = weekdays + cells.join("");
+  }
+  syncFilterButtons();
 }
 
 function renderSettings() {
@@ -972,6 +1152,7 @@ function renderAll() {
   renderReview();
   renderCalendar();
   renderSettings();
+  syncFilterButtons();
   os.validateData();
 }
 
@@ -1019,6 +1200,40 @@ document.addEventListener("click", (event) => {
     document.querySelectorAll(".language-switch button").forEach((button) => button.classList.toggle("active", button === langButton));
     showView(document.querySelector(".view.active")?.id || "pipeline");
     showToast(currentLang === "ja" ? "日本語表示に切り替えました（一部項目は中国語データのままです）" : "已切换回中文");
+    return;
+  }
+
+  const pipelineFilter = event.target.closest("[data-pipeline-filter]");
+  if (pipelineFilter) {
+    const key = pipelineFilter.dataset.pipelineFilter;
+    if (pipelineFilters.has(key)) pipelineFilters.delete(key);
+    else pipelineFilters.add(key);
+    renderPipeline();
+    return;
+  }
+
+  const calendarFilter = event.target.closest("[data-calendar-filter]");
+  if (calendarFilter) {
+    const key = calendarFilter.dataset.calendarFilter;
+    if (key === "brand") {
+      const brands = Array.from(new Set(os.data.styleList.map((style) => style.brand).filter(Boolean))).join(" / ");
+      const nextBrand = window.prompt(`输入要筛选的品牌；留空清除。当前可选：${brands || "暂无品牌"}`, calendarState.brand || "");
+      calendarState.brand = String(nextBrand || "").trim();
+      if (calendarState.brand) calendarFilters.add("brand");
+      else calendarFilters.delete("brand");
+    } else if (calendarFilters.has(key)) {
+      calendarFilters.delete(key);
+    } else {
+      calendarFilters.add(key);
+    }
+    renderCalendar();
+    return;
+  }
+
+  const monthNav = event.target.closest("[data-calendar-month-nav]");
+  if (monthNav) {
+    calendarState.monthOffset += Number(monthNav.dataset.calendarMonthNav) || 0;
+    renderCalendar();
     return;
   }
 
