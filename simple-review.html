@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sample Review Simple</title>
+    <link rel="stylesheet" href="simple-review.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="top">
+        <div>
+          <div class="label">Sample OS</div>
+          <h1>Sample Review</h1>
+        </div>
+        <span class="status">Reviewing</span>
+      </header>
+
+      <section class="sample-bar">
+        <div>
+          <span>Style</span>
+          <strong>212</strong>
+        </div>
+        <div>
+          <span>Brand</span>
+          <strong>Salomon</strong>
+        </div>
+        <div>
+          <span>Stage</span>
+          <strong>2nd Proto</strong>
+        </div>
+        <div>
+          <span>Location</span>
+          <strong>Sample Room</strong>
+        </div>
+      </section>
+
+      <section class="photos">
+        <div class="photo main-photo">
+          <div class="garment"></div>
+          <span>Front</span>
+        </div>
+        <div class="photo"><div class="garment back"></div><span>Back</span></div>
+        <div class="photo"><div class="garment side"></div><span>Side</span></div>
+      </section>
+
+      <section class="review-card">
+        <div class="card-title">
+          <h2>My Review</h2>
+          <span>业务员只需要做这一步</span>
+        </div>
+        <div class="choice-row">
+          <button class="choice pass" type="button">Pass</button>
+          <button class="choice improve active" type="button">Improve</button>
+          <button class="choice reject" type="button">Reject</button>
+        </div>
+        <label class="comment">
+          <span>Comment</span>
+          <textarea>口袋位置偏高，建议下移 1.5cm 后再寄样。</textarea>
+        </label>
+        <div class="owner-row">
+          <label>
+            <span>Owner</span>
+            <select>
+              <option>Pattern</option>
+              <option>QC</option>
+              <option>Technique</option>
+              <option>Business</option>
+            </select>
+          </label>
+          <label>
+            <span>Deadline</span>
+            <input value="Tomorrow" />
+          </label>
+        </div>
+        <button class="submit" type="button">Submit Review</button>
+      </section>
+
+      <section class="issues">
+        <div class="card-title">
+          <h2>Issues</h2>
+          <span>系统自动沉淀，不需要业务员管理复杂流程</span>
+        </div>
+        <div class="issue">
+          <strong>Pocket too high</strong>
+          <span>Pattern · Major · Open</span>
+        </div>
+        <div class="issue blocker">
+          <strong>Loose thread at sleeve</strong>
+          <span>QC · Blocker · Open</span>
+        </div>
+      </section>
+
+      <section class="decision">
+        <div>
+          <span>Final Decision</span>
+          <strong>Waiting for 张部长</strong>
+        </div>
+        <button type="button">Modify</button>
+      </section>
+    </main>
+  </body>
+</html>

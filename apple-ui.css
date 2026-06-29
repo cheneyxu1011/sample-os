@@ -1,0 +1,4111 @@
+body.apple-ui {
+  --bg: #f5f5f7;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-2: #f2f2f7;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --line: rgba(0, 0, 0, 0.1);
+  --brand: #0071e3;
+  --brand-2: #8e8e93;
+  --blue: #0071e3;
+  --blue-bg: #eaf4ff;
+  --green: #248a3d;
+  --green-bg: #eaf8ee;
+  --amber: #b56a00;
+  --amber-bg: #fff4df;
+  --red: #d70015;
+  --red-bg: #fff0f0;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
+  background:
+    linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 42%, #f2f2f7 100%);
+  color: var(--ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.apple-ui .app-shell {
+  grid-template-columns: 236px minmax(0, 1fr);
+}
+
+.apple-ui .sidebar {
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  border-right: 1px solid var(--line);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: 22px 14px;
+}
+
+.apple-ui .brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.apple-ui .brand-name {
+  color: var(--ink);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.apple-ui .brand-sub,
+.apple-ui .panel-label,
+.apple-ui .side-panel .panel-label {
+  color: var(--muted);
+}
+
+.apple-ui .nav-item {
+  min-height: 38px;
+  border-radius: 8px;
+  color: #3a3a3c;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+
+.apple-ui .nav-item:hover,
+.apple-ui .nav-item.active {
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--brand);
+}
+
+.apple-ui .nav-item.disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.apple-ui .data-row.disabled-row {
+  cursor: default;
+}
+
+.apple-ui .settings-entry {
+  position: fixed;
+  left: 14px;
+  bottom: 18px;
+  z-index: 8;
+  width: 208px;
+  margin-top: 0;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.apple-ui .nav-icon {
+  color: var(--brand);
+  font-size: 13px;
+}
+
+.apple-ui .side-panel {
+  margin-top: 0;
+  margin-bottom: 62px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.04);
+}
+
+.apple-ui .side-metric {
+  color: var(--muted);
+  border-top-color: var(--line);
+  font-size: 13px;
+}
+
+.apple-ui .side-metric strong {
+  color: var(--ink);
+}
+
+.apple-ui .main {
+  padding: 28px;
+}
+
+.apple-ui .topbar {
+  margin-bottom: 20px;
+}
+
+.apple-ui .topbar > div:first-child {
+  min-width: 220px;
+}
+
+.apple-ui .topbar h1,
+.apple-ui .top-actions button,
+.apple-ui .language-switch button,
+.apple-ui .user-account strong,
+.apple-ui .user-account small {
+  white-space: nowrap;
+}
+
+.apple-ui .top-actions {
+  flex-wrap: nowrap;
+}
+
+.apple-ui .eyebrow,
+.apple-ui .panel-label {
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.apple-ui h1 {
+  font-size: 34px;
+  font-weight: 720;
+  letter-spacing: 0;
+}
+
+.apple-ui h2 {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.apple-ui h3 {
+  font-weight: 700;
+}
+
+.apple-ui .search,
+.apple-ui .icon-button,
+.apple-ui .primary-button,
+.apple-ui .filter-button,
+.apple-ui .tab,
+.apple-ui .decision-grid button,
+.apple-ui .comm-table button,
+.apple-ui .drawer-actions button,
+.apple-ui .workspace-tab,
+.apple-ui .row-action,
+.apple-ui .month-toolbar button {
+  border-radius: 8px;
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+.apple-ui .search {
+  min-width: 320px;
+  height: 38px;
+}
+
+.apple-ui .search span {
+  color: var(--muted);
+}
+
+.apple-ui .search input::placeholder {
+  color: #9a9aa0;
+}
+
+.apple-ui .primary-button,
+.apple-ui .row-action.primary,
+.apple-ui .decision-grid button.selected,
+.apple-ui .flow-step.active,
+.apple-ui .review-choices button.selected {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(0, 113, 227, 0.22);
+}
+
+.apple-ui .icon-button {
+  width: 38px;
+  height: 38px;
+  color: var(--muted);
+}
+
+.apple-ui .notify-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  color: #5f6368;
+}
+
+.apple-ui .notify-button span {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 9px 9px;
+  font-size: 0;
+  transform: translateY(1px);
+}
+
+.apple-ui .notify-button span::before {
+  content: "";
+  width: 10px;
+  height: 8px;
+  display: block;
+  border: 2px solid currentColor;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+  transform: translateY(-8px);
+}
+
+.apple-ui .notify-button span::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  display: block;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translateY(3px);
+}
+
+.apple-ui .notify-button i {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.24);
+  animation: notifyDotPulse 2.2s ease-out infinite;
+}
+
+.apple-ui .language-switch {
+  height: 38px;
+  display: inline-grid;
+  grid-template-columns: repeat(2, auto);
+  align-items: center;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(242, 242, 247, 0.78);
+}
+
+.apple-ui .language-switch button {
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.apple-ui .language-switch button.active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.apple-ui .user-account {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 3px 9px 3px 4px;
+  color: var(--ink);
+}
+
+.apple-ui .user-account span:last-child {
+  display: grid;
+  text-align: left;
+  line-height: 1.1;
+}
+
+.apple-ui .user-account small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.apple-ui .tab,
+.apple-ui .filter-button,
+.apple-ui .workspace-tab {
+  min-height: 36px;
+  padding: 0 13px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.apple-ui .tab.active,
+.apple-ui .workspace-tab.active {
+  background: rgba(0, 113, 227, 0.1);
+  border-color: rgba(0, 113, 227, 0.28);
+  color: var(--brand);
+}
+
+.apple-ui .summary-card,
+.apple-ui .section-block,
+.apple-ui .table-shell,
+.apple-ui .style-header {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.apple-ui .summary-card {
+  min-height: 102px;
+  padding: 16px;
+}
+
+.apple-ui .summary-card strong {
+  font-size: 32px;
+  font-weight: 730;
+}
+
+.apple-ui .summary-card.alert {
+  border-left: 0;
+  box-shadow:
+    inset 4px 0 0 var(--red),
+    0 12px 30px rgba(0, 0, 0, 0.04);
+}
+
+.apple-ui .table-header,
+.apple-ui .section-title {
+  padding: 15px 18px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.apple-ui .row.head {
+  min-height: 40px;
+  background: rgba(242, 242, 247, 0.86);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #77777d;
+}
+
+.apple-ui .row.data-row,
+.apple-ui .comm-table .row:not(.head) {
+  min-height: 72px;
+  background: rgba(255, 255, 255, 0.52);
+  transition:
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.apple-ui .row.data-row:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.apple-ui .status,
+.apple-ui .pill {
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 12px;
+}
+
+.apple-ui .status.blue {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+.apple-ui .status.green,
+.apple-ui .pill.green {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.apple-ui .status.amber,
+.apple-ui .pill.amber {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.apple-ui .status.red,
+.apple-ui .pill.red {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.apple-ui .status.neutral,
+.apple-ui .pill.neutral {
+  background: #f2f2f7;
+  color: #5f6368;
+}
+
+.apple-ui .stage-line {
+  gap: 5px;
+}
+
+.apple-ui .stage-line span {
+  min-height: 24px;
+  border-radius: 7px;
+  border-color: rgba(0, 0, 0, 0.09);
+  background: #f5f5f7;
+  color: #6e6e73;
+  font-size: 10px;
+  position: relative;
+  z-index: 0;
+}
+
+.apple-ui .stage-line .done {
+  background: rgba(52, 199, 89, 0.13);
+  border-color: rgba(52, 199, 89, 0.26);
+  color: var(--green);
+}
+
+.apple-ui .stage-line .active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(0, 113, 227, 0.2),
+    0 0 18px rgba(0, 113, 227, 0.35);
+  overflow: visible;
+}
+
+.apple-ui .stage-line .active::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 2px solid rgba(0, 113, 227, 0.32);
+  border-radius: 12px;
+  animation: appleProgressPulse 1.8s ease-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.apple-ui .stage-line .blocked {
+  background: var(--red-bg);
+  border-color: rgba(215, 0, 21, 0.22);
+  color: var(--red);
+}
+
+@keyframes appleProgressPulse {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.96);
+  }
+
+  70% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
+.apple-ui .prep-mini span {
+  min-height: 24px;
+  border-radius: 7px;
+  font-size: 10px;
+}
+
+.apple-ui .prep-mini .ok {
+  background: rgba(52, 199, 89, 0.13);
+  border-color: rgba(52, 199, 89, 0.26);
+  color: var(--green);
+}
+
+.apple-ui .prep-mini .warn {
+  background: var(--amber-bg);
+  border-color: rgba(181, 106, 0, 0.24);
+  color: var(--amber);
+}
+
+.apple-ui .timeline-item {
+  border-bottom-color: var(--line);
+}
+
+.apple-ui .timeline-item::before {
+  border-radius: 999px;
+  position: relative;
+  z-index: 1;
+}
+
+.apple-ui .timeline-item.complete::before {
+  background: var(--green);
+  box-shadow:
+    0 0 0 5px rgba(52, 199, 89, 0.1),
+    0 0 18px rgba(52, 199, 89, 0.16);
+}
+
+.apple-ui .timeline-item.current::before {
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow:
+    0 0 0 7px rgba(0, 113, 227, 0.12),
+    0 0 26px rgba(0, 113, 227, 0.28);
+  animation: timelinePulseBlue 2.2s ease-out infinite;
+}
+
+.apple-ui .timeline-item.risk::before,
+.apple-ui .timeline-item.blocked::before {
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow:
+    0 0 0 7px rgba(255, 59, 48, 0.12),
+    0 0 26px rgba(255, 59, 48, 0.28);
+  animation: timelinePulseRed 1.8s ease-out infinite;
+}
+
+.apple-ui .sample-visual,
+.apple-ui .media-card {
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(242, 242, 247, 0.9)),
+    #f2f2f7;
+}
+
+.apple-ui .jacket-shape,
+.apple-ui .garment {
+  background: #2f3437;
+}
+
+.apple-ui .info-grid,
+.apple-ui .handoff-summary {
+  background: var(--line);
+}
+
+.apple-ui .info-grid div,
+.apple-ui .handoff-summary div {
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.apple-ui .dept-row,
+.apple-ui .issue-row,
+.apple-ui .audit-list div {
+  border-top-color: var(--line);
+}
+
+.apple-ui .dept-row.pending,
+.apple-ui .issue-row:hover {
+  background: #fbfbfd;
+}
+
+.apple-ui .row-action {
+  font-size: 12px;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.apple-ui .my-review textarea,
+.apple-ui .quick-fields select,
+.apple-ui .quick-fields input {
+  border-radius: 8px;
+  border-color: var(--line);
+  background: #fbfbfd;
+}
+
+.apple-ui .calendar-day,
+.apple-ui .risk-row,
+.apple-ui .prep-checks div,
+.apple-ui .duration-list div,
+.apple-ui .blocker-card,
+.apple-ui .material-card,
+.apple-ui .calendar-item {
+  border-radius: 8px;
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.apple-ui .calendar-day.urgent {
+  border-top-color: var(--red);
+}
+
+.apple-ui .calendar-day.quiet {
+  border-top-color: var(--green);
+}
+
+.apple-ui .month-toolbar {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.apple-ui .weekday,
+.apple-ui .month-cell {
+  border-color: var(--line);
+}
+
+.apple-ui .weekday {
+  background: #f2f2f7;
+}
+
+.apple-ui .month-cell {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.apple-ui .month-cell.weekend {
+  background: rgba(242, 242, 247, 0.64);
+}
+
+.apple-ui .month-cell.muted-date {
+  background: rgba(242, 242, 247, 0.9);
+}
+
+.apple-ui .month-event {
+  border-radius: 6px;
+  border-left-width: 3px;
+}
+
+.apple-ui .check {
+  border-radius: 7px;
+}
+
+.apple-ui .duration-list meter {
+  height: 8px;
+}
+
+.apple-ui meter::-webkit-meter-bar {
+  border: 0;
+  border-radius: 999px;
+  background: #e5e5ea;
+}
+
+.apple-ui meter::-webkit-meter-optimum-value {
+  border-radius: 999px;
+  background: var(--brand);
+}
+
+.apple-ui .flow-step {
+  border-radius: 8px;
+  background: #f5f5f7;
+}
+
+.apple-ui .issue-drawer {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.apple-ui .drawer-field {
+  border-radius: 8px;
+  border-color: var(--line);
+  background: #fbfbfd;
+}
+
+.apple-ui .avatar {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.16);
+  vertical-align: middle;
+  background:
+    radial-gradient(circle at 50% 34%, #f0c6a8 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 95%, #1d3557 0 34%, transparent 35%),
+    linear-gradient(135deg, #d9e3f0, #f5f7fb);
+}
+
+.apple-ui .avatar-zhang { background: radial-gradient(circle at 50% 34%, #f0c6a8 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #111827 0 34%, transparent 35%), linear-gradient(135deg, #d8e7ff, #fff); }
+.apple-ui .avatar-linda { background: radial-gradient(circle at 50% 34%, #edc2a2 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #8b2f44 0 34%, transparent 35%), linear-gradient(135deg, #ffe7ef, #fff); }
+.apple-ui .avatar-wang { background: radial-gradient(circle at 50% 34%, #e9b995 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #23415f 0 34%, transparent 35%), linear-gradient(135deg, #dff1ff, #fff); }
+.apple-ui .avatar-zhao { background: radial-gradient(circle at 50% 34%, #e8bd9f 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #2f4f3f 0 34%, transparent 35%), linear-gradient(135deg, #e8f7ec, #fff); }
+.apple-ui .avatar-chen { background: radial-gradient(circle at 50% 34%, #e7b48f 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #5a3d26 0 34%, transparent 35%), linear-gradient(135deg, #fff2df, #fff); }
+.apple-ui .avatar-mike { background: radial-gradient(circle at 50% 34%, #d9a47c 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #25324a 0 34%, transparent 35%), linear-gradient(135deg, #e7ecff, #fff); }
+.apple-ui .avatar-li { background: radial-gradient(circle at 50% 34%, #efc19f 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #174c37 0 34%, transparent 35%), linear-gradient(135deg, #e6fff3, #fff); }
+.apple-ui .avatar-guyao { background: radial-gradient(circle at 50% 34%, #f0c09f 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #a23b62 0 34%, transparent 35%), linear-gradient(135deg, #ffeaf3, #fff); }
+.apple-ui .avatar-guyonghong { background: radial-gradient(circle at 50% 34%, #e8b98f 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #294966 0 34%, transparent 35%), linear-gradient(135deg, #e8f3ff, #fff); }
+.apple-ui .avatar-xu { background: radial-gradient(circle at 50% 34%, #ecc2a1 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #674188 0 34%, transparent 35%), linear-gradient(135deg, #f5ecff, #fff); }
+.apple-ui .avatar-liweihong { background: radial-gradient(circle at 50% 34%, #efc19f 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #1e5f8a 0 34%, transparent 35%), linear-gradient(135deg, #e7f6ff, #fff); }
+.apple-ui .avatar-dahong { background: radial-gradient(circle at 50% 34%, #eeb58f 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #9b2c2c 0 34%, transparent 35%), linear-gradient(135deg, #fff0f0, #fff); }
+.apple-ui .avatar-wangbu { background: radial-gradient(circle at 50% 34%, #e6b18b 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #1f2937 0 34%, transparent 35%), linear-gradient(135deg, #eef2f7, #fff); }
+.apple-ui .avatar-dadai { background: radial-gradient(circle at 50% 34%, #d9a47c 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #465a35 0 34%, transparent 35%), linear-gradient(135deg, #edf6e8, #fff); }
+.apple-ui .avatar-xia { background: radial-gradient(circle at 50% 34%, #eebd9a 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #075985 0 34%, transparent 35%), linear-gradient(135deg, #e1f4ff, #fff); }
+.apple-ui .avatar-liayi { background: radial-gradient(circle at 50% 34%, #f1c4a3 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #166534 0 34%, transparent 35%), linear-gradient(135deg, #edfdf3, #fff); }
+.apple-ui .avatar-zhangayi { background: radial-gradient(circle at 50% 34%, #e8b994 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #7c2d12 0 34%, transparent 35%), linear-gradient(135deg, #fff4e8, #fff); }
+.apple-ui .avatar-wangayi { background: radial-gradient(circle at 50% 34%, #edc09c 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #334155 0 34%, transparent 35%), linear-gradient(135deg, #edf2f7, #fff); }
+.apple-ui .avatar-zhuxiaoli { background: radial-gradient(circle at 50% 34%, #efc19e 0 18%, transparent 19%), radial-gradient(circle at 50% 95%, #0f766e 0 34%, transparent 35%), linear-gradient(135deg, #e6fffb, #fff); }
+
+.apple-ui .settings-page {
+  display: grid;
+  gap: 14px;
+}
+
+.apple-ui .settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.apple-ui .people-panel,
+.apple-ui .worker-panel {
+  grid-column: 1 / -1;
+}
+
+.apple-ui .people-table {
+  display: grid;
+}
+
+.apple-ui .people-row {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 190px 130px minmax(420px, 1fr) 96px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.apple-ui .people-row.head {
+  min-height: 42px;
+  background: rgba(242, 242, 247, 0.72);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.apple-ui .people-row strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apple-ui .people-row p {
+  color: #3a3a3c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.apple-ui .people-row em {
+  justify-self: start;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.apple-ui .worker-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+}
+
+.apple-ui .worker-list > div {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 3px 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.apple-ui .worker-list .avatar {
+  grid-row: span 2;
+}
+
+.apple-ui .worker-list small {
+  color: var(--muted);
+}
+
+.apple-ui .routing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px;
+}
+
+.apple-ui .routing-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  overflow: hidden;
+}
+
+.apple-ui .routing-card.highlight {
+  border-color: rgba(0, 113, 227, 0.22);
+  background: linear-gradient(180deg, rgba(234, 244, 255, 0.76), rgba(255, 255, 255, 0.86));
+}
+
+.apple-ui .route-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.apple-ui .route-title span {
+  max-width: 360px;
+  color: var(--muted);
+  text-align: right;
+  font-size: 13px;
+}
+
+.apple-ui .route-flow {
+  display: grid;
+}
+
+.apple-ui .route-flow > div {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 3px 12px;
+  padding: 13px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.apple-ui .route-flow > div:first-child {
+  border-top: 0;
+}
+
+.apple-ui .route-flow b {
+  grid-row: span 2;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 12px;
+}
+
+.apple-ui .route-flow small {
+  color: var(--muted);
+}
+
+.apple-ui .review-dashboard {
+  display: grid;
+  gap: 14px;
+  min-width: 1180px;
+}
+
+.apple-ui .review-hero {
+  display: grid;
+  grid-template-columns: 150px minmax(420px, 1fr) 360px 170px;
+  gap: 18px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+}
+
+.apple-ui .hero-info {
+  min-width: 0;
+}
+
+.apple-ui .hero-garment {
+  min-height: 128px;
+  display: grid;
+  place-items: center;
+  background: #f2f2f7;
+  border-radius: 8px;
+}
+
+.apple-ui .hero-garment .garment {
+  width: 70px;
+  height: 104px;
+}
+
+.apple-ui .crumb {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+}
+
+.apple-ui .hero-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.apple-ui .hero-title h2 {
+  font-size: 28px;
+  white-space: nowrap;
+}
+
+.apple-ui .hero-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 18px;
+  color: #303238;
+  font-size: 13px;
+}
+
+.apple-ui .hero-meta span {
+  white-space: nowrap;
+}
+
+.apple-ui .review-process {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.apple-ui .process-step {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.apple-ui .process-step b {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef0f5;
+  color: #8c919b;
+}
+
+.apple-ui .process-step.done b {
+  background: #21c45d;
+  color: #fff;
+}
+
+.apple-ui .process-step.active b {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 0 0 7px rgba(0, 113, 227, 0.12);
+}
+
+.apple-ui .process-line {
+  height: 2px;
+  background: #d7dbe4;
+}
+
+.apple-ui .process-line.active {
+  background: var(--brand);
+}
+
+.apple-ui .location-card {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
+}
+
+.apple-ui .location-card span,
+.apple-ui .location-card small {
+  color: var(--muted);
+}
+
+.apple-ui .review-board {
+  display: grid;
+  grid-template-columns: minmax(520px, 1.1fr) minmax(560px, 0.95fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.apple-ui .media-panel,
+.apple-ui .issue-panel,
+.apple-ui .version-panel {
+  grid-column: 1;
+}
+
+.apple-ui .department-panel {
+  grid-column: 2;
+}
+
+.apple-ui .decision-panel,
+.apple-ui .timeline-panel {
+  grid-column: 2;
+}
+
+.apple-ui .panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.apple-ui .badge-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+}
+
+.apple-ui .review-media-grid {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.8fr 0.8fr;
+  grid-auto-rows: 118px;
+  gap: 10px;
+}
+
+.apple-ui .review-photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #eef1f5, #fafafa);
+  border: 1px solid var(--line);
+}
+
+.apple-ui .review-photo.main {
+  grid-row: span 3;
+}
+
+.apple-ui .review-photo span {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.apple-ui .detail-photo::before {
+  content: "";
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  border: 12px solid #c8c8c0;
+}
+
+.apple-ui .sleeve::before { border-radius: 999px; border-color: #d2d2ca; }
+.apple-ui .hem::before { width: 110px; height: 42px; border-radius: 8px; }
+.apple-ui .seam::before { border-radius: 0; transform: rotate(-25deg); }
+.apple-ui .seam2::before { border-radius: 0; transform: rotate(25deg); }
+
+.apple-ui .review-table,
+.apple-ui .issue-table {
+  display: grid;
+}
+
+.apple-ui .review-table-row,
+.apple-ui .issue-table-row {
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.apple-ui .review-table-row {
+  grid-template-columns: 74px 110px 86px minmax(0, 1fr) 58px 34px;
+}
+
+.apple-ui .issue-table-row {
+  grid-template-columns: 1.1fr 0.9fr 100px 58px 92px 70px;
+}
+
+.apple-ui .review-table-row.head,
+.apple-ui .issue-table-row.head {
+  min-height: 38px;
+  background: #f7f8fb;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.apple-ui .review-table-row span,
+.apple-ui .issue-table-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.apple-ui .review-table-row p {
+  margin: 0;
+}
+
+.apple-ui .review-table-row button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--brand);
+}
+
+.apple-ui .priority,
+.apple-ui .issue-table-row em {
+  justify-self: start;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.apple-ui .priority.high { background: var(--red-bg); color: var(--red); }
+.apple-ui .priority.mid { background: var(--amber-bg); color: var(--amber); }
+.apple-ui .priority.low { background: var(--green-bg); color: var(--green); }
+.apple-ui .issue-table-row em { background: var(--blue-bg); color: var(--blue); }
+
+.apple-ui .decision-stack {
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.apple-ui .decision-stack button {
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-weight: 800;
+}
+
+.apple-ui .decision-stack .approve { border-color: rgba(52, 199, 89, 0.4); color: var(--green); }
+.apple-ui .decision-stack .revise { border-color: rgba(181, 106, 0, 0.35); color: var(--amber); }
+.apple-ui .decision-stack .hold { border-color: rgba(215, 0, 21, 0.32); color: var(--red); }
+.apple-ui .decision-stack small { text-align: center; color: var(--muted); }
+
+.apple-ui .vertical-timeline {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.apple-ui .vertical-timeline div {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  position: relative;
+}
+
+.apple-ui .vertical-timeline b {
+  color: var(--brand);
+}
+
+.apple-ui .vertical-timeline .danger b,
+.apple-ui .vertical-timeline .danger span {
+  color: var(--red);
+}
+
+.apple-ui .version-list {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.apple-ui .version-list > div {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.apple-ui .version-list .active {
+  border-color: rgba(0, 113, 227, 0.42);
+  background: var(--blue-bg);
+}
+
+.apple-ui .mini-garment {
+  grid-row: span 2;
+  width: 28px;
+  height: 38px;
+  background: #b9bab2;
+  clip-path: polygon(24% 0, 76% 0, 100% 26%, 84% 44%, 76% 28%, 76% 100%, 24% 100%, 24% 28%, 16% 44%, 0 26%);
+}
+
+/* Apple-style review polish */
+.apple-ui .nav-item,
+.apple-ui button,
+.apple-ui .review-photo,
+.apple-ui .section-block,
+.apple-ui .review-hero {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.apple-ui button:focus,
+.apple-ui .nav-item:focus {
+  outline: none;
+}
+
+.apple-ui button:focus-visible,
+.apple-ui .nav-item:focus-visible {
+  outline: 3px solid rgba(0, 113, 227, 0.22);
+  outline-offset: 3px;
+}
+
+.apple-ui .nav-item.active {
+  border: 1px solid rgba(0, 113, 227, 0.16);
+  background:
+    linear-gradient(180deg, rgba(0, 113, 227, 0.12), rgba(0, 113, 227, 0.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 24px rgba(0, 113, 227, 0.08);
+}
+
+.apple-ui .review-dashboard {
+  gap: 18px;
+  padding-bottom: 32px;
+  animation: appleViewRise 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.apple-ui #review .section-block,
+.apple-ui .review-hero {
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.78));
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.82) inset;
+  backdrop-filter: blur(28px) saturate(1.18);
+  -webkit-backdrop-filter: blur(28px) saturate(1.18);
+  animation: applePanelIn 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.apple-ui #review .media-panel { animation-delay: 35ms; }
+.apple-ui #review .department-panel { animation-delay: 70ms; }
+.apple-ui #review .issue-panel { animation-delay: 105ms; }
+.apple-ui #review .decision-panel { animation-delay: 140ms; }
+.apple-ui #review .timeline-panel { animation-delay: 175ms; }
+
+.apple-ui .review-hero {
+  padding: 22px;
+  min-height: 184px;
+}
+
+.apple-ui .hero-garment {
+  min-height: 138px;
+  background:
+    linear-gradient(145deg, #f7f8fb, #eceff5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 34px rgba(0, 0, 0, 0.06);
+}
+
+.apple-ui .hero-garment .garment,
+.apple-ui .review-photo .garment {
+  filter: drop-shadow(0 18px 16px rgba(0, 0, 0, 0.14));
+}
+
+.apple-ui .crumb {
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+
+.apple-ui .hero-title h2 {
+  font-size: 32px;
+  font-weight: 780;
+}
+
+.apple-ui .hero-meta span {
+  color: #4b4b50;
+  font-size: 14px;
+}
+
+.apple-ui .process-step b {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.apple-ui .process-step.done b,
+.apple-ui .process-step.active b {
+  animation: appleNodePulse 2.6s ease-in-out infinite;
+}
+
+.apple-ui .process-step.done b::after,
+.apple-ui .process-step.active b::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.18;
+  animation: appleRingPulse 2.6s ease-out infinite;
+}
+
+.apple-ui .process-step.active b {
+  box-shadow:
+    0 0 0 7px rgba(0, 113, 227, 0.1),
+    0 12px 30px rgba(0, 113, 227, 0.24);
+}
+
+.apple-ui .process-line {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.apple-ui .process-line.active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  animation: appleLineSweep 1.9s ease-in-out infinite;
+}
+
+.apple-ui .location-card {
+  border-left-color: rgba(0, 0, 0, 0.08);
+}
+
+.apple-ui .location-card strong {
+  font-size: 17px;
+}
+
+.apple-ui .review-board {
+  gap: 18px;
+}
+
+.apple-ui #review .section-title {
+  min-height: 62px;
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.apple-ui #review .section-title h2 {
+  font-size: 20px;
+  font-weight: 760;
+}
+
+.apple-ui .badge-count {
+  min-width: 24px;
+  height: 24px;
+  background: linear-gradient(180deg, #ff3b30, #d70015);
+  box-shadow: 0 8px 20px rgba(215, 0, 21, 0.22);
+}
+
+.apple-ui .review-media-grid {
+  padding: 18px;
+  gap: 12px;
+  grid-auto-rows: 124px;
+}
+
+.apple-ui .review-photo {
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background:
+    linear-gradient(145deg, rgba(250, 251, 253, 0.98), rgba(235, 239, 245, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 12px 28px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.apple-ui .review-photo:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: rgba(0, 113, 227, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 44px rgba(0, 113, 227, 0.12);
+}
+
+.apple-ui .review-photo.main .garment {
+  animation: garmentFloat 4.8s ease-in-out infinite;
+}
+
+.apple-ui .review-photo span {
+  left: 10px;
+  bottom: 10px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgba(0, 113, 227, 0.92);
+  box-shadow: 0 8px 22px rgba(0, 113, 227, 0.24);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.apple-ui .video-thumb .play {
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(0, 113, 227, 0.96), rgba(0, 88, 210, 0.96));
+  box-shadow:
+    0 18px 38px rgba(0, 113, 227, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: appleSoftPulse 2.8s ease-in-out infinite;
+}
+
+.apple-ui .review-table-row,
+.apple-ui .issue-table-row {
+  min-height: 58px;
+  border-top-color: rgba(0, 0, 0, 0.06);
+  transition:
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.apple-ui .review-table-row:not(.head):hover,
+.apple-ui .issue-table-row:not(.head):hover {
+  background: rgba(0, 113, 227, 0.035);
+  transform: translateX(2px);
+}
+
+.apple-ui .avatar {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.apple-ui .review-table-row:hover .avatar,
+.apple-ui .issue-table-row:hover .avatar,
+.apple-ui .user-account:hover .avatar {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 5px rgba(0, 113, 227, 0.08),
+    0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.apple-ui .review-table-row.head,
+.apple-ui .issue-table-row.head {
+  background: rgba(242, 242, 247, 0.62);
+  letter-spacing: 0.05em;
+}
+
+.apple-ui .review-table-row button {
+  border-color: rgba(0, 113, 227, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.apple-ui .review-table-row button:hover {
+  transform: translateY(-1px);
+  background: var(--blue-bg);
+  box-shadow: 0 10px 22px rgba(0, 113, 227, 0.12);
+}
+
+.apple-ui .pill.green,
+.apple-ui .pill.amber,
+.apple-ui .pill.red,
+.apple-ui .priority,
+.apple-ui .issue-table-row em {
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.apple-ui .decision-stack {
+  padding: 18px;
+}
+
+.apple-ui .decision-stack button {
+  min-height: 46px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 10px 24px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.apple-ui .decision-stack button:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 34px rgba(0, 0, 0, 0.08);
+}
+
+.apple-ui .decision-stack .approve {
+  background: linear-gradient(180deg, rgba(234, 248, 238, 0.82), rgba(255, 255, 255, 0.88));
+}
+
+.apple-ui .decision-stack .revise {
+  background: linear-gradient(180deg, rgba(255, 244, 223, 0.86), rgba(255, 255, 255, 0.9));
+}
+
+.apple-ui .decision-stack .hold {
+  background: linear-gradient(180deg, rgba(255, 240, 240, 0.86), rgba(255, 255, 255, 0.9));
+}
+
+.apple-ui .primary-button,
+.apple-ui .row-action.primary {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease;
+}
+
+.apple-ui .primary-button:hover,
+.apple-ui .row-action.primary:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+  box-shadow: 0 14px 28px rgba(0, 113, 227, 0.28);
+}
+
+.apple-ui .primary-button:active,
+.apple-ui .row-action.primary:active,
+.apple-ui .decision-stack button:active {
+  transform: scale(0.985);
+}
+
+.apple-ui .vertical-timeline div::before {
+  content: "";
+  position: absolute;
+  left: 57px;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--blue);
+  box-shadow: 0 0 0 6px rgba(0, 113, 227, 0.1);
+}
+
+.apple-ui .vertical-timeline .danger::before {
+  background: var(--red);
+  box-shadow: 0 0 0 6px rgba(215, 0, 21, 0.1);
+}
+
+@keyframes appleNodePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+@keyframes appleViewRise {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes applePanelIn {
+  from {
+    transform: translateY(14px) scale(0.992);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes appleRingPulse {
+  0% { transform: scale(0.76); opacity: 0.22; }
+  70% { transform: scale(1.22); opacity: 0; }
+  100% { transform: scale(1.22); opacity: 0; }
+}
+
+@keyframes timelinePulseBlue {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(0, 113, 227, 0.22),
+      0 0 16px rgba(0, 113, 227, 0.24);
+  }
+  70% {
+    box-shadow:
+      0 0 0 16px rgba(0, 113, 227, 0),
+      0 0 30px rgba(0, 113, 227, 0.3);
+  }
+  100% {
+    box-shadow:
+      0 0 0 16px rgba(0, 113, 227, 0),
+      0 0 16px rgba(0, 113, 227, 0.24);
+  }
+}
+
+@keyframes timelinePulseRed {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(255, 59, 48, 0.24),
+      0 0 16px rgba(255, 59, 48, 0.22);
+  }
+  70% {
+    box-shadow:
+      0 0 0 16px rgba(255, 59, 48, 0),
+      0 0 30px rgba(255, 59, 48, 0.32);
+  }
+  100% {
+    box-shadow:
+      0 0 0 16px rgba(255, 59, 48, 0),
+      0 0 16px rgba(255, 59, 48, 0.22);
+  }
+}
+
+@keyframes notifyDotPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.28); }
+  70% { box-shadow: 0 0 0 9px rgba(255, 59, 48, 0); }
+  100% { box-shadow: 0 0 0 9px rgba(255, 59, 48, 0); }
+}
+
+@keyframes appleLineSweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(110%); }
+}
+
+@keyframes garmentFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes appleSoftPulse {
+  0%, 100% { box-shadow: 0 18px 38px rgba(0, 113, 227, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+  50% { box-shadow: 0 22px 46px rgba(0, 113, 227, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+}
+
+/* Quality Gate V0 business rules */
+.apple-ui .review-hero {
+  grid-template-columns: 132px minmax(420px, 1fr) 330px 170px;
+  min-height: 150px;
+  padding: 18px;
+}
+
+.apple-ui .hero-garment {
+  min-height: 110px;
+}
+
+.apple-ui .hero-title h2 {
+  font-size: 28px;
+}
+
+.apple-ui .hero-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 16px;
+  font-size: 12px;
+}
+
+.apple-ui .hero-meta span {
+  font-size: 12px;
+}
+
+.apple-ui .review-control-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 560px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.apple-ui .strip-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.15fr;
+  gap: 10px;
+}
+
+.apple-ui .strip-main > div,
+.apple-ui .quality-gate-panel.compact {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.apple-ui .strip-main span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.apple-ui .strip-main strong {
+  font-size: 14px;
+}
+
+.apple-ui .strip-main .blocking-alert {
+  background: linear-gradient(180deg, rgba(255, 240, 240, 0.82), rgba(255, 255, 255, 0.72));
+  box-shadow:
+    inset 4px 0 0 rgba(215, 0, 21, 0.68),
+    0 12px 30px rgba(215, 0, 21, 0.06);
+}
+
+.apple-ui .quality-gate-panel.compact {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.apple-ui .quality-gate-panel.compact .gate-step {
+  min-height: 54px;
+  grid-template-columns: 26px 1fr;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: none;
+}
+
+.apple-ui .quality-gate-panel.compact .gate-step > span {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.apple-ui .quality-gate-panel.compact .gate-step strong {
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.apple-ui .quality-gate-panel.compact .gate-step small {
+  grid-column: 2;
+  margin-top: -2px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.apple-ui .quality-gate-panel.compact .gate-step.active {
+  background: rgba(0, 113, 227, 0.06);
+}
+
+.apple-ui .quality-gate-panel.compact .gate-step.warning {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.apple-ui .nav-item.disabled::after {
+  content: "后续开放";
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: #9a9aa0;
+}
+
+.apple-ui .side-nav .settings-entry {
+  position: static;
+  width: auto;
+  margin-top: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.apple-ui .pipeline-table .row {
+  grid-template-columns: 1.05fr 0.86fr 2.1fr 1.5fr;
+}
+
+.apple-ui .stage-status small,
+.apple-ui .block-summary span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.apple-ui .stage-line.gate-flow {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+}
+
+.apple-ui .gate-flow span {
+  font-size: 10px;
+  width: 100%;
+}
+
+.apple-ui .prep-gate-wrap {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.apple-ui .prep-gate-wrap > small {
+  display: block;
+  margin-top: 5px;
+  padding-left: 2px;
+  color: rgba(42, 113, 67, 0.78);
+  font-size: 10px;
+  line-height: 1.15;
+}
+
+.apple-ui .prep-gate-wrap.blocked > small {
+  color: rgba(179, 38, 30, 0.76);
+}
+
+.apple-ui .prep-gate {
+  position: relative;
+  min-height: 24px;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--green);
+  overflow: visible;
+}
+
+.apple-ui .prep-gate summary {
+  min-height: 24px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid rgba(52, 199, 89, 0.26);
+  border-radius: 7px;
+  background: rgba(52, 199, 89, 0.13);
+  cursor: pointer;
+  list-style: none;
+}
+
+.apple-ui .prep-gate summary::-webkit-details-marker {
+  display: none;
+}
+
+.apple-ui .prep-gate summary::after {
+  content: "⌄";
+  color: currentColor;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.apple-ui .prep-gate[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.apple-ui .prep-gate summary span {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  font-size: 10px;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+.apple-ui .prep-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid rgba(52, 199, 89, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.apple-ui .prep-detail-grid b {
+  min-height: 23px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.apple-ui .prep-detail-grid .ok {
+  border: 1px solid rgba(52, 199, 89, 0.24);
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--green);
+}
+
+.apple-ui .prep-detail-grid .warn {
+  border: 1px solid rgba(181, 106, 0, 0.24);
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.apple-ui .prep-gate.blocked {
+  color: var(--red);
+}
+
+.apple-ui .prep-gate.blocked summary {
+  border-color: rgba(215, 0, 21, 0.22);
+  background: var(--red-bg);
+}
+
+
+.apple-ui .sample-status-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.apple-ui .sample-status-strip > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.apple-ui .sample-status-strip span,
+.apple-ui .quality-gate-panel small,
+.apple-ui .gate-owner-card small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.apple-ui .sample-status-strip strong {
+  font-size: 14px;
+}
+
+.apple-ui .sample-status-strip .blocking-alert {
+  background: linear-gradient(180deg, rgba(255, 240, 240, 0.82), rgba(255, 255, 255, 0.72));
+  box-shadow:
+    inset 4px 0 0 rgba(215, 0, 21, 0.68),
+    0 12px 30px rgba(215, 0, 21, 0.06);
+}
+
+.apple-ui .quality-gate-panel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.apple-ui .gate-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+}
+
+.apple-ui .gate-step > span {
+  grid-row: span 2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.apple-ui .gate-step.done > span {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.apple-ui .gate-step.active > span {
+  background: var(--blue);
+  color: #fff;
+  animation: appleNodePulse 2.6s ease-in-out infinite;
+  box-shadow: 0 0 0 8px rgba(0, 113, 227, 0.1);
+}
+
+.apple-ui .gate-step.warning > span {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.apple-ui .review-board {
+  grid-template-columns: minmax(390px, 1fr) minmax(390px, 1fr) minmax(360px, 0.92fr);
+}
+
+.apple-ui .review-dashboard {
+  min-width: 0;
+}
+
+.apple-ui .media-panel,
+.apple-ui .version-panel {
+  grid-column: 1;
+}
+
+.apple-ui .department-panel {
+  grid-column: 2;
+}
+
+.apple-ui .issue-panel,
+.apple-ui .decision-panel {
+  grid-column: 3;
+}
+
+.apple-ui .timeline-panel,
+.apple-ui .version-panel {
+  grid-column: 1 / -1;
+}
+
+.apple-ui .review-table-row {
+  grid-template-columns: 62px 96px 96px 76px minmax(0, 1fr) 48px 30px;
+}
+
+.apple-ui .review-table-row em {
+  justify-self: start;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #5f6368;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.apple-ui .review-table-row p small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.apple-ui .review-table-row:not(.head)::after {
+  content: attr(data-focus);
+  position: absolute;
+  right: 18px;
+  bottom: calc(100% - 8px);
+  z-index: 4;
+  max-width: 360px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(29, 29, 31, 0.88);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.apple-ui .review-table-row:not(.head):hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.apple-ui .review-table-row {
+  position: relative;
+}
+
+.apple-ui .issue-table-row {
+  grid-template-columns: minmax(150px, 1.45fr) 52px 74px 96px 82px 66px;
+}
+
+.apple-ui .issue-table-row strong small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.apple-ui .priority.minor,
+.apple-ui .priority.low {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.apple-ui .priority.normal,
+.apple-ui .priority.mid {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.apple-ui .priority.major,
+.apple-ui .priority.high {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.apple-ui .priority.critical {
+  background: #1d1d1f;
+  color: #fff;
+}
+
+.apple-ui .shipment {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.apple-ui .shipment.yes {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.apple-ui .shipment.note {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.apple-ui .shipment.no {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.apple-ui .issue-blocking {
+  box-shadow: inset 3px 0 0 rgba(215, 0, 21, 0.58);
+}
+
+.apple-ui .issue-critical {
+  box-shadow: inset 3px 0 0 rgba(29, 29, 31, 0.68);
+}
+
+.apple-ui .gate-owner-card {
+  margin: 14px 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(242, 242, 247, 0.62);
+}
+
+.apple-ui .gate-owner-card > div {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 2px 9px;
+  align-items: center;
+}
+
+.apple-ui .gate-owner-card .avatar {
+  grid-row: span 2;
+}
+
+.apple-ui .decision-stack .exception {
+  border-color: rgba(0, 113, 227, 0.26);
+  color: var(--blue);
+  background: linear-gradient(180deg, rgba(234, 244, 255, 0.86), rgba(255, 255, 255, 0.9));
+}
+
+.apple-ui .exception-box {
+  display: grid;
+  gap: 7px;
+  margin: 0 16px 16px;
+  padding: 12px;
+  border: 1px solid rgba(0, 113, 227, 0.16);
+  border-radius: 8px;
+  background: rgba(234, 244, 255, 0.5);
+}
+
+.apple-ui .exception-box span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.apple-ui .settings-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.apple-ui .raci-list,
+.apple-ui .owner-settings,
+.apple-ui .issue-rule-list,
+.apple-ui .department-enums,
+.apple-ui .location-enums {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+}
+
+.apple-ui .raci-list div,
+.apple-ui .owner-settings div,
+.apple-ui .issue-rule-list div {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.apple-ui .raci-list span,
+.apple-ui .owner-settings span,
+.apple-ui .issue-rule-list span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.apple-ui .department-enums,
+.apple-ui .location-enums {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.apple-ui .department-enums span,
+.apple-ui .location-enums span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #5f6368;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.apple-ui .month-event.normal {
+  background: var(--green-bg);
+  border-left-color: var(--green);
+}
+
+.apple-ui .month-event.near,
+.apple-ui .month-event.exception {
+  background: var(--amber-bg);
+  border-left-color: var(--amber);
+}
+
+.apple-ui .month-event.overdue,
+.apple-ui .month-event.blocked {
+  background: var(--red-bg);
+  border-left-color: var(--red);
+}
+
+/* Business-friendly review workspace */
+.apple-ui .review-dashboard {
+  gap: 14px;
+}
+
+.apple-ui .review-board {
+  grid-template-columns: minmax(420px, 0.95fr) minmax(480px, 1.05fr) minmax(420px, 0.95fr);
+  gap: 14px;
+}
+
+.apple-ui .media-panel { grid-column: 1; }
+.apple-ui .department-panel { grid-column: 2; }
+.apple-ui .issue-panel,
+.apple-ui .decision-panel { grid-column: 3; }
+.apple-ui .timeline-panel,
+.apple-ui .version-panel { grid-column: 1 / -1; }
+
+.apple-ui .review-media-grid {
+  grid-template-columns: 1.15fr 0.88fr 0.88fr;
+  grid-auto-rows: 114px;
+  gap: 10px;
+  padding: 14px;
+}
+
+.apple-ui .review-photo.main {
+  grid-row: span 3;
+}
+
+.apple-ui .review-photo {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(145deg, rgba(246, 248, 251, 0.98), rgba(230, 235, 242, 0.92));
+}
+
+.apple-ui .jacket-render {
+  width: 92px;
+  height: 128px;
+  border-radius: 16px 16px 8px 8px;
+  clip-path: polygon(29% 0, 71% 0, 92% 21%, 82% 39%, 73% 27%, 73% 100%, 27% 100%, 27% 27%, 18% 39%, 8% 21%);
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.18) 49% 51%, transparent 52%),
+    linear-gradient(180deg, #343b3f, #20262a);
+}
+
+.apple-ui .review-photo.main .jacket-render {
+  width: 138px;
+  height: 196px;
+}
+
+.apple-ui .jacket-render::before {
+  content: "";
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  top: 0;
+  height: 24px;
+  border-radius: 0 0 16px 16px;
+  background: #eef1f5;
+}
+
+.apple-ui .jacket-render::after {
+  content: "";
+  position: absolute;
+  left: 17%;
+  right: 17%;
+  bottom: 16px;
+  height: 18px;
+  border-top: 2px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.22);
+  opacity: 0.75;
+}
+
+.apple-ui .jacket-render.back {
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.1) 49% 51%, transparent 52%),
+    linear-gradient(180deg, #3d4447, #252c30);
+}
+
+.apple-ui .jacket-render i {
+  position: absolute;
+  inset: 36px 18px auto;
+  height: 28px;
+  border-left: 2px solid rgba(255, 255, 255, 0.16);
+  border-right: 2px solid rgba(255, 255, 255, 0.16);
+}
+
+.apple-ui .part-photo {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.75), transparent 35%),
+    repeating-linear-gradient(135deg, rgba(118, 124, 130, 0.055) 0 1px, transparent 1px 9px),
+    linear-gradient(145deg, #f7f9fc, #e8edf4);
+}
+
+.apple-ui .part-photo::before,
+.apple-ui .part-photo::after {
+  content: "";
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.apple-ui .part-photo::before {
+  left: 50%;
+  top: 50%;
+  width: 164px;
+  height: 82px;
+  border-radius: 20px;
+  transform: translate(-50%, -50%);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.08)),
+    rgba(211, 215, 214, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    inset 0 -16px 28px rgba(92, 98, 102, 0.08),
+    0 16px 34px rgba(64, 72, 80, 0.1);
+}
+
+.apple-ui .part-photo::after {
+  left: 50%;
+  top: 50%;
+  width: 134px;
+  height: 52px;
+  border-radius: 16px;
+  transform: translate(-50%, -50%);
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(0, 113, 227, 0.24) 49% 51%, transparent 52%),
+    repeating-linear-gradient(0deg, rgba(38, 43, 48, 0.1) 0 1px, transparent 1px 15px);
+  opacity: 0.75;
+}
+
+.apple-ui .part-photo.collar::before {
+  width: 150px;
+  height: 94px;
+  border-radius: 34px 34px 18px 18px;
+  clip-path: polygon(12% 10%, 88% 10%, 96% 82%, 67% 82%, 58% 44%, 42% 44%, 33% 82%, 4% 82%);
+}
+
+.apple-ui .part-photo.collar::after {
+  width: 78px;
+  height: 42px;
+  border: 6px solid rgba(55, 61, 66, 0.16);
+  border-bottom: 0;
+  border-radius: 42px 42px 0 0;
+  background: none;
+}
+
+.apple-ui .part-photo.cuff::before {
+  width: 156px;
+  height: 70px;
+  border-radius: 999px;
+}
+
+.apple-ui .part-photo.cuff::after {
+  width: 112px;
+  height: 30px;
+  border-top: 2px solid rgba(47, 52, 55, 0.18);
+  border-bottom: 2px solid rgba(47, 52, 55, 0.1);
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(-8deg);
+}
+
+.apple-ui .part-photo.hem::before {
+  width: 180px;
+  height: 72px;
+  border-radius: 18px;
+  transform: translate(-50%, -42%);
+}
+
+.apple-ui .part-photo.hem::after {
+  width: 138px;
+  height: 34px;
+  border-bottom: 3px solid rgba(47, 52, 55, 0.22);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 12px 26px, rgba(47, 52, 55, 0.28) 0 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 12px) 26px, rgba(47, 52, 55, 0.28) 0 3px, transparent 4px);
+}
+
+.apple-ui .part-photo.tape::before {
+  width: 174px;
+  height: 74px;
+  border-radius: 20px;
+  transform: translate(-50%, -50%) rotate(16deg);
+}
+
+.apple-ui .part-photo.tape::after {
+  width: 156px;
+  height: 30px;
+  border-top: 3px solid rgba(0, 113, 227, 0.28);
+  border-bottom: 3px solid rgba(47, 52, 55, 0.12);
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(16deg);
+}
+
+.apple-ui .part-photo.pocket::before {
+  width: 152px;
+  height: 86px;
+  border-radius: 22px 22px 30px 30px;
+  clip-path: polygon(9% 7%, 91% 7%, 84% 90%, 16% 90%);
+}
+
+.apple-ui .part-photo.pocket::after {
+  width: 92px;
+  height: 34px;
+  border-top: 2px solid rgba(47, 52, 55, 0.18);
+  border-radius: 0;
+  background: none;
+  transform: translate(-50%, -30%);
+}
+
+.apple-ui .detail-photo::before,
+.apple-ui .sleeve::before,
+.apple-ui .hem::before,
+.apple-ui .seam::before,
+.apple-ui .seam2::before {
+  content: none;
+}
+
+.apple-ui .review-photo span {
+  max-width: calc(100% - 20px);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apple-ui *,
+  .apple-ui *::before,
+  .apple-ui *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@media (max-width: 1540px) {
+  .apple-ui .review-control-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .apple-ui .review-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .apple-ui .media-panel,
+  .apple-ui .department-panel,
+  .apple-ui .issue-panel,
+  .apple-ui .decision-panel,
+  .apple-ui .timeline-panel,
+  .apple-ui .version-panel {
+    grid-column: 1 / -1;
+  }
+
+  .apple-ui .sample-status-strip,
+  .apple-ui .quality-gate-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .apple-ui .review-table-row {
+    grid-template-columns: 68px 104px 104px 82px minmax(0, 1fr) 52px 32px;
+  }
+}
+
+@media (max-width: 820px) {
+  .apple-ui .main {
+    padding: 16px;
+  }
+
+  .apple-ui .sidebar {
+    background: #fff;
+  }
+
+  .apple-ui h1 {
+    font-size: 28px;
+  }
+}
+
+/* Style workspace redesign */
+.apple-ui #style .style-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(247, 249, 252, 0.74)),
+    var(--surface);
+}
+
+.apple-ui #style .style-header h2 {
+  margin-top: 4px;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.apple-ui #style .header-badges {
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.apple-ui #style .workspace-tabs {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+}
+
+.apple-ui #style .workspace-tab {
+  min-width: 72px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.apple-ui #style .workspace-tab.active {
+  background: var(--blue-bg);
+  color: var(--blue);
+  box-shadow: inset 0 0 0 1px rgba(0, 113, 227, 0.16);
+}
+
+.apple-ui #style .two-column {
+  grid-template-columns: minmax(480px, 1.05fr) minmax(420px, 0.95fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.apple-ui #style .section-block {
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 251, 253, 0.78)),
+    var(--surface);
+  overflow: hidden;
+}
+
+.apple-ui #style .section-title {
+  min-height: 62px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.apple-ui #style .section-title h2 {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.apple-ui #style .section-title span {
+  max-width: 360px;
+  text-align: right;
+  line-height: 1.35;
+}
+
+.apple-ui #style .timeline-large {
+  padding: 14px 22px 18px;
+}
+
+.apple-ui #style .timeline-item {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.apple-ui #style .timeline-item::before {
+  position: static;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 14px;
+  height: 14px;
+  margin-top: 5px;
+  border-radius: 999px;
+  border: 2px solid #d8dbe2;
+  background: #fff;
+  box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.025);
+}
+
+.apple-ui #style .timeline-item.complete::before {
+  border-color: var(--green);
+  background: var(--green);
+  box-shadow: 0 0 0 5px rgba(52, 199, 89, 0.12);
+}
+
+.apple-ui #style .timeline-item.current::before {
+  border-color: var(--blue);
+  background: var(--blue);
+  animation: timelinePulseBlue 2.2s ease-out infinite;
+  box-shadow:
+    0 0 0 8px rgba(0, 113, 227, 0.13),
+    0 0 28px rgba(0, 113, 227, 0.3);
+}
+
+.apple-ui #style .timeline-item.current {
+  position: relative;
+  border-radius: 18px;
+  padding-left: 10px;
+  padding-right: 10px;
+  background:
+    radial-gradient(circle at 24px 34px, rgba(0, 113, 227, 0.12), transparent 56px),
+    rgba(255, 255, 255, 0.48);
+}
+
+.apple-ui #style .timeline-item.risk::before,
+.apple-ui #style .timeline-item.blocked::before,
+.apple-ui #style .timeline-item.current.risk::before {
+  border-color: var(--red);
+  background: var(--red);
+  animation: timelinePulseRed 1.8s ease-out infinite;
+  box-shadow:
+    0 0 0 8px rgba(255, 59, 48, 0.13),
+    0 0 28px rgba(255, 59, 48, 0.32);
+}
+
+.apple-ui #style .timeline-item.current.risk {
+  background:
+    radial-gradient(circle at 24px 34px, rgba(255, 59, 48, 0.12), transparent 56px),
+    rgba(255, 255, 255, 0.56);
+}
+
+.apple-ui #style .timeline-item strong,
+.apple-ui #style .timeline-item span {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.apple-ui #style .timeline-item strong {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.apple-ui #style .timeline-item span {
+  color: var(--muted);
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui #style .timeline-item.complete strong,
+.apple-ui #style .timeline-item.complete span {
+  color: var(--green);
+}
+
+.apple-ui #style .timeline-item.current strong {
+  color: var(--blue);
+}
+
+.apple-ui #style .review-snapshot {
+  grid-template-columns: minmax(160px, 0.72fr) minmax(260px, 1fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 20px;
+}
+
+.apple-ui #style .sample-visual {
+  min-height: 230px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.86), transparent 38%),
+    linear-gradient(145deg, #f7f9fc, #e8edf4);
+}
+
+.apple-ui #style .snapshot-content {
+  min-width: 0;
+  align-content: start;
+  gap: 14px;
+}
+
+.apple-ui #style .snapshot-content h3 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.apple-ui #style .snapshot-content p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui #style .mini-stats {
+  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  gap: 10px;
+}
+
+.apple-ui #style .mini-stats span {
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  align-content: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.68);
+  line-height: 1.15;
+}
+
+.apple-ui #style .mini-stats strong {
+  color: var(--ink);
+  font-size: 24px;
+}
+
+.apple-ui #style .parallel-materials {
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.apple-ui #style .material-card {
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.apple-ui #style .material-card.done {
+  border-top-color: var(--green);
+}
+
+.apple-ui #style .material-card.done strong {
+  color: var(--green);
+}
+
+.apple-ui #style .material-card span,
+.apple-ui #style .material-card small {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui .vertical-timeline {
+  padding: 18px 22px 22px;
+  gap: 0;
+}
+
+.apple-ui .vertical-timeline div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 76px 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0;
+  position: relative;
+}
+
+.apple-ui .vertical-timeline div::before {
+  position: static;
+  grid-column: 2;
+  grid-row: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: var(--blue);
+  box-shadow: 0 0 0 7px rgba(0, 113, 227, 0.1);
+}
+
+.apple-ui .vertical-timeline b {
+  grid-column: 1;
+  color: var(--blue);
+  font-size: 17px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.apple-ui .vertical-timeline span {
+  grid-column: 3;
+  min-width: 0;
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui .vertical-timeline .danger::before {
+  background: var(--red);
+  box-shadow: 0 0 0 7px rgba(215, 0, 21, 0.1);
+}
+
+.apple-ui .vertical-timeline .danger b,
+.apple-ui .vertical-timeline .danger span {
+  color: var(--red);
+}
+
+@media (max-width: 1320px) {
+  .apple-ui #style .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui #style .review-snapshot {
+    grid-template-columns: minmax(180px, 0.45fr) minmax(0, 1fr);
+  }
+
+  .apple-ui #style .parallel-materials {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .apple-ui #style .style-header,
+  .apple-ui #style .review-snapshot {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui #style .header-badges,
+  .apple-ui #style .section-title {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .apple-ui #style .section-title {
+    flex-direction: column;
+  }
+
+  .apple-ui #style .section-title span {
+    max-width: none;
+    text-align: left;
+  }
+
+  .apple-ui #style .parallel-materials,
+  .apple-ui #style .mini-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui .vertical-timeline div {
+    grid-template-columns: 62px 16px minmax(0, 1fr);
+  }
+}
+
+/* Settings as organization-permission backend */
+.apple-ui .settings-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.apple-ui .settings-summary-grid > div,
+.apple-ui .permission-filter,
+.apple-ui .route-inspector {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+}
+
+.apple-ui .settings-summary-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+}
+
+.apple-ui .settings-summary-grid span,
+.apple-ui .settings-summary-grid small,
+.apple-ui .route-inspector span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.apple-ui .settings-summary-grid strong {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.apple-ui .permission-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.apple-ui .permission-filter > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  margin-right: 4px;
+}
+
+.apple-ui .permission-chip,
+.apple-ui .permission-tags i,
+.apple-ui .drawer-tags i {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(0, 113, 227, 0.14);
+  border-radius: 999px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.apple-ui .permission-chip {
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.apple-ui .permission-chip.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(0, 113, 227, 0.16);
+}
+
+.apple-ui .permission-table {
+  overflow-x: auto;
+}
+
+.apple-ui .permission-table .people-row {
+  width: 100%;
+  grid-template-columns: 132px 82px minmax(145px, 1fr) 124px 68px minmax(176px, 0.9fr);
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  border-left: 0;
+  border-right: 0;
+  cursor: pointer;
+}
+
+.apple-ui .permission-table button.people-row {
+  border-bottom: 0;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--ink);
+  font: inherit;
+}
+
+.apple-ui .permission-table button.people-row:nth-child(even) {
+  background: rgba(250, 251, 253, 0.78);
+}
+
+.apple-ui .permission-table .people-row:not(.head):hover {
+  background: rgba(0, 113, 227, 0.035);
+}
+
+.apple-ui .permission-table .people-row.is-hidden {
+  display: none;
+}
+
+.apple-ui .permission-table .people-row p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.apple-ui .permission-table .people-row small {
+  color: var(--muted);
+}
+
+.apple-ui .permission-table .people-row em {
+  white-space: normal;
+  line-height: 1.25;
+  justify-self: start;
+  max-width: 100%;
+}
+
+.apple-ui .permission-tags,
+.apple-ui .drawer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.apple-ui .permission-tags i,
+.apple-ui .drawer-tags i {
+  min-height: 22px;
+  padding: 0 7px;
+  font-size: 11px;
+}
+
+.apple-ui .worker-list-rich {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.apple-ui .worker-list-rich > div {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 4px 10px;
+}
+
+.apple-ui .worker-list-rich .avatar {
+  grid-row: span 4;
+}
+
+.apple-ui .worker-list-rich em {
+  justify-self: end;
+  grid-column: 3;
+  grid-row: 1;
+  font-style: normal;
+}
+
+.apple-ui .worker-list-rich b,
+.apple-ui .worker-list-rich time {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.apple-ui .worker-list-rich time {
+  grid-column: 2 / -1;
+}
+
+.apple-ui .route-flow button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 3px 12px;
+  padding: 13px 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.apple-ui .route-flow button:first-child {
+  border-top: 0;
+}
+
+.apple-ui .route-flow button:hover,
+.apple-ui .route-flow button.active {
+  background: rgba(0, 113, 227, 0.045);
+}
+
+.apple-ui .route-flow button b {
+  grid-row: span 2;
+}
+
+.apple-ui .route-flow button span,
+.apple-ui .route-flow button small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui .route-inspector {
+  margin: 0 14px 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.apple-ui .route-inspector > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(242, 242, 247, 0.62);
+}
+
+.apple-ui .route-inspector strong {
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui .gate-settings {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.apple-ui .gate-settings div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.apple-ui .gate-settings span,
+.apple-ui .gate-settings small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.apple-ui .person-drawer .drawer-field strong {
+  line-height: 1.45;
+}
+
+@media (max-width: 1380px) {
+  .apple-ui .settings-summary-grid,
+  .apple-ui .worker-list-rich,
+  .apple-ui .settings-rules-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .apple-ui .routing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui .route-inspector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .apple-ui .settings-summary-grid,
+  .apple-ui .worker-list-rich,
+  .apple-ui .settings-rules-grid,
+  .apple-ui .gate-settings,
+  .apple-ui .route-inspector {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui .permission-table .people-row {
+    min-width: 980px;
+  }
+}
+
+/* Gate-rule refinements for the V0 static demo */
+.apple-ui .summary-card.exception {
+  border-color: rgba(0, 113, 227, 0.12);
+  background:
+    radial-gradient(circle at 86% 8%, rgba(0, 113, 227, 0.12), transparent 36%),
+    rgba(255, 255, 255, 0.74);
+}
+
+.apple-ui .filter-row {
+  flex-wrap: wrap;
+}
+
+.apple-ui .pipeline-table .row {
+  grid-template-columns: minmax(170px, 0.9fr) minmax(150px, 0.7fr) minmax(430px, 1.45fr) minmax(360px, 1.2fr);
+}
+
+.apple-ui .block-summary {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.apple-ui .block-summary span {
+  display: block;
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui .pipeline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.apple-ui .pipeline-actions button,
+.apple-ui .modal-actions button,
+.apple-ui .drawer-actions button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(210, 210, 215, 0.82);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #1d1d1f;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.apple-ui .pipeline-actions button.primary,
+.apple-ui .modal-actions .primary-button,
+.apple-ui .drawer-actions .primary-button {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(0, 113, 227, 0.18);
+}
+
+.apple-ui .style-drawer {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.apple-ui .drawer-summary-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.apple-ui .drawer-summary-card > div,
+.apple-ui .drawer-checklist > div,
+.apple-ui .drawer-timeline > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.apple-ui .drawer-summary-card span,
+.apple-ui .drawer-section h3,
+.apple-ui .modal-card h3 {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .drawer-summary-card strong,
+.apple-ui .drawer-checklist strong {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.apple-ui .drawer-field.highlight {
+  border-color: rgba(0, 113, 227, 0.18);
+  background: linear-gradient(135deg, rgba(234, 244, 255, 0.8), rgba(255, 255, 255, 0.82));
+}
+
+.apple-ui .drawer-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.apple-ui .drawer-section.emphasis {
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(0, 113, 227, 0.055);
+}
+
+.apple-ui .drawer-timeline,
+.apple-ui .drawer-checklist {
+  display: grid;
+  gap: 8px;
+}
+
+.apple-ui .drawer-timeline > div {
+  grid-template-columns: 18px 120px 1fr;
+  align-items: center;
+}
+
+.apple-ui .drawer-timeline i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #d1d1d6;
+}
+
+.apple-ui .drawer-timeline .complete i,
+.apple-ui .drawer-checklist .done {
+  border-color: rgba(52, 199, 89, 0.26);
+  background: rgba(52, 199, 89, 0.08);
+}
+
+.apple-ui .drawer-timeline .complete i {
+  background: var(--green);
+}
+
+.apple-ui .drawer-timeline .current i {
+  background: var(--brand);
+  border-color: rgba(0, 113, 227, 0.28);
+  box-shadow:
+    0 0 0 8px rgba(0, 113, 227, 0.1),
+    0 0 24px rgba(0, 113, 227, 0.26);
+  animation: timelinePulseBlue 2.2s ease-out infinite;
+}
+
+.apple-ui .drawer-timeline .risk i,
+.apple-ui .drawer-timeline .blocked i {
+  background: var(--red);
+  border-color: rgba(255, 59, 48, 0.28);
+  box-shadow:
+    0 0 0 8px rgba(255, 59, 48, 0.12),
+    0 0 24px rgba(255, 59, 48, 0.28);
+  animation: timelinePulseRed 1.8s ease-out infinite;
+}
+
+.apple-ui .drawer-timeline span,
+.apple-ui .drawer-checklist span,
+.apple-ui .drawer-checklist small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.apple-ui .drawer-checklist .waiting {
+  border-color: rgba(255, 149, 0, 0.22);
+  background: rgba(255, 149, 0, 0.06);
+}
+
+.apple-ui .modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+}
+
+.apple-ui .modal-root.open {
+  display: flex;
+}
+
+.apple-ui .modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(245, 245, 247, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.apple-ui .modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(780px, calc(100vw - 40px));
+  max-height: min(88vh, 920px);
+  display: grid;
+  gap: 14px;
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid rgba(210, 210, 215, 0.8);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
+}
+
+.apple-ui .modal-card.wide {
+  width: min(980px, calc(100vw - 40px));
+}
+
+.apple-ui .modal-header,
+.apple-ui .modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.apple-ui .modal-header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.apple-ui .modal-header h2 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+.apple-ui .modal-header button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(242, 242, 247, 0.8);
+  font-size: 18px;
+}
+
+.apple-ui .modal-card section {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(229, 229, 234, 0.82);
+  border-radius: 16px;
+  background: rgba(251, 251, 253, 0.64);
+}
+
+.apple-ui .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.apple-ui .form-grid.one {
+  grid-template-columns: 1fr;
+}
+
+.apple-ui .modal-card label {
+  display: grid;
+  gap: 6px;
+  color: #3a3a3c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .modal-card input,
+.apple-ui .modal-card select,
+.apple-ui .modal-card textarea {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid rgba(210, 210, 215, 0.9);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 7px 10px;
+  color: #1d1d1f;
+  font: inherit;
+  font-size: 13px;
+}
+
+.apple-ui .modal-card textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.apple-ui .check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.apple-ui .check-grid label,
+.apple-ui .inline-check {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-content: start;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #3a3a3c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .check-grid input,
+.apple-ui .inline-check input {
+  width: 14px;
+  min-height: 14px;
+}
+
+.apple-ui .route-hint,
+.apple-ui .muted-note {
+  align-self: end;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.apple-ui .fake-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.apple-ui .fake-upload-grid div {
+  display: grid;
+  place-items: center;
+  min-height: 70px;
+  border: 1px dashed rgba(0, 113, 227, 0.26);
+  border-radius: 14px;
+  background: rgba(234, 244, 255, 0.45);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+@media (max-width: 900px) {
+  .apple-ui .drawer-summary-card,
+  .apple-ui .form-grid,
+  .apple-ui .check-grid,
+  .apple-ui .fake-upload-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.apple-ui .workspace-tab.disabled {
+  color: #a1a1a6;
+  border-color: rgba(210, 210, 215, 0.7);
+  background: rgba(242, 242, 247, 0.58);
+  cursor: not-allowed;
+}
+
+.apple-ui .workspace-tab.disabled small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.apple-ui .snapshot-gate {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(255, 59, 48, 0.16);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 242, 240, 0.9), rgba(255, 255, 255, 0.74));
+}
+
+.apple-ui .snapshot-gate span {
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .snapshot-gate strong {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #424245;
+}
+
+.apple-ui .prep-card.checklist-card {
+  position: relative;
+  padding-left: 18px;
+  border-radius: 16px;
+}
+
+.apple-ui .prep-card.checklist-card::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--green);
+  opacity: 0.55;
+}
+
+.apple-ui .prep-card.checklist-card.blocked::before {
+  background: var(--amber);
+}
+
+.apple-ui .review-process-flow {
+  align-items: stretch;
+}
+
+.apple-ui .review-process-flow .gate-step {
+  min-width: 0;
+}
+
+.apple-ui .review-photo.has-issue {
+  border-color: rgba(255, 59, 48, 0.18);
+}
+
+.apple-ui .review-photo.has-issue::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--red);
+  box-shadow: 0 0 0 6px rgba(255, 59, 48, 0.12);
+}
+
+.apple-ui .review-photo.has-issue.minor::after {
+  background: var(--amber);
+  box-shadow: 0 0 0 6px rgba(255, 149, 0, 0.12);
+}
+
+.apple-ui .review-photo em {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  max-width: calc(100% - 20px);
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--red);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.apple-ui .review-photo.minor em {
+  background: rgba(255, 149, 0, 0.12);
+  color: var(--amber);
+}
+
+.apple-ui .review-table-row {
+  grid-template-columns: 66px 112px 96px 74px minmax(180px, 1fr) 104px 54px 32px;
+}
+
+.apple-ui .review-table-row p {
+  min-width: 0;
+}
+
+.apple-ui .issue-created {
+  justify-self: start;
+  white-space: normal;
+  text-align: center;
+}
+
+.apple-ui .issue-created.none {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--green);
+}
+
+.apple-ui .issue-created.minor,
+.apple-ui .issue-created.normal {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.apple-ui .issue-created.major {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.apple-ui .issue-table-row {
+  grid-template-columns: minmax(150px, 1.3fr) minmax(112px, 0.9fr) 58px 76px 92px minmax(112px, 0.92fr) 70px;
+}
+
+.apple-ui .issue-table-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui .decision-stack button.disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+  filter: saturate(0.75);
+}
+
+.apple-ui select {
+  min-height: 30px;
+  padding: 4px 28px 4px 10px;
+  border: 1px solid rgba(210, 210, 215, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #1d1d1f;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .location-card select {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.apple-ui .issue-table-row {
+  position: relative;
+}
+
+.apple-ui .issue-table-row .row-action[data-close-issue] {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  min-height: 24px;
+  padding: 0 8px;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.apple-ui .issue-table-row:hover .row-action[data-close-issue] {
+  opacity: 1;
+}
+
+.apple-ui .exception-form label {
+  display: grid;
+  gap: 3px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(0, 113, 227, 0.08);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .exception-form label:first-of-type {
+  border-top: 0;
+}
+
+.apple-ui .exception-form label span {
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.apple-ui .calendar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 12px;
+}
+
+.apple-ui .calendar-filters .chip {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(210, 210, 215, 0.8);
+  background: rgba(255, 255, 255, 0.72);
+  color: #424245;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .calendar-item {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.apple-ui .calendar-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 113, 227, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.07);
+}
+
+.apple-ui .calendar-item em {
+  display: block;
+  margin-top: 5px;
+  color: #6e6e73;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.apple-ui .risk-row {
+  border-left: 3px solid var(--red);
+}
+
+.apple-ui .risk-row.warning {
+  border-left-color: var(--amber);
+}
+
+.apple-ui .risk-row.info {
+  border-left-color: var(--blue);
+}
+
+.apple-ui .risk-row.neutral {
+  border-left-color: #c7c7cc;
+}
+
+.apple-ui .location-enums.rich {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.apple-ui .location-enums.rich span {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(242, 242, 247, 0.72);
+  color: #1d1d1f;
+  font-weight: 800;
+}
+
+.apple-ui .location-enums.rich small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.apple-ui .training-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+}
+
+.apple-ui .training-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.apple-ui .training-card strong {
+  font-size: 14px;
+}
+
+.apple-ui .training-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1540px) {
+  .apple-ui .pipeline-table .row {
+    min-width: 1260px;
+  }
+
+  .apple-ui .review-table-row {
+    min-width: 980px;
+  }
+
+  .apple-ui .issue-table-row {
+    min-width: 960px;
+  }
+
+  .apple-ui .department-panel,
+  .apple-ui .issue-panel {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 1100px) {
+  .apple-ui .location-enums.rich,
+  .apple-ui .training-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.apple-ui #style .style-header {
+  grid-template-columns: minmax(280px, 1fr) minmax(420px, auto);
+  align-items: center;
+}
+
+.apple-ui #style .style-header > div:first-child {
+  min-width: 280px;
+}
+
+.apple-ui #style .style-header h2 {
+  max-width: 420px;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  text-wrap: balance;
+}
+
+.apple-ui #style .header-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 1280px) {
+  .apple-ui #style .style-header {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .apple-ui #style .style-header h2 {
+    max-width: none;
+  }
+
+  .apple-ui #style .header-badges {
+    justify-content: flex-start;
+  }
+}
+
+/* Settings admin console refinements */
+.apple-ui .admin-actions {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.apple-ui .admin-actions.show {
+  display: flex;
+}
+
+.apple-ui #settings .style-header p {
+  max-width: 620px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.apple-ui .rule-version-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 113, 227, 0.12);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(234, 244, 255, 0.68), rgba(255, 255, 255, 0.78));
+}
+
+.apple-ui .rule-version-bar div,
+.apple-ui .panel-actions,
+.apple-ui .row-actions-inline,
+.apple-ui .training-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.apple-ui .rule-version-bar span,
+.apple-ui .training-stats span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.apple-ui .training-stats span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.apple-ui .row-actions-inline button {
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(210, 210, 215, 0.75);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.apple-ui .permission-table .people-row {
+  grid-template-columns: 132px 92px 128px 112px minmax(176px, 1fr) 70px 112px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.apple-ui .permission-table .people-row:nth-child(even) {
+  background: rgba(250, 251, 253, 0.78);
+}
+
+.apple-ui .permission-matrix {
+  padding: 14px;
+  overflow-x: auto;
+}
+
+.apple-ui .matrix-row {
+  min-width: 980px;
+  display: grid;
+  grid-template-columns: 190px repeat(8, 92px);
+  align-items: center;
+  border-top: 1px solid var(--line);
+}
+
+.apple-ui .matrix-row:first-child {
+  border-top: 0;
+}
+
+.apple-ui .matrix-row > * {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.apple-ui .matrix-row.head {
+  color: var(--muted);
+  background: rgba(242, 242, 247, 0.74);
+  font-weight: 800;
+}
+
+.apple-ui .matrix-row strong {
+  font-size: 13px;
+}
+
+.apple-ui .matrix-row .yes {
+  justify-content: center;
+  color: var(--green);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.apple-ui .department-enums {
+  gap: 8px;
+}
+
+.apple-ui .department-chip {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(210, 210, 215, 0.75);
+  border-radius: 999px;
+  background: rgba(242, 242, 247, 0.8);
+  color: #424245;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.apple-ui .department-chip.active {
+  border-color: rgba(0, 113, 227, 0.24);
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+.apple-ui .department-detail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.apple-ui .department-detail div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.apple-ui .department-detail span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.apple-ui .location-transition-rules {
+  padding: 0 14px 14px;
+  overflow-x: auto;
+}
+
+.apple-ui .location-transition-rules h3 {
+  margin: 0 0 8px;
+  color: #1d1d1f;
+  font-size: 14px;
+}
+
+.apple-ui .transition-row {
+  min-width: 820px;
+  display: grid;
+  grid-template-columns: 120px 120px minmax(160px, 1fr) 80px 80px 80px;
+  border-top: 1px solid var(--line);
+}
+
+.apple-ui .transition-row.head {
+  border-top: 0;
+  color: var(--muted);
+  background: rgba(242, 242, 247, 0.72);
+  font-weight: 800;
+}
+
+.apple-ui .transition-row span {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@media (max-width: 1100px) {
+  .apple-ui .department-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui .rule-version-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

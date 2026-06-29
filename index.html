@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sample OS</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">WY</div>
+          <div>
+            <div class="brand-name">WANYU</div>
+            <div class="brand-sub">Factory OS</div>
+          </div>
+        </div>
+
+        <nav class="side-nav" aria-label="Main navigation">
+          <button class="nav-item active" data-view="pipeline" type="button">
+            <span class="nav-icon">▦</span>
+            Development
+          </button>
+          <button class="nav-item" data-view="style" type="button">
+            <span class="nav-icon">◎</span>
+            Style Workspace
+          </button>
+          <button class="nav-item" data-view="review" type="button">
+            <span class="nav-icon">□</span>
+            Sample Review
+          </button>
+          <button class="nav-item" data-view="handoff" type="button">
+            <span class="nav-icon">↗</span>
+            Bulk Handoff
+          </button>
+          <button class="nav-item muted" data-view="inbox" type="button">
+            <span class="nav-icon">◇</span>
+            Communication
+          </button>
+        </nav>
+
+        <div class="side-panel">
+          <div class="panel-label">Today</div>
+          <div class="side-metric">
+            <span>Open Issues</span>
+            <strong>17</strong>
+          </div>
+          <div class="side-metric">
+            <span>Blocking</span>
+            <strong>4</strong>
+          </div>
+          <div class="side-metric">
+            <span>Ready for Bulk</span>
+            <strong>2</strong>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">Development OS / Sample OS</div>
+            <h1 id="view-title">Development Pipeline</h1>
+          </div>
+          <div class="top-actions">
+            <label class="search">
+              <span>⌕</span>
+              <input type="search" placeholder="Search style, brand, owner" />
+            </label>
+            <button class="icon-button" type="button" title="Notifications">!</button>
+            <button class="primary-button" type="button">+ New Style</button>
+          </div>
+        </header>
+
+        <section id="pipeline" class="view active">
+          <div class="toolbar">
+            <div class="tabs">
+              <button class="tab active" type="button">All</button>
+              <button class="tab" type="button">Salomon</button>
+              <button class="tab" type="button">Supreme</button>
+              <button class="tab" type="button">Descente</button>
+              <button class="tab" type="button">NB</button>
+              <button class="tab" type="button">Theory</button>
+            </div>
+            <div class="filter-row">
+              <button class="filter-button" type="button">Reviewing</button>
+              <button class="filter-button" type="button">Blocked</button>
+              <button class="filter-button" type="button">Ready for Bulk</button>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-card">
+              <span>Styles in Development</span>
+              <strong>38</strong>
+              <small>11 in active review</small>
+            </div>
+            <div class="summary-card">
+              <span>Samples in Room</span>
+              <strong>24</strong>
+              <small>6 location updates today</small>
+            </div>
+            <div class="summary-card">
+              <span>Pending Decisions</span>
+              <strong>7</strong>
+              <small>3 waiting for 张部长</small>
+            </div>
+            <div class="summary-card alert">
+              <span>Blocking Issues</span>
+              <strong>4</strong>
+              <small>2 block shipment</small>
+            </div>
+          </div>
+
+          <div class="table-shell">
+            <div class="table-header">
+              <h2>Development Pipeline</h2>
+              <span>Style lifecycle from proto to bulk handoff</span>
+            </div>
+            <div class="pipeline-table">
+              <div class="row head">
+                <div>Style</div>
+                <div>Brand</div>
+                <div>Stage</div>
+                <div>Status</div>
+                <div>Pipeline</div>
+                <div>Issues</div>
+                <div>Location</div>
+                <div>Next Action</div>
+              </div>
+              <button class="row data-row" data-view="style" type="button">
+                <div>
+                  <strong>212</strong>
+                  <span>Alpine shell jacket</span>
+                </div>
+                <div>Salomon<br /><span>SS27</span></div>
+                <div>2nd Proto</div>
+                <div><span class="status blue">Reviewing</span></div>
+                <div class="stage-line" aria-label="1st Proto done, 2nd Proto active, SMS waiting, PPS waiting, TOP waiting">
+                  <span class="done">1P</span><span class="active">2P</span><span>SMS</span><span>PPS</span><span>TOP</span>
+                </div>
+                <div><strong>6</strong><span>2 blocker</span></div>
+                <div>Sample Room</div>
+                <div>QC decision</div>
+              </button>
+              <button class="row data-row" data-view="review" type="button">
+                <div>
+                  <strong>305</strong>
+                  <span>Graphic fleece</span>
+                </div>
+                <div>Supreme<br /><span>FW26</span></div>
+                <div>SMS</div>
+                <div><span class="status amber">Modify</span></div>
+                <div class="stage-line">
+                  <span class="done">1P</span><span class="done">2P</span><span class="active">SMS</span><span>PPS</span><span>TOP</span>
+                </div>
+                <div><strong>3</strong><span>0 blocker</span></div>
+                <div>Business</div>
+                <div>Pattern revise</div>
+              </button>
+              <button class="row data-row" data-view="review" type="button">
+                <div>
+                  <strong>395</strong>
+                  <span>Trail vest</span>
+                </div>
+                <div>NB<br /><span>SS27</span></div>
+                <div>2nd Proto</div>
+                <div><span class="status red">Blocked</span></div>
+                <div class="stage-line">
+                  <span class="done">1P</span><span class="blocked">2P</span><span>SMS</span><span>PPS</span><span>TOP</span>
+                </div>
+                <div><strong>8</strong><span>2 blocker</span></div>
+                <div>Factory</div>
+                <div>Construction review</div>
+              </button>
+              <button class="row data-row" data-view="handoff" type="button">
+                <div>
+                  <strong>418</strong>
+                  <span>Urban rain coat</span>
+                </div>
+                <div>Descente<br /><span>FW26</span></div>
+                <div>TOP</div>
+                <div><span class="status green">Ready</span></div>
+                <div class="stage-line">
+                  <span class="done">1P</span><span class="done">2P</span><span class="done">SMS</span><span class="done">PPS</span><span class="active">TOP</span>
+                </div>
+                <div><strong>0</strong><span>clear</span></div>
+                <div>Office</div>
+                <div>Bulk handoff</div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section id="style" class="view">
+          <div class="style-header">
+            <div>
+              <div class="eyebrow">Style 212 / Salomon / SS27</div>
+              <h2>Alpine Shell Jacket</h2>
+            </div>
+            <div class="header-badges">
+              <span class="status blue">Reviewing</span>
+              <span class="status neutral">2nd Proto</span>
+              <span class="status neutral">Location: Sample Room</span>
+            </div>
+          </div>
+
+          <div class="workspace-tabs">
+            <button class="workspace-tab" type="button">Customer</button>
+            <button class="workspace-tab active" type="button">Sample</button>
+            <button class="workspace-tab" type="button">Production</button>
+          </div>
+
+          <div class="two-column">
+            <div class="section-block">
+              <div class="section-title">
+                <h2>Development Timeline</h2>
+                <span>Style lifecycle</span>
+              </div>
+              <div class="timeline-large">
+                <div class="timeline-item complete">
+                  <strong>1st Proto</strong>
+                  <span>Approved / 2026-06-18</span>
+                </div>
+                <div class="timeline-item current">
+                  <strong>2nd Proto</strong>
+                  <span>Reviewing / 6 open issues</span>
+                </div>
+                <div class="timeline-item">
+                  <strong>SMS</strong>
+                  <span>Waiting</span>
+                </div>
+                <div class="timeline-item">
+                  <strong>PPS</strong>
+                  <span>Not started</span>
+                </div>
+                <div class="timeline-item">
+                  <strong>TOP</strong>
+                  <span>Not started</span>
+                </div>
+                <div class="timeline-item">
+                  <strong>Bulk</strong>
+                  <span>Not ready</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-block">
+              <div class="section-title">
+                <h2>Active Review</h2>
+                <span>Current action</span>
+              </div>
+              <div class="review-snapshot">
+                <div class="sample-visual">
+                  <div class="jacket-shape">
+                    <span></span>
+                  </div>
+                </div>
+                <div class="snapshot-content">
+                  <h3>2nd Proto Review</h3>
+                  <p>Cross-department review is open. QC and Pattern have blocking items before sample shipment.</p>
+                  <div class="mini-stats">
+                    <span><strong>6</strong> Open</span>
+                    <span><strong>2</strong> Blocker</span>
+                    <span><strong>5</strong> Dept.</span>
+                  </div>
+                  <button class="primary-button" data-view="review" type="button">Open Review</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="review" class="view">
+          <div class="review-layout">
+            <div class="review-main">
+              <div class="style-header compact">
+                <div>
+                  <div class="eyebrow">Style 212 / Salomon / SS27 / 2nd Proto</div>
+                  <h2>Sample Review</h2>
+                </div>
+                <div class="header-badges">
+                  <span class="status blue">Reviewing</span>
+                  <span class="status red">2 Blockers</span>
+                </div>
+              </div>
+
+              <div class="info-grid">
+                <div><span>Sample No.</span><strong>S-212-P2</strong></div>
+                <div><span>Created</span><strong>2026/06/28</strong></div>
+                <div><span>Size</span><strong>M</strong></div>
+                <div><span>Color</span><strong>Black</strong></div>
+                <div><span>Decision Owner</span><strong>张部长</strong></div>
+                <div><span>Location</span><strong>Sample Room</strong></div>
+              </div>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>Photos</h2>
+                  <span>Front, back, sides, details, video</span>
+                </div>
+                <div class="media-grid">
+                  <div class="media-card large">
+                    <div class="garment front"></div>
+                    <span>Front</span>
+                  </div>
+                  <div class="media-card">
+                    <div class="garment back"></div>
+                    <span>Back</span>
+                  </div>
+                  <div class="media-card">
+                    <div class="garment side"></div>
+                    <span>Left</span>
+                  </div>
+                  <div class="media-card">
+                    <div class="garment detail"></div>
+                    <span>Detail</span>
+                  </div>
+                  <div class="media-card video">
+                    <div class="play">▶</div>
+                    <span>Video</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>Department Review</h2>
+                  <span>Pass / Improve / Reject</span>
+                </div>
+                <div class="dept-list">
+                  <div class="dept-row">
+                    <strong>Business</strong>
+                    <span class="pill amber">Improve</span>
+                    <p>Pocket too high. Customer may ask to lower by 1.5 cm.</p>
+                  </div>
+                  <div class="dept-row">
+                    <strong>Pattern</strong>
+                    <span class="pill amber">Improve</span>
+                    <p>Chest needs +0.5 cm and pocket position needs new pattern mark.</p>
+                  </div>
+                  <div class="dept-row">
+                    <strong>QC</strong>
+                    <span class="pill red">Reject</span>
+                    <p>Loose thread at sleeve opening. Must fix before sending.</p>
+                  </div>
+                  <div class="dept-row">
+                    <strong>IE</strong>
+                    <span class="pill amber">Improve</span>
+                    <p>Current pocket construction is low efficiency for bulk.</p>
+                  </div>
+                  <div class="dept-row">
+                    <strong>Technique</strong>
+                    <span class="pill green">Pass</span>
+                    <p>No major process issue for this round.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="review-side">
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>Issue List</h2>
+                  <span>Opinion to owner to completed</span>
+                </div>
+                <div class="issue-list">
+                  <button class="issue-row" type="button" data-issue="Pocket too high|Pattern|Major|Open|Business Review|Tomorrow">
+                    <strong>Pocket too high</strong>
+                    <span>Pattern · Major · Tomorrow</span>
+                  </button>
+                  <button class="issue-row blocker" type="button" data-issue="Loose thread at sleeve|QC|Blocker|Open|QC Review|Today">
+                    <strong>Loose thread at sleeve</strong>
+                    <span>QC · Blocker · Today</span>
+                  </button>
+                  <button class="issue-row" type="button" data-issue="Chest needs +0.5 cm|Pattern|Minor|In Progress|Pattern Review|6/30">
+                    <strong>Chest needs +0.5 cm</strong>
+                    <span>Pattern · Minor · 6/30</span>
+                  </button>
+                  <button class="issue-row" type="button" data-issue="Pocket construction inefficient|IE|Major|Open|IE Review|7/01">
+                    <strong>Pocket construction inefficient</strong>
+                    <span>IE · Major · 7/01</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>Final Decision</h2>
+                  <span>张部长 only</span>
+                </div>
+                <div class="decision-grid">
+                  <button type="button">Approve Next Stage</button>
+                  <button class="selected" type="button">Modify</button>
+                  <button type="button">Hold</button>
+                  <button type="button">Approve for Bulk</button>
+                </div>
+              </div>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>Timeline</h2>
+                  <span>Audit trail</span>
+                </div>
+                <div class="audit-list">
+                  <div><strong>6/28</strong><span>Review started</span></div>
+                  <div><strong>6/28</strong><span>QC rejected sleeve issue</span></div>
+                  <div><strong>6/29</strong><span>Pattern modification started</span></div>
+                  <div><strong>6/30</strong><span>Waiting for verification</span></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="handoff" class="view">
+          <div class="handoff-page">
+            <div class="style-header">
+              <div>
+                <div class="eyebrow">Style 418 / Descente / FW26</div>
+                <h2>Bulk Handoff Preview</h2>
+              </div>
+              <span class="status green">Ready for Factory OS</span>
+            </div>
+
+            <div class="handoff-grid">
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>Approved Development Style</h2>
+                  <span>Sample OS output</span>
+                </div>
+                <div class="handoff-summary">
+                  <div><span>Approved Stage</span><strong>TOP / Final Sample</strong></div>
+                  <div><span>Approved By</span><strong>张部长</strong></div>
+                  <div><span>Approved At</span><strong>2026/07/01</strong></div>
+                  <div><span>Approved Review</span><strong>SR-418-TOP</strong></div>
+                </div>
+              </div>
+
+              <div class="section-block">
+                <div class="section-title">
+                  <h2>Readiness</h2>
+                  <span>Before production setup</span>
+                </div>
+                <div class="check-list">
+                  <div><span>✓</span> Sample approved</div>
+                  <div><span>✓</span> Blocking issues closed</div>
+                  <div><span>✓</span> Customer comments closed</div>
+                  <div><span>✓</span> Sample location known</div>
+                  <div><span>✓</span> Development changes confirmed</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-block">
+              <div class="section-title">
+                <h2>Factory OS Handoff</h2>
+                <span>Production information is entered after handoff</span>
+              </div>
+              <div class="handoff-flow">
+                <div class="flow-step done">Sample Review Approved</div>
+                <div class="flow-step done">Bulk Handoff Created</div>
+                <div class="flow-step active">Create Factory OS Production Record</div>
+                <div class="flow-step">Enter BOM / Routing / QC Plan</div>
+                <div class="flow-step">Bulk Production Start</div>
+              </div>
+              <div class="production-fields">
+                <span>Bulk Qty</span>
+                <span>Size Ratio</span>
+                <span>Colorways</span>
+                <span>Factory</span>
+                <span>Line</span>
+                <span>Delivery</span>
+                <span>BOM</span>
+                <span>QC Standard</span>
+              </div>
+              <button class="primary-button" type="button">Create Factory OS Production Record</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="inbox" class="view">
+          <div class="style-header">
+            <div>
+              <div class="eyebrow">Future Module</div>
+              <h2>Communication Inbox</h2>
+            </div>
+            <span class="status neutral">Planned after V0</span>
+          </div>
+          <div class="section-block">
+            <div class="section-title">
+              <h2>Message to Issue</h2>
+              <span>WeChat / Enterprise WeChat / Email / Customer Portal</span>
+            </div>
+            <div class="comm-table">
+              <div class="row head">
+                <div>Source</div>
+                <div>Contact</div>
+                <div>Message</div>
+                <div>Suggested Issue</div>
+                <div>Action</div>
+              </div>
+              <div class="row">
+                <div>Enterprise WeChat</div>
+                <div>Salomon PM</div>
+                <div>Pocket is still too high.</div>
+                <div>Pocket too high</div>
+                <div><button type="button">Confirm</button></div>
+              </div>
+              <div class="row">
+                <div>Email</div>
+                <div>Supreme</div>
+                <div>Please revise sleeve opening.</div>
+                <div>Sleeve opening issue</div>
+                <div><button type="button">Confirm</button></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <aside class="issue-drawer" id="issue-drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <div class="eyebrow">Issue</div>
+          <h2 id="drawer-title">Pocket too high</h2>
+        </div>
+        <button class="icon-button" id="close-drawer" type="button" title="Close">×</button>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-field">
+          <span>Related Style</span>
+          <strong>212 / Salomon / 2nd Proto</strong>
+        </div>
+        <div class="drawer-field">
+          <span>Severity</span>
+          <strong id="drawer-severity">Major</strong>
+        </div>
+        <div class="drawer-field">
+          <span>Owner</span>
+          <strong id="drawer-owner">Pattern</strong>
+        </div>
+        <div class="drawer-field">
+          <span>Source</span>
+          <strong id="drawer-source">Business Review</strong>
+          <small>Future: WeChat / Enterprise WeChat / Email</small>
+        </div>
+        <div class="drawer-field">
+          <span>Status</span>
+          <strong id="drawer-status">Open</strong>
+        </div>
+        <div class="drawer-field">
+          <span>Deadline</span>
+          <strong id="drawer-deadline">Tomorrow</strong>
+        </div>
+        <div class="drawer-actions">
+          <button type="button">Mark In Progress</button>
+          <button class="primary-button" type="button">Resolve</button>
+        </div>
+      </div>
+    </aside>
+
+    <script src="app.js"></script>
+  </body>
+</html>
