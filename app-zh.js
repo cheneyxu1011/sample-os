@@ -428,11 +428,22 @@ function renderMedia(sample, issues) {
   sample.videoList.forEach((video) => cards.push(`<div class="review-photo video-thumb"><div class="play">▶</div><span>${esc(video)}</span></div>`));
   (sample.mediaList || []).forEach((media) => {
     const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
-    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}">${isVideo ? `<div class="play">▶</div>` : ""}<input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签"><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3</em></div>`);
+    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}">${isVideo ? `<div class="play">▶</div>` : ""}<input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签，例如正面、反面、拉链"><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3，标签可编辑</em></div>`);
   });
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
   grid.innerHTML = cards.join("");
+}
+
+function triggerMediaUpload(mediaKind) {
+  const input = document.querySelector(`#review [data-media-upload="${mediaKind}"]`);
+  if (!input) {
+    showView("review");
+    renderReview();
+    document.querySelector(`#review [data-media-upload="${mediaKind}"]`)?.click();
+    return;
+  }
+  input.click();
 }
 
 function renderDepartmentReviews(review) {
@@ -947,8 +958,7 @@ document.addEventListener("click", (event) => {
   if (uploadTrigger) {
     event.preventDefault();
     event.stopPropagation();
-    const mediaKind = uploadTrigger.dataset.triggerUpload;
-    document.querySelector(`#review [data-media-upload="${mediaKind}"]`)?.click();
+    triggerMediaUpload(uploadTrigger.dataset.triggerUpload);
     return;
   }
 
@@ -1218,7 +1228,13 @@ document.addEventListener("change", async (event) => {
     const review = os.getReviewById(os.data.currentReviewId);
     const sample = os.getSampleById(review.sampleId);
     const media = sample.mediaList?.find((item) => item.id === labelInput.dataset.mediaLabel);
-    if (media) media.label = labelInput.value.trim() || media.label;
+    if (media) {
+      media.label = labelInput.value.trim() || media.label;
+      window.SampleOSBackend?.syncData?.("updateMediaLabel", {
+        mediaId: media.id,
+        label: media.label,
+      }).then(() => showToast("媒体标签已保存")).catch((error) => showToast(`媒体标签未同步：${error.message}`));
+    }
     return;
   }
 
@@ -1262,8 +1278,9 @@ document.addEventListener("change", async (event) => {
     });
     status.textContent = `已上传：${result.media.id.slice(0, 8)}`;
     renderReview();
+    showToast(`已上传并保存标签：${label}`);
   } catch (error) {
-    status.textContent = error.message.includes("token") ? "请先登录" : error.message;
+    status.textContent = error.message.includes("S3 upload failed") ? "S3 上传失败，请检查 bucket CORS" : error.message;
   } finally {
     input.value = "";
   }

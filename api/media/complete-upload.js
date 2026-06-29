@@ -32,8 +32,7 @@ async function getSupabaseAndProfile(req) {
     auth: { persistSession: false },
   });
 
-  const token = getBearerToken(req);
-  if (!token) {
+  async function defaultContext() {
     const { data: orgs, error: orgsError } = await supabase
       .from("organizations")
       .select("id, name")
@@ -51,16 +50,19 @@ async function getSupabaseAndProfile(req) {
     return { supabase, profile: { id: null, org_id: org.id } };
   }
 
+  const token = getBearerToken(req);
+  if (!token) return defaultContext();
+
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !userData.user) return null;
+  if (userError || !userData.user) return defaultContext();
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("id, org_id")
     .eq("user_id", userData.user.id)
-    .single();
+    .maybeSingle();
 
-  if (profileError || !profile) return null;
+  if (profileError || !profile) return defaultContext();
   return { supabase, profile };
 }
 

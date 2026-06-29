@@ -388,6 +388,21 @@ async function updateSetting(supabase, orgId, body) {
   return { key };
 }
 
+async function updateMediaLabel(supabase, orgId, body) {
+  const mediaId = String(body.mediaId || "").trim();
+  const label = String(body.label || "").trim();
+  if (!mediaId) throw new Error("mediaId is required");
+  if (!label) throw new Error("label is required");
+
+  const { error } = await supabase
+    .from("sample_media")
+    .update({ label })
+    .eq("org_id", orgId)
+    .eq("id", mediaId);
+  if (error) throw error;
+  return { mediaId, label };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -415,6 +430,7 @@ export default async function handler(req, res) {
       deleteWorker,
       updateGateRule,
       updateSetting,
+      updateMediaLabel,
     };
     const action = handlers[body.action];
     if (!action) return json(res, 400, { error: "Unknown sync action" });
