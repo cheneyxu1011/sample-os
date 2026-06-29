@@ -225,7 +225,7 @@ function renderMedia(sample, issues) {
   sample.videoList.forEach((video) => cards.push(`<div class="review-photo video-thumb"><div class="play">▶</div><span>${esc(video)}</span></div>`));
   (sample.mediaList || []).forEach((media) => {
     const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
-    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}">${isVideo ? `<div class="play">▶</div>` : ""}<strong>${esc(media.label || media.fileName || "已上传文件")}</strong><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3</em></div>`);
+    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}">${isVideo ? `<div class="play">▶</div>` : ""}<input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签"><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3</em></div>`);
   });
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
@@ -902,6 +902,13 @@ if (topSearch) {
 }
 
 document.addEventListener("keydown", (event) => {
+  const mediaLabel = event.target.closest?.("[data-media-label]");
+  if (mediaLabel && event.key === "Enter") {
+    event.preventDefault();
+    mediaLabel.blur();
+    return;
+  }
+
   if (event.key === "Escape") {
     drawer?.classList.remove("open");
     drawer?.setAttribute("aria-hidden", "true");
@@ -915,6 +922,15 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("pointermove", updatePointerGlow, { passive: true });
 
 document.addEventListener("change", async (event) => {
+  const labelInput = event.target.closest("[data-media-label]");
+  if (labelInput) {
+    const review = os.getReviewById(os.data.currentReviewId);
+    const sample = os.getSampleById(review.sampleId);
+    const media = sample.mediaList?.find((item) => item.id === labelInput.dataset.mediaLabel);
+    if (media) media.label = labelInput.value.trim() || media.label;
+    return;
+  }
+
   const input = event.target.closest("[data-media-upload]");
   if (!input?.files?.length) return;
   const status = input.closest("[data-upload-tile]")?.querySelector("[data-upload-status]");
@@ -922,10 +938,13 @@ document.addEventListener("change", async (event) => {
   const review = os.getReviewById(os.data.currentReviewId);
   const sample = os.getSampleById(review.sampleId);
   const mediaKind = input.dataset.mediaUpload;
+  const fallbackLabel = mediaKind === "video" ? "整体视频" : "正面";
+  const label = window.prompt("给这个文件写个标签，例如：正面、反面、拉链", fallbackLabel) || fallbackLabel;
   const context = {
     styleId: review.styleId,
     sampleId: sample.id,
     reviewId: review.id,
+    label,
   };
 
   try {
@@ -938,7 +957,8 @@ document.addEventListener("change", async (event) => {
     sample.mediaList ||= [];
     sample.mediaList.push({
       id: result.media.id,
-      label: file.name,
+      label,
+      fileName: file.name,
       mediaKind,
       mimeType: file.type,
       byteSize: file.size,
@@ -947,7 +967,7 @@ document.addEventListener("change", async (event) => {
     review.timeline.unshift({
       time: uploadedAt,
       type: "blue",
-      text: `${os.userName(os.data.currentUserId)} · 上传${mediaKind === "video" ? "视频" : "照片"}：${file.name}`,
+      text: `${os.userName(os.data.currentUserId)} · 上传${mediaKind === "video" ? "视频" : "照片"}：${label}`,
     });
     status.textContent = `已上传：${result.media.id.slice(0, 8)}`;
     renderReview();

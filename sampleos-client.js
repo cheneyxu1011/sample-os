@@ -79,6 +79,7 @@
         issueExternalRef: context.issueExternalRef || (!isUuid(context.issueId) ? context.issueId : null),
         mediaKind,
         fileName: file.name,
+        label: context.label || file.name,
         mimeType: file.type || "application/octet-stream",
         byteSize: file.size,
       }),

@@ -95,6 +95,65 @@ async function resolveEntityId(supabase, table, orgId, id, externalRef) {
   return data?.id || null;
 }
 
+async function ensureDemoEntities(supabase, orgId) {
+  const { data: style, error: styleError } = await supabase
+    .from("styles")
+    .upsert({
+      org_id: orgId,
+      external_ref: "style_212",
+      style_no: "212",
+      brand: "萨洛蒙",
+      season: "SS27",
+      style_name: "户外冲锋衣",
+      category: "夹克",
+      route: "normal",
+      current_gate: "sample_review_gate",
+      sample_phase: "second_sample",
+      risk_status: "blocked",
+      planned_ship_date: "2026-06-28",
+      next_action: "确认质量与工艺问题责任人",
+      blocker_summary: "2 个问题阻止寄样",
+    }, { onConflict: "org_id,external_ref" })
+    .select("id")
+    .single();
+
+  if (styleError) throw styleError;
+
+  const { data: sample, error: sampleError } = await supabase
+    .from("samples")
+    .upsert({
+      org_id: orgId,
+      external_ref: "sample_212_2",
+      style_id: style.id,
+      sample_phase: "second_sample",
+      version_name: "二次样",
+      status: "reviewing",
+      location: "开发车间",
+      planned_ship_date: "2026-06-28",
+    }, { onConflict: "org_id,external_ref" })
+    .select("id")
+    .single();
+
+  if (sampleError) throw sampleError;
+
+  const { error: reviewError } = await supabase
+    .from("reviews")
+    .upsert({
+      org_id: orgId,
+      external_ref: "review_212_second",
+      style_id: style.id,
+      sample_id: sample.id,
+      review_no: "SR-002",
+      status: "reviewing",
+      final_decision: "none",
+      exception_reason: "客户会议 / 交期风险 / 样衣用途",
+      exception_risk_note: "重大问题带说明寄样，客户需知晓风险。",
+      exception_approval_status: "待审批",
+    }, { onConflict: "org_id,external_ref" });
+
+  if (reviewError) throw reviewError;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -117,6 +176,7 @@ export default async function handler(req, res) {
       issueExternalRef = null,
       mediaKind,
       fileName,
+      label = null,
       mimeType,
       byteSize,
     } = body;
@@ -136,10 +196,16 @@ export default async function handler(req, res) {
     const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
       auth: { persistSession: false },
     });
-    const resolvedStyleId = await resolveEntityId(supabase, "styles", profile.org_id, styleId, styleExternalRef);
-    const resolvedSampleId = await resolveEntityId(supabase, "samples", profile.org_id, sampleId, sampleExternalRef);
-    const resolvedReviewId = await resolveEntityId(supabase, "reviews", profile.org_id, reviewId, reviewExternalRef);
+    let resolvedStyleId = await resolveEntityId(supabase, "styles", profile.org_id, styleId, styleExternalRef);
+    let resolvedSampleId = await resolveEntityId(supabase, "samples", profile.org_id, sampleId, sampleExternalRef);
+    let resolvedReviewId = await resolveEntityId(supabase, "reviews", profile.org_id, reviewId, reviewExternalRef);
     const resolvedIssueId = await resolveEntityId(supabase, "issues", profile.org_id, issueId, issueExternalRef);
+    if (!resolvedStyleId || !resolvedSampleId) {
+      await ensureDemoEntities(supabase, profile.org_id);
+      resolvedStyleId = await resolveEntityId(supabase, "styles", profile.org_id, styleId, styleExternalRef);
+      resolvedSampleId = await resolveEntityId(supabase, "samples", profile.org_id, sampleId, sampleExternalRef);
+      resolvedReviewId = await resolveEntityId(supabase, "reviews", profile.org_id, reviewId, reviewExternalRef);
+    }
     if (!resolvedStyleId || !resolvedSampleId) {
       return json(res, 400, { error: "Style or sample has not been seeded in Supabase yet" });
     }
@@ -192,7 +258,7 @@ export default async function handler(req, res) {
         reviewExternalRef: reviewExternalRef || (isUuid(reviewId) ? null : reviewId),
         issueExternalRef: issueExternalRef || (isUuid(issueId) ? null : issueId),
         mediaKind,
-        label: fileName,
+        label: label || fileName,
         s3Bucket: bucket,
         s3Region: region,
         s3ObjectKey: objectKey,
