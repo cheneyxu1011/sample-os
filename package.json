@@ -1,0 +1,18 @@
+{
+  "name": "sample-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1075.0",
+    "@aws-sdk/s3-request-presigner": "3.1075.0",
+    "@supabase/supabase-js": "2.108.2"
+  },
+  "devDependencies": {
+    "vercel": "50.28.0"
+  }
+}
