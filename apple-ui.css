@@ -4113,3 +4113,42 @@ body.apple-ui {
     flex-direction: column;
   }
 }
+
+.apple-ui .auth-mini {
+  position: relative;
+}
+
+.apple-ui .auth-mini .auth-form {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 30;
+  width: 280px;
+  padding: 12px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+.apple-ui .auth-mini input,
+.apple-ui .auth-mini button {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.apple-ui .auth-mini small {
+  display: block;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.apple-ui .review-photo.upload-tile {
+  cursor: pointer;
+  border-style: dashed;
+  background: #f8fafc;
+}
+
+.apple-ui .review-photo.upload-tile strong {
+  font-size: 14px;
+}

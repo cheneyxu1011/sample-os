@@ -61,6 +61,24 @@ async function getProfile(req) {
   return profile;
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
+async function resolveEntityId(supabase, table, orgId, id, externalRef) {
+  if (isUuid(id)) return id;
+  const ref = externalRef || id;
+  if (!ref) return null;
+  const { data, error } = await supabase
+    .from(table)
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("external_ref", ref)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id || null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -77,6 +95,10 @@ export default async function handler(req, res) {
       sampleId,
       reviewId = null,
       issueId = null,
+      styleExternalRef = null,
+      sampleExternalRef = null,
+      reviewExternalRef = null,
+      issueExternalRef = null,
       mediaKind,
       fileName,
       mimeType,
@@ -84,7 +106,9 @@ export default async function handler(req, res) {
     } = body;
 
     const maxBytes = Number(process.env.S3_UPLOAD_MAX_BYTES || DEFAULT_MAX_BYTES);
-    if (!styleId || !sampleId) return json(res, 400, { error: "styleId and sampleId are required" });
+    if ((!styleId && !styleExternalRef) || (!sampleId && !sampleExternalRef)) {
+      return json(res, 400, { error: "styleId/styleExternalRef and sampleId/sampleExternalRef are required" });
+    }
     if (!ALLOWED_MEDIA_KINDS.has(mediaKind)) return json(res, 400, { error: "Invalid mediaKind" });
     if (!mimeType || !String(mimeType).includes("/")) return json(res, 400, { error: "mimeType is required" });
     if (!Number.isSafeInteger(byteSize) || byteSize <= 0 || byteSize > maxBytes) {
@@ -93,6 +117,16 @@ export default async function handler(req, res) {
 
     const region = requireEnv("AWS_REGION");
     const bucket = requireEnv("AWS_S3_BUCKET");
+    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+      auth: { persistSession: false },
+    });
+    const resolvedStyleId = await resolveEntityId(supabase, "styles", profile.org_id, styleId, styleExternalRef);
+    const resolvedSampleId = await resolveEntityId(supabase, "samples", profile.org_id, sampleId, sampleExternalRef);
+    const resolvedReviewId = await resolveEntityId(supabase, "reviews", profile.org_id, reviewId, reviewExternalRef);
+    const resolvedIssueId = await resolveEntityId(supabase, "issues", profile.org_id, issueId, issueExternalRef);
+    if (!resolvedStyleId || !resolvedSampleId) {
+      return json(res, 400, { error: "Style or sample has not been seeded in Supabase yet" });
+    }
     const date = new Date();
     const yyyy = date.getUTCFullYear();
     const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -100,9 +134,9 @@ export default async function handler(req, res) {
       "org",
       profile.org_id,
       "styles",
-      styleId,
+      resolvedStyleId,
       "samples",
-      sampleId,
+      resolvedSampleId,
       String(yyyy),
       mm,
       `${crypto.randomUUID()}-${sanitizeFileName(fileName)}`,
@@ -115,10 +149,10 @@ export default async function handler(req, res) {
       ContentType: mimeType,
       Metadata: {
         org_id: profile.org_id,
-        style_id: styleId,
-        sample_id: sampleId,
-        review_id: reviewId || "",
-        issue_id: issueId || "",
+        style_id: resolvedStyleId,
+        sample_id: resolvedSampleId,
+        review_id: resolvedReviewId || "",
+        issue_id: resolvedIssueId || "",
         uploaded_by: profile.id,
         media_kind: mediaKind,
       },
@@ -133,10 +167,14 @@ export default async function handler(req, res) {
       headers: { "content-type": mimeType },
       media: {
         orgId: profile.org_id,
-        styleId,
-        sampleId,
-        reviewId,
-        issueId,
+        styleId: resolvedStyleId,
+        sampleId: resolvedSampleId,
+        reviewId: resolvedReviewId,
+        issueId: resolvedIssueId,
+        styleExternalRef: styleExternalRef || (isUuid(styleId) ? null : styleId),
+        sampleExternalRef: sampleExternalRef || (isUuid(sampleId) ? null : sampleId),
+        reviewExternalRef: reviewExternalRef || (isUuid(reviewId) ? null : reviewId),
+        issueExternalRef: issueExternalRef || (isUuid(issueId) ? null : issueId),
         mediaKind,
         label: fileName,
         s3Bucket: bucket,

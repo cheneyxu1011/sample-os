@@ -37,6 +37,8 @@ await window.SampleOSBackend.bootstrapProfile({
   roleName: "后台管理员"
 });
 
+await window.SampleOSBackend.seedDemoData();
+
 await window.SampleOSBackend.uploadFile(file, {
   styleId: "style uuid",
   sampleId: "sample uuid",

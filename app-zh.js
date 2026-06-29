@@ -187,6 +187,7 @@ function renderMedia(sample, issues) {
     return `<div class="review-photo${main}${index > 1 ? " part-photo" : ""}${issueClass}">${shape}<span>${esc(name)}</span>${related.length ? `<em>${related.length} 个${os.data.issueLevelRules[related[0].level].label}问题</em>` : ""}</div>`;
   });
   sample.videoList.forEach((video) => cards.push(`<div class="review-photo video-thumb"><div class="play">▶</div><span>${esc(video)}</span></div>`));
+  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*,video/*" data-media-upload hidden /><strong>+ 上传照片/视频</strong><span>登录后直传 S3</span><em data-upload-status>等待选择文件</em></label>`);
   grid.innerHTML = cards.join("");
 }
 
@@ -844,5 +845,32 @@ document.addEventListener("keydown", (event) => {
     personDrawer?.setAttribute("aria-hidden", "true");
     closeStyleDrawerPanel();
     closeModal();
+  }
+});
+
+document.addEventListener("change", async (event) => {
+  const input = event.target.closest("[data-media-upload]");
+  if (!input?.files?.length) return;
+  const status = input.closest("[data-upload-tile]")?.querySelector("[data-upload-status]");
+  const file = input.files[0];
+  const review = os.getReviewById(os.data.currentReviewId);
+  const sample = os.getSampleById(review.sampleId);
+  const context = {
+    styleId: review.styleId,
+    sampleId: sample.id,
+    reviewId: review.id,
+  };
+
+  try {
+    status.textContent = "准备上传...";
+    await window.SampleOSBackend.seedDemoData();
+    const result = await window.SampleOSBackend.uploadFile(file, context, ({ ratio }) => {
+      status.textContent = `上传中 ${Math.round(ratio * 100)}%`;
+    });
+    status.textContent = `已上传：${result.media.id.slice(0, 8)}`;
+  } catch (error) {
+    status.textContent = error.message.includes("token") ? "请先登录" : error.message;
+  } finally {
+    input.value = "";
   }
 });
