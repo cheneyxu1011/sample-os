@@ -400,11 +400,14 @@ function renderReview() {
     return;
   }
   const hero = document.querySelector("#review .review-hero");
+  const coverMedia = getStyleCoverMedia(sample);
   if (hero) {
     hero.innerHTML = `
-      <div class="hero-garment">
-        <div class="garment front"></div>
-      </div>
+      <label class="hero-garment style-cover-upload ${coverMedia ? "has-cover" : ""}" title="点击上传款式图">
+        <input type="file" accept="image/*" data-media-upload="style-cover">
+        ${coverMedia ? `<img src="${esc(coverMedia.url)}" alt="${esc(coverMedia.label || "款式图")}" loading="lazy">` : `<div class="garment front"></div>`}
+        <span>${coverMedia ? "更换款式图" : "上传款式图"}</span>
+      </label>
       <div class="hero-info">
         <div class="crumb">首页 / 样衣评审 / ${esc(review.reviewNo)}</div>
         <div class="hero-title"><h2>${esc(style.styleNo)}-${esc(review.reviewNo)}</h2><span class="status blue">${esc(sample.versionName)}</span></div>
@@ -486,6 +489,13 @@ function openMediaViewer(mediaId) {
   modalRoot.innerHTML = `<div class="modal-backdrop" data-close-modal></div><section class="media-viewer" role="dialog" aria-modal="true" aria-label="${esc(label)}"><button class="media-viewer-close" type="button" data-close-modal aria-label="关闭预览">×</button>${content}<div class="media-viewer-caption"><strong>${esc(label)}</strong><span>${esc(media.uploadedAt || "")}</span></div></section>`;
   modalRoot.classList.add("open", "media-viewer-open");
   modalRoot.setAttribute("aria-hidden", "false");
+}
+
+function getStyleCoverMedia(sample) {
+  return (sample?.mediaList || []).find((media) => {
+    const label = String(media.label || "");
+    return media.mimeType?.startsWith("image/") && media.url && /款式图|主图|封面/.test(label);
+  }) || (sample?.mediaList || []).find((media) => media.mimeType?.startsWith("image/") && media.url);
 }
 
 function triggerMediaUpload(mediaKind) {
@@ -1329,9 +1339,10 @@ document.addEventListener("change", async (event) => {
   const file = input.files[0];
   const review = os.getReviewById(os.data.currentReviewId);
   const sample = os.getSampleById(review.sampleId);
-  const mediaKind = input.dataset.mediaUpload;
-  const fallbackLabel = mediaKind === "video" ? "整体视频" : "正面";
-  const label = window.prompt("给这个文件写个标签，例如：正面、反面、拉链", fallbackLabel) || fallbackLabel;
+  const uploadTarget = input.dataset.mediaUpload;
+  const mediaKind = uploadTarget === "style-cover" ? "photo" : uploadTarget;
+  const fallbackLabel = uploadTarget === "style-cover" ? "款式图" : mediaKind === "video" ? "整体视频" : "正面";
+  const label = uploadTarget === "style-cover" ? fallbackLabel : window.prompt("给这个文件写个标签，例如：正面、反面、拉链", fallbackLabel) || fallbackLabel;
   const context = {
     styleId: review.styleId,
     sampleId: sample.id,
@@ -1340,10 +1351,10 @@ document.addEventListener("change", async (event) => {
   };
 
   try {
-    status.textContent = "准备上传...";
+    if (status) status.textContent = "准备上传...";
     await window.SampleOSBackend.seedDemoData();
     const result = await window.SampleOSBackend.uploadFile(file, context, ({ ratio }) => {
-      status.textContent = `上传中 ${Math.round(ratio * 100)}%`;
+      if (status) status.textContent = `上传中 ${Math.round(ratio * 100)}%`;
     });
     const uploadedAt = new Date().toLocaleString("zh-CN", { hour12: false });
     sample.mediaList ||= [];
@@ -1360,13 +1371,14 @@ document.addEventListener("change", async (event) => {
     review.timeline.unshift({
       time: uploadedAt,
       type: "blue",
-      text: `${os.userName(os.data.currentUserId)} · 上传${mediaKind === "video" ? "视频" : "照片"}：${label}`,
+      text: `${os.userName(os.data.currentUserId)} · 上传${uploadTarget === "style-cover" ? "款式图" : mediaKind === "video" ? "视频" : "照片"}：${label}`,
     });
-    status.textContent = `已上传：${result.media.id.slice(0, 8)}`;
+    if (status) status.textContent = `已上传：${result.media.id.slice(0, 8)}`;
     renderReview();
     showToast(`已上传并保存标签：${label}`);
   } catch (error) {
-    status.textContent = error.message.includes("S3 upload failed") ? "S3 上传失败，请检查 bucket CORS" : error.message;
+    if (status) status.textContent = error.message.includes("S3 upload failed") ? "S3 上传失败，请检查 bucket CORS" : error.message;
+    else showToast(error.message.includes("S3 upload failed") ? "S3 上传失败，请检查 bucket CORS" : error.message);
   } finally {
     input.value = "";
   }
