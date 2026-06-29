@@ -5082,8 +5082,9 @@ body.apple-ui::before {
   }
 
   .apple-ui .hero-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 4px;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .apple-ui .hero-meta span {
@@ -5142,19 +5143,22 @@ body.apple-ui::before {
   }
 
   .apple-ui .strip-main {
-    grid-template-columns: 1fr !important;
-    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px;
   }
 
   .apple-ui .strip-main > div,
   .apple-ui .quality-gate-panel.compact {
-    padding: 10px 12px;
+    padding: 8px;
     border-radius: 10px;
   }
 
   .apple-ui .strip-main span {
-    margin-bottom: 3px;
-    font-size: 11px;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 10px;
+    white-space: nowrap;
   }
 
   .apple-ui .strip-main strong {
@@ -5162,7 +5166,7 @@ body.apple-ui::before {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.28;
     white-space: nowrap;
   }
