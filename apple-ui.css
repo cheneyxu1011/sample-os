@@ -4204,6 +4204,107 @@ body.apple-ui::before {
   font-size: 14px;
 }
 
+.apple-ui #review .section-title {
+  align-items: center;
+  gap: 12px;
+}
+
+.apple-ui #review .section-title > div,
+.apple-ui #review .section-title h2 {
+  min-width: 0;
+}
+
+.apple-ui #review .section-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.18;
+}
+
+.apple-ui #review .section-title .panel-actions {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.apple-ui #review .section-title .panel-actions button {
+  min-width: 104px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.apple-ui .review-photo {
+  isolation: isolate;
+  align-content: end;
+  gap: 6px;
+  padding: 14px;
+}
+
+.apple-ui .review-photo span,
+.apple-ui .review-photo em,
+.apple-ui .review-photo strong {
+  position: relative;
+  z-index: 3;
+  max-width: min(100%, 210px);
+  width: fit-content;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.22;
+}
+
+.apple-ui .review-photo span {
+  align-self: start;
+  justify-self: start;
+  margin-top: auto;
+}
+
+.apple-ui .review-photo em {
+  align-self: start;
+  justify-self: start;
+  margin-top: 0;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.apple-ui .review-photo.has-issue span,
+.apple-ui .review-photo.has-issue em {
+  max-width: calc(100% - 18px);
+}
+
+.apple-ui .review-photo.upload-tile {
+  cursor: pointer;
+  user-select: none;
+}
+
+.apple-ui .review-photo.upload-tile input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.apple-ui .review-photo.upload-tile strong {
+  justify-self: center;
+  align-self: end;
+  max-width: 100%;
+  padding: 0;
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.apple-ui .review-photo.upload-tile span,
+.apple-ui .review-photo.upload-tile em {
+  justify-self: center;
+  max-width: 100%;
+  text-align: center;
+}
+
 /* Luminous interaction pass */
 .apple-ui .summary-card,
 .apple-ui .section-block,

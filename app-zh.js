@@ -226,8 +226,8 @@ function renderMedia(sample, issues) {
     const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
     cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}">${isVideo ? `<div class="play">▶</div>` : ""}<strong>${esc(media.label || media.fileName || "已上传文件")}</strong><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3</em></div>`);
   });
-  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" hidden /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
-  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" hidden /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
+  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
+  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
   grid.innerHTML = cards.join("");
 }
 
@@ -727,6 +727,23 @@ renderAll();
 updateTopbar(document.querySelector(".view.active")?.id || "pipeline");
 
 document.addEventListener("click", (event) => {
+  const uploadTrigger = event.target.closest("[data-trigger-upload]");
+  if (uploadTrigger) {
+    event.preventDefault();
+    event.stopPropagation();
+    const mediaKind = uploadTrigger.dataset.triggerUpload;
+    document.querySelector(`#review [data-media-upload="${mediaKind}"]`)?.click();
+    return;
+  }
+
+  const uploadTile = event.target.closest("[data-upload-tile]");
+  if (uploadTile && !event.target.closest("[data-media-upload]")) {
+    event.preventDefault();
+    event.stopPropagation();
+    uploadTile.querySelector("[data-media-upload]")?.click();
+    return;
+  }
+
   const modalClose = event.target.closest("[data-close-modal]");
   if (modalClose) {
     closeModal();
