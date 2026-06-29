@@ -5427,11 +5427,18 @@ body.apple-ui::before {
     grid-template-columns: 1fr;
   }
 
+  .apple-ui .modal-root.issue-modal-open {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
   .apple-ui .modal-card.issue-modal-card {
     width: 100vw;
+    max-width: 100vw;
     height: 100vh;
     max-height: 100vh;
-    border-radius: 18px 18px 0 0;
+    border-radius: 0;
     padding: 14px;
   }
 

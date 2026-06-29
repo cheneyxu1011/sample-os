@@ -1126,12 +1126,14 @@ function openModal(type, options = {}) {
   if (!modalRoot) return;
   const templates = { person: renderPersonModal, worker: renderWorkerModal, style: renderStyleModal, issue: renderIssueModal };
   modalRoot.innerHTML = `<div class="modal-backdrop" data-close-modal></div>${templates[type]?.(options) || ""}`;
+  modalRoot.classList.remove("media-viewer-open", "issue-modal-open");
   modalRoot.classList.add("open");
+  if (type === "issue") modalRoot.classList.add("issue-modal-open");
   modalRoot.setAttribute("aria-hidden", "false");
 }
 
 function closeModal() {
-  modalRoot?.classList.remove("open", "media-viewer-open");
+  modalRoot?.classList.remove("open", "media-viewer-open", "issue-modal-open");
   modalRoot?.setAttribute("aria-hidden", "true");
   if (modalRoot) modalRoot.innerHTML = "";
 }
