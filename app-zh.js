@@ -101,7 +101,7 @@ function showToast(message) {
 
 function applySnapshot(snapshot) {
   if (!snapshot || snapshot.source?.kind !== "supabase") return;
-  ["styleList", "samples", "reviews", "issues"].forEach((key) => {
+  ["styleList", "samples", "reviews", "issues", "users", "workers"].forEach((key) => {
     if (Array.isArray(snapshot[key])) os.data[key] = snapshot[key];
   });
   os.data.source = snapshot.source;
@@ -667,7 +667,7 @@ function selectedValues(form, name) {
   return Array.from(form.querySelectorAll(`[name="${name}"]:checked`)).map((input) => input.value);
 }
 
-function handlePersonSubmit(form) {
+async function handlePersonSubmit(form) {
   const roles = selectedValues(form, "roles");
   const permissions = selectedValues(form, "permissions").map((permission) => permission.replace(" Opinion", "意见").replace(" Issue", "问题"));
   const fields = form.elements;
@@ -676,7 +676,7 @@ function handlePersonSubmit(form) {
   const id = `user_${Date.now()}`;
   const isGateOwner = roles.some((role) => role.includes("Gate Owner"));
   const isFinalApprover = roles.some((role) => role.includes("Final Approver"));
-  os.data.users.push({
+  await window.SampleOSBackend.syncData("createPerson", {
     id,
     name,
     department: fields.department.value,
@@ -690,13 +690,15 @@ function handlePersonSubmit(form) {
     isGateOwner,
     isFinalApprover,
   });
+  await loadBackendSnapshot();
+  showToast("人员已同步到 Supabase");
 }
 
-function handleWorkerSubmit(form) {
+async function handleWorkerSubmit(form) {
   const fields = form.elements;
   const name = fields.name.value.trim();
   if (!name) return;
-  os.data.workers.push({
+  await window.SampleOSBackend.syncData("createWorker", {
     id: `worker_${Date.now()}`,
     name,
     department: fields.department.value,
@@ -710,6 +712,8 @@ function handleWorkerSubmit(form) {
     note: fields.note.value.trim(),
     avatarColor: "liayi",
   });
+  await loadBackendSnapshot();
+  showToast("打样工人已同步到 Supabase");
 }
 
 async function handleStyleSubmit(form) {
@@ -992,8 +996,8 @@ document.addEventListener("submit", async (event) => {
   event.preventDefault();
   const type = form.dataset.modalForm;
   try {
-    if (type === "person") handlePersonSubmit(form);
-    if (type === "worker") handleWorkerSubmit(form);
+    if (type === "person") await handlePersonSubmit(form);
+    if (type === "worker") await handleWorkerSubmit(form);
     if (type === "style") await handleStyleSubmit(form);
     renderAll();
     closeModal();

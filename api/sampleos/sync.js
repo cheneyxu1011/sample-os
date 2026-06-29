@@ -248,6 +248,88 @@ async function deleteStyle(supabase, orgId, body) {
   return { styleId: body.styleId };
 }
 
+async function createPerson(supabase, orgId, body) {
+  const name = String(body.name || "").trim();
+  if (!name) throw new Error("name is required");
+  const id = body.id || `user_${Date.now()}`;
+  const payload = {
+    org_id: orgId,
+    id,
+    name,
+    department: body.department || "",
+    role_name: body.role || "",
+    current_responsibility: body.currentResponsibility || "",
+    review_responsibility: body.reviewResponsibility || "",
+    permissions: body.permissions || [],
+    scope: body.scope || [],
+    avatar_color: body.avatarColor || "zhao",
+    enabled: body.enabled !== false,
+    is_gate_owner: Boolean(body.isGateOwner),
+    is_final_approver: Boolean(body.isFinalApprover),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("sample_people")
+    .upsert(payload, { onConflict: "org_id,id" })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return { personId: data.id };
+}
+
+async function createWorker(supabase, orgId, body) {
+  const name = String(body.name || "").trim();
+  if (!name) throw new Error("name is required");
+  const id = body.id || `worker_${Date.now()}`;
+  const payload = {
+    org_id: orgId,
+    id,
+    name,
+    department: body.department || "",
+    contact: body.contact || "",
+    route: body.route || "",
+    skill: body.skill || "",
+    status: body.status || "可派发",
+    task_count: Number(body.taskCount || 0),
+    last_completed_at: body.lastCompletedAt || "",
+    priority: body.priority || "",
+    note: body.note || "",
+    avatar_color: body.avatarColor || "liayi",
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("sample_workers")
+    .upsert(payload, { onConflict: "org_id,id" })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return { workerId: data.id };
+}
+
+async function deletePerson(supabase, orgId, body) {
+  if (!body.personId) throw new Error("personId is required");
+  const { error } = await supabase
+    .from("sample_people")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("id", body.personId);
+  if (error) throw error;
+  return { personId: body.personId };
+}
+
+async function deleteWorker(supabase, orgId, body) {
+  if (!body.workerId) throw new Error("workerId is required");
+  const { error } = await supabase
+    .from("sample_workers")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("id", body.workerId);
+  if (error) throw error;
+  return { workerId: body.workerId };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -269,6 +351,10 @@ export default async function handler(req, res) {
       createIssue,
       createStyle,
       deleteStyle,
+      createPerson,
+      createWorker,
+      deletePerson,
+      deleteWorker,
     };
     const action = handlers[body.action];
     if (!action) return json(res, 400, { error: "Unknown sync action" });

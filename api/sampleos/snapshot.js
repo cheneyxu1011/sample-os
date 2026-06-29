@@ -60,6 +60,8 @@ export default async function handler(req, res) {
       departmentReviewsResult,
       issuesResult,
       mediaResult,
+      peopleResult,
+      workersResult,
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("org_id", org.id),
       supabase.from("departments").select("*").eq("org_id", org.id),
@@ -69,9 +71,11 @@ export default async function handler(req, res) {
       supabase.from("review_department_reviews").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("issues").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_media").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+      supabase.from("sample_people").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+      supabase.from("sample_workers").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
     ]);
 
-    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult];
+    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult];
     const firstError = results.find((result) => result.error)?.error;
     if (firstError) throw firstError;
 
@@ -83,6 +87,8 @@ export default async function handler(req, res) {
     const departmentReviews = departmentReviewsResult.data || [];
     const issues = issuesResult.data || [];
     const media = mediaResult.data || [];
+    const people = peopleResult.data || [];
+    const workers = workersResult.data || [];
 
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
     const departmentMap = new Map(departments.map((department) => [department.id, department]));
@@ -207,6 +213,34 @@ export default async function handler(req, res) {
         evidence: issue.evidence_note || "",
         createdAt: cleanDateTime(issue.created_at),
         updatedAt: cleanDateTime(issue.updated_at),
+      })),
+      users: people.map((person) => ({
+        id: person.id,
+        name: person.name,
+        department: person.department || "",
+        role: person.role_name || "",
+        currentResponsibility: person.current_responsibility || "",
+        reviewResponsibility: person.review_responsibility || "",
+        permissions: person.permissions || [],
+        scope: person.scope || [],
+        avatarColor: person.avatar_color || "zhao",
+        enabled: person.enabled !== false,
+        isGateOwner: Boolean(person.is_gate_owner),
+        isFinalApprover: Boolean(person.is_final_approver),
+      })),
+      workers: workers.map((worker) => ({
+        id: worker.id,
+        name: worker.name,
+        department: worker.department || "",
+        contact: worker.contact || "",
+        route: worker.route || "",
+        skill: worker.skill || "",
+        status: worker.status || "可派发",
+        taskCount: worker.task_count || 0,
+        lastCompletedAt: worker.last_completed_at || "",
+        priority: worker.priority || "",
+        note: worker.note || "",
+        avatarColor: worker.avatar_color || "liayi",
       })),
     };
 
