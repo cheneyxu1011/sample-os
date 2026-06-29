@@ -158,6 +158,9 @@ async function createIssue(supabase, orgId, body) {
       shipment_blocking: Boolean(shipmentBlocking),
       can_ship_with_note: Boolean(body.canShipWithNote),
       status: body.status || "not_started",
+      owner_id: body.ownerId || null,
+      due_at: body.dueDate || null,
+      verifier_id: body.verifierId || null,
       evidence_note: body.evidence || "手动新增",
     })
     .select("id")

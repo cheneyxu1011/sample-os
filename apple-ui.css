@@ -4906,6 +4906,107 @@ body.apple-ui::before {
   box-shadow: inset 3px 0 0 rgba(0, 113, 227, 0.32);
 }
 
+.apple-ui #review .department-panel .section-title,
+.apple-ui #review .issue-panel .section-title {
+  align-items: start;
+}
+
+.apple-ui #review .section-title small,
+.apple-ui .panel-training-tip {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.apple-ui .panel-training-tip {
+  color: var(--blue);
+}
+
+.apple-ui .review-table-row {
+  grid-template-columns: 70px 104px 112px 150px minmax(220px, 1fr) 92px 78px 154px;
+}
+
+.apple-ui .review-table-row label,
+.apple-ui .review-status-cell {
+  min-width: 0;
+}
+
+.apple-ui .review-status-cell {
+  display: grid;
+  gap: 5px;
+}
+
+.apple-ui .review-status-cell small,
+.apple-ui .review-warning {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.apple-ui .review-warning {
+  display: block;
+  margin-top: 5px;
+  color: var(--red);
+  font-weight: 800;
+}
+
+.apple-ui .row-actions-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.apple-ui .review-table-row .row-actions-inline .row-action,
+.apple-ui .issue-table-row .row-action {
+  width: auto;
+  height: auto;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.apple-ui .issue-table-row {
+  grid-template-columns: minmax(160px, 1.3fr) 96px 92px 58px 78px 132px 76px 92px 54px;
+}
+
+.apple-ui .issue-table-row .named-person {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.apple-ui .issue-table-row .named-person small {
+  display: none;
+}
+
+.apple-ui .issue-table-row .row-action[data-close-issue] {
+  position: static;
+  right: auto;
+  top: auto;
+  transform: none;
+  opacity: 1;
+}
+
+.apple-ui .issue-level-help {
+  align-self: end;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 113, 227, 0.08);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.apple-ui .full-label {
+  grid-column: 1 / -1;
+}
+
 @keyframes uploadTileBreath {
   0%, 100% {
     box-shadow:
@@ -5256,6 +5357,17 @@ body.apple-ui::before {
     border-top: 1px solid var(--line);
   }
 
+  .apple-ui .review-table-row,
+  .apple-ui .issue-table-row {
+    margin: 10px 12px;
+    border: 1px solid rgba(210, 210, 215, 0.72);
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 88% 10%, rgba(0, 113, 227, 0.08), transparent 30%),
+      rgba(255, 255, 255, 0.86);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055);
+  }
+
   .apple-ui .review-table-row.head,
   .apple-ui .issue-table-row.head,
   .apple-ui .pipeline-table .row.head,
@@ -5275,6 +5387,52 @@ body.apple-ui::before {
   .apple-ui .review-table-row button {
     width: 100%;
     min-height: 38px;
+  }
+
+  .apple-ui .review-table-row .row-actions-inline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .apple-ui .review-table-row .row-actions-inline .row-action {
+    width: 100%;
+  }
+
+  .apple-ui .review-status-cell {
+    gap: 6px;
+  }
+
+  .apple-ui .issue-table-row .named-person small {
+    display: inline;
+  }
+
+  .apple-ui .issue-table-row .row-action[data-close-issue] {
+    position: static;
+    opacity: 1;
+    transform: none;
+  }
+
+  .apple-ui #review .department-panel .section-title,
+  .apple-ui #review .issue-panel .section-title {
+    gap: 10px;
+  }
+
+  .apple-ui #review .issue-panel .section-title .row-action {
+    width: 100%;
+  }
+
+  .apple-ui .form-grid,
+  .apple-ui .check-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui .modal-card.issue-modal-card {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 18px 18px 0 0;
+    padding: 14px;
   }
 
   .apple-ui .decision-stack button {

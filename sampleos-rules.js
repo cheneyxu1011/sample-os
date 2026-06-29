@@ -23,7 +23,7 @@
   };
 
   const reviewStatusLabels = {
-    not_started: "未开始",
+    not_started: "未处理",
     reviewing: "评审中",
     issue_assignment: "问题归属",
     rework_verification: "整改复验",
@@ -171,7 +171,8 @@
     const openIssues = review ? getOpenIssues(review.id) : [];
     const blockingIssues = review ? getBlockingIssues(review.id) : [];
     const shipmentStatus = review ? getShipmentStatus(review.id) : { key: "not_started", label: "未开始", canShip: false };
-    const ownerNames = (style?.currentOwner || []).map(userName).join(" / ") || userName(getGateOwner(styleId)?.id);
+    const blockingOwners = Array.from(new Set(blockingIssues.map((issue) => userName(issue.owner)).filter((name) => name && name !== "未指定")));
+    const ownerNames = blockingOwners.length ? blockingOwners.join(" / ") : (style?.currentOwner || []).map(userName).join(" / ") || userName(getGateOwner(styleId)?.id);
     return { style, sample, review, openIssues, blockingIssues, shipmentStatus, ownerNames, gateOwner: getGateOwner(styleId), finalApprover: getFinalApprover(), nextAction: getNextAction(styleId), calendarRisk: getCalendarRisk(styleId) };
   }
 
