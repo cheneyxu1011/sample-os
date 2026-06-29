@@ -127,6 +127,20 @@ function applySnapshot(snapshot) {
   ["styleList", "samples", "reviews", "issues", "users", "workers"].forEach((key) => {
     if (Array.isArray(snapshot[key])) os.data[key] = snapshot[key];
   });
+  const settingKeys = [
+    "issueLevelRules",
+    "sampleLocations",
+    "sampleLocationOptions",
+    "sampleRoutes",
+    "samplePhases",
+    "routeRules",
+    "ruleVersion",
+    "locationTransitions",
+    "trainingCards",
+  ];
+  settingKeys.forEach((key) => {
+    if (snapshot.settings?.[key]) os.data[key] = snapshot.settings[key];
+  });
   if (snapshot.gateRules) os.data.gateRules = { ...os.data.gateRules, ...snapshot.gateRules };
   if (Array.isArray(snapshot.users)) {
     os.data.departments = Array.from(new Set(snapshot.users.map((user) => user.department).filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));

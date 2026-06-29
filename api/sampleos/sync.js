@@ -360,6 +360,34 @@ async function updateGateRule(supabase, orgId, body) {
   return { key, userId };
 }
 
+async function updateSetting(supabase, orgId, body) {
+  const allowedKeys = new Set([
+    "issueLevelRules",
+    "sampleLocations",
+    "sampleLocationOptions",
+    "sampleRoutes",
+    "samplePhases",
+    "routeRules",
+    "ruleVersion",
+    "locationTransitions",
+    "trainingCards",
+  ]);
+  const key = String(body.key || "").trim();
+  if (!allowedKeys.has(key)) throw new Error("Unsupported setting key");
+  if (body.value === undefined || body.value === null) throw new Error("value is required");
+
+  const { error } = await supabase
+    .from("sample_settings")
+    .upsert({
+      org_id: orgId,
+      key,
+      value: body.value,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "org_id,key" });
+  if (error) throw error;
+  return { key };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -386,6 +414,7 @@ export default async function handler(req, res) {
       deletePerson,
       deleteWorker,
       updateGateRule,
+      updateSetting,
     };
     const action = handlers[body.action];
     if (!action) return json(res, 400, { error: "Unknown sync action" });

@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     const people = peopleResult.data || [];
     const workers = workersResult.data || [];
     const settings = settingsResult.data || [];
-    const settingsMap = new Map(settings.map((item) => [item.key, item.value]));
+    const settingsMap = Object.fromEntries(settings.map((item) => [item.key, item.value]));
 
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
     const departmentMap = new Map(departments.map((department) => [department.id, department]));
@@ -112,7 +112,8 @@ export default async function handler(req, res) {
         orgName: org.name,
         loadedAt: new Date().toISOString(),
       },
-      gateRules: settingsMap.get("gateRules") || undefined,
+      settings: settingsMap,
+      gateRules: settingsMap.gateRules || undefined,
       styleList: styles.map((style) => ({
         id: style.id,
         externalRef: style.external_ref,
