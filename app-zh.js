@@ -187,7 +187,12 @@ function renderMedia(sample, issues) {
     return `<div class="review-photo${main}${index > 1 ? " part-photo" : ""}${issueClass}">${shape}<span>${esc(name)}</span>${related.length ? `<em>${related.length} 个${os.data.issueLevelRules[related[0].level].label}问题</em>` : ""}</div>`;
   });
   sample.videoList.forEach((video) => cards.push(`<div class="review-photo video-thumb"><div class="play">▶</div><span>${esc(video)}</span></div>`));
-  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*,video/*" data-media-upload hidden /><strong>+ 上传照片/视频</strong><span>登录后直传 S3</span><em data-upload-status>等待选择文件</em></label>`);
+  (sample.mediaList || []).forEach((media) => {
+    const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
+    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}">${isVideo ? `<div class="play">▶</div>` : ""}<strong>${esc(media.label || media.fileName || "已上传文件")}</strong><span>${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</span><em>已存入 S3</em></div>`);
+  });
+  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" hidden /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
+  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" hidden /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
   grid.innerHTML = cards.join("");
 }
 
@@ -470,7 +475,7 @@ function renderPersonModal() {
     "Sample Dispatcher / 打样派发人", "Bonding Development Owner / 压胶开发负责人", "Sample Reviewer / 样衣评审员",
     "Gate Owner / 样衣评审负责人", "Final Approver / 例外放行审批人", "Admin / 后台管理员",
   ];
-  const scopes = ["萨洛蒙", "SUPREME", "迪桑特", "版子", "面料", "辅料", "普通打样", "压胶开发", "新长江派发", "样衣评审", "例外放行"];
+  const scopes = ["萨洛蒙", "版子", "面料", "辅料", "普通打样", "压胶开发", "新长江派发", "样衣评审", "例外放行"];
   const permissions = ["发起开发", "补充资料", "资料确认", "面料确认", "辅料确认", "派发打样", "普通打样", "压胶开发", "新长江派发", "提交 Opinion", "创建 Issue", "复验 Issue", "确认问题等级", "最终放行", "例外放行", "后台配置"];
   return `
     <form class="modal-card" data-modal-form="person">
@@ -500,12 +505,12 @@ function renderStyleModal() {
   return `
     <form class="modal-card wide" data-modal-form="style">
       <div class="modal-header"><div><span>开发入口</span><h2>新建款式 / 新建开发任务</h2></div><button type="button" data-close-modal>×</button></div>
-      <section><h3>款式基础信息</h3><div class="form-grid"><label>品牌<select name="brand" required><option>萨洛蒙</option><option>SUPREME</option><option>迪桑特</option><option>其他</option></select></label><label>款号<input name="styleNo" required placeholder="212 / SW4SS27-002"></label><label>款式名称<input name="styleName" required placeholder="户外冲锋衣"></label><label>季节<select name="season" required><option>SS27</option><option>FW26</option><option>27SS</option><option>26FW</option></select></label><label>品类<select name="category"><option>冲锋衣</option><option>裤子</option><option>Polo</option><option>T恤</option><option>卫衣</option><option>外套</option><option>衬衫</option><option>其他</option></select></label><label>颜色<input name="color" placeholder="可选"></label><label>尺码<input name="size" placeholder="可选"></label><label>件数<input name="quantity" type="number" min="1" value="1" required></label></div></section>
+      <section><h3>款式基础信息</h3><div class="form-grid"><label>品牌<select name="brand" required><option>萨洛蒙</option><option>其他</option></select></label><label>款号<input name="styleNo" required placeholder="212 / SW4SS27-002"></label><label>款式名称<input name="styleName" required placeholder="户外冲锋衣"></label><label>季节<select name="season" required><option>SS27</option><option>FW26</option><option>27SS</option><option>26FW</option></select></label><label>品类<select name="category"><option>冲锋衣</option><option>裤子</option><option>Polo</option><option>T恤</option><option>卫衣</option><option>外套</option><option>衬衫</option><option>其他</option></select></label><label>颜色<input name="color" placeholder="可选"></label><label>尺码<input name="size" placeholder="可选"></label><label>件数<input name="quantity" type="number" min="1" value="1" required></label></div></section>
       <section><h3>样衣阶段 / 打样路线</h3><div class="form-grid"><label>第几次样品<select name="samplePhase">${optionList(Object.entries(os.data.samplePhases).map(([value, label]) => ({ value, label })), "first_sample")}</select></label><label>在哪里打样<select name="sampleLocation" id="new-style-location">${optionList(os.data.sampleLocationOptions.map((item) => ({ value: item.id, label: item.label })), "office_sample_room")}</select></label><label>打样路线<select name="route" id="new-style-route">${optionList(Object.entries(os.data.sampleRoutes).map(([value, label]) => ({ value, label })), "normal")}</select></label><div class="route-hint" id="route-hint">事务所打样间，建议路线：普通款式</div></div></section>
       <section><h3>负责人设置</h3><div class="form-grid"><label>业务负责人<select name="businessOwner">${optionList(brandOwners, "user_guyao")}</select></label><label>版子负责人<select name="patternOwner">${optionList([{ value: "user_xuhaiyan", label: "徐海燕" }], "user_xuhaiyan")}</select></label><label>面料负责人<select name="fabricOwner">${optionList([{ value: "user_liweihong", label: "李卫红" }], "user_liweihong")}</select></label><label>辅料负责人<select name="trimOwner">${optionList([{ value: "user_dahong", label: "大红" }], "user_dahong")}</select></label><label>准备闸口<select name="prepOwner">${optionList([{ value: "user_wangbu", label: "王部长" }], "user_wangbu")}</select></label><label>普通打样派发<select name="normalDispatcher">${optionList([{ value: "user_dadai", label: "大戴" }], "user_dadai")}</select></label><label>压胶开发负责人<select name="bondingOwner">${optionList([{ value: "user_zhangbu", label: "张部长" }], "user_zhangbu")}</select></label><label>新长江派发人<select name="xcjDispatcher">${optionList([{ value: "user_xiahongxia", label: "夏红霞" }], "user_xiahongxia")}</select></label><label>评审负责人<select name="reviewOwner">${optionList(os.data.users.filter((u) => u.isGateOwner).map((u) => ({ value: u.id, label: u.name })), os.data.gateRules.sampleReviewGateOwner)}</select></label><label>例外放行<select name="finalApprover">${optionList(os.data.users.filter((u) => u.isFinalApprover).map((u) => ({ value: u.id, label: u.name })), os.data.gateRules.finalApprover)}</select></label></div></section>
       <section><h3>交期与日历同步</h3><div class="form-grid"><label>预计打样完成日期<input name="sampleDoneDate" type="date" required value="2026-07-03"></label><label>预计寄样日期<input name="plannedShipDate" type="date" required value="2026-07-05"></label><label>客户要求到样日期<input name="customerDueDate" type="date"></label><label class="inline-check"><input name="syncCalendar" type="checkbox" checked>同步到样衣日历</label><label class="inline-check"><input name="highRisk" type="checkbox">设为高风险</label></div></section>
       <section><h3>资料准备</h3>${checkList(["客户资料已收到", "TP / 技术包已收到", "版子准备", "面料准备", "辅料准备", "原样 / 样衣参考确认", "打样资料待王部长确认"], "prepItems", [])}</section>
-      <section><h3>附件 / 图片</h3><div class="fake-upload-grid"><div>上传客户资料</div><div>上传 TP</div><div>上传参考图片</div><div>上传原样图片</div></div><small class="muted-note">V0 仅展示，不接真实云存储。</small></section>
+      <section><h3>附件 / 图片</h3><div class="fake-upload-grid"><div>上传客户资料</div><div>上传 TP</div><div>上传参考图片</div><div>上传原样图片</div></div><small class="muted-note">评审页照片和视频已接入 S3 上传，资料附件后续接入。</small></section>
       <div class="modal-actions"><button type="button" data-close-modal>取消</button><button type="button" data-save-draft>保存草稿</button><button class="primary-button" type="submit">创建款式</button></div>
     </form>`;
 }
@@ -617,6 +622,7 @@ function handleStyleSubmit(form) {
     updatedAt: "2026-06-29 10:00",
     imageList: [],
     videoList: [],
+    mediaList: [],
     reviewId,
     plannedShipDate: fields.plannedShipDate.value,
   });
@@ -855,6 +861,7 @@ document.addEventListener("change", async (event) => {
   const file = input.files[0];
   const review = os.getReviewById(os.data.currentReviewId);
   const sample = os.getSampleById(review.sampleId);
+  const mediaKind = input.dataset.mediaUpload;
   const context = {
     styleId: review.styleId,
     sampleId: sample.id,
@@ -867,7 +874,23 @@ document.addEventListener("change", async (event) => {
     const result = await window.SampleOSBackend.uploadFile(file, context, ({ ratio }) => {
       status.textContent = `上传中 ${Math.round(ratio * 100)}%`;
     });
+    const uploadedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+    sample.mediaList ||= [];
+    sample.mediaList.push({
+      id: result.media.id,
+      label: file.name,
+      mediaKind,
+      mimeType: file.type,
+      byteSize: file.size,
+      uploadedAt,
+    });
+    review.timeline.unshift({
+      time: uploadedAt,
+      type: "blue",
+      text: `${os.userName(os.data.currentUserId)} · 上传${mediaKind === "video" ? "视频" : "照片"}：${file.name}`,
+    });
     status.textContent = `已上传：${result.media.id.slice(0, 8)}`;
+    renderReview();
   } catch (error) {
     status.textContent = error.message.includes("token") ? "请先登录" : error.message;
   } finally {

@@ -4152,3 +4152,254 @@ body.apple-ui {
 .apple-ui .review-photo.upload-tile strong {
   font-size: 14px;
 }
+
+@media (max-width: 768px) {
+  .apple-ui {
+    background: #f7f8fa;
+  }
+
+  .apple-ui .app-shell {
+    display: block;
+  }
+
+  .apple-ui .sidebar {
+    position: static;
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .apple-ui .brand-block,
+  .apple-ui .side-panel,
+  .apple-ui .nav-item.disabled {
+    display: none;
+  }
+
+  .apple-ui .side-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    padding: 8px max(8px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+    border-top: 1px solid rgba(210, 210, 215, 0.86);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .apple-ui .nav-item {
+    min-width: 0;
+    height: 52px;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding: 6px 2px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .apple-ui .nav-icon {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .apple-ui .main {
+    min-width: 0;
+    padding: 14px 12px 88px;
+  }
+
+  .apple-ui .topbar {
+    display: grid;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .apple-ui .topbar h1 {
+    font-size: 26px;
+  }
+
+  .apple-ui .top-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+  }
+
+  .apple-ui .top-actions .search {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .apple-ui .language-switch,
+  .apple-ui .notify-button,
+  .apple-ui .admin-actions {
+    display: none !important;
+  }
+
+  .apple-ui .user-account {
+    min-width: 0;
+  }
+
+  .apple-ui .top-actions > .primary-button {
+    min-height: 40px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .apple-ui .toolbar,
+  .apple-ui .filter-row,
+  .apple-ui .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .apple-ui .summary-grid,
+  .apple-ui .review-board,
+  .apple-ui .calendar-layout,
+  .apple-ui .settings-grid,
+  .apple-ui .style-layout,
+  .apple-ui .style-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .apple-ui .review-dashboard,
+  .apple-ui .pipeline-table,
+  .apple-ui .review-table,
+  .apple-ui .issue-table {
+    min-width: 0;
+  }
+
+  .apple-ui .review-hero {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .apple-ui .hero-garment {
+    display: none;
+  }
+
+  .apple-ui .hero-title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .apple-ui .hero-title h2 {
+    max-width: 100%;
+    font-size: 25px;
+    white-space: normal;
+  }
+
+  .apple-ui .hero-meta,
+  .apple-ui .strip-main,
+  .apple-ui .route-steps,
+  .apple-ui .department-detail {
+    grid-template-columns: 1fr !important;
+  }
+
+  .apple-ui .review-media-grid {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .apple-ui .review-photo {
+    flex: 0 0 74%;
+    min-height: 158px;
+    scroll-snap-align: start;
+  }
+
+  .apple-ui .review-photo.main {
+    flex-basis: 82%;
+  }
+
+  .apple-ui .review-photo.upload-tile {
+    flex-basis: 62%;
+    border-width: 2px;
+    background: #fff;
+  }
+
+  .apple-ui .media-panel,
+  .apple-ui .department-panel,
+  .apple-ui .issue-panel,
+  .apple-ui .decision-panel,
+  .apple-ui .timeline-panel,
+  .apple-ui .version-panel {
+    grid-column: auto !important;
+  }
+
+  .apple-ui .review-table-row,
+  .apple-ui .issue-table-row,
+  .apple-ui .pipeline-table .row,
+  .apple-ui .people-row,
+  .apple-ui .transition-row,
+  .apple-ui .matrix-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  .apple-ui .review-table-row.head,
+  .apple-ui .issue-table-row.head,
+  .apple-ui .pipeline-table .row.head,
+  .apple-ui .people-row.head,
+  .apple-ui .transition-row.head,
+  .apple-ui .matrix-row.head {
+    display: none;
+  }
+
+  .apple-ui .review-table-row p,
+  .apple-ui .issue-table-row strong,
+  .apple-ui .block-summary {
+    min-width: 0;
+  }
+
+  .apple-ui .issue-table-row .row-action,
+  .apple-ui .review-table-row button {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .apple-ui .decision-stack button {
+    width: 100%;
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .apple-ui .month-section,
+  .apple-ui .month-calendar,
+  .apple-ui .month-toolbar {
+    display: none;
+  }
+
+  .apple-ui .auth-mini {
+    grid-column: 1 / -1;
+  }
+
+  .apple-ui .auth-mini .auth-form {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 92px;
+    width: auto;
+  }
+
+  .apple-ui .modal-card {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+}
