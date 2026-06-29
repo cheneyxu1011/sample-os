@@ -18,11 +18,22 @@ S3_UPLOAD_MAX_BYTES
 
 ## API flow
 
-1. Authenticated browser calls `POST /api/media/presign-upload` with a Supabase access token.
-2. The API verifies the token, loads the user's `profiles` row, and returns a 5-minute S3 PUT URL.
-3. Browser uploads the file directly to S3 using that URL.
-4. Browser calls `POST /api/media/complete-upload` with the returned metadata.
-5. The API inserts one `sample_media` row in Supabase.
+1. Browser calls `GET /api/runtime-config` to discover public runtime settings.
+2. Authenticated browser calls `POST /api/media/presign-upload` with a Supabase access token.
+3. The API verifies the token, loads the user's `profiles` row, and returns a 5-minute S3 PUT URL.
+4. Browser uploads the file directly to S3 using that URL.
+5. Browser calls `POST /api/media/complete-upload` with the returned metadata.
+6. The API inserts one `sample_media` row in Supabase.
+
+The browser helper lives at `window.SampleOSBackend`. It stores the Supabase access token in `localStorage` under `sampleos.supabaseAccessToken` until the real login UI is wired in.
+
+```js
+await window.SampleOSBackend.uploadFile(file, {
+  styleId: "style uuid",
+  sampleId: "sample uuid",
+  reviewId: "review uuid"
+});
+```
 
 ## Presign request
 
