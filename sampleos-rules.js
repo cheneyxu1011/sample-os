@@ -229,7 +229,7 @@
     if (style) style.sampleLocation = location;
     if (sample) {
       sample.location = location;
-      sample.updatedAt = "2026-06-29 10:30";
+      sample.updatedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
     }
   }
 

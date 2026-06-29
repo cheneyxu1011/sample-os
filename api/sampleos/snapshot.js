@@ -62,6 +62,7 @@ export default async function handler(req, res) {
       mediaResult,
       peopleResult,
       workersResult,
+      settingsResult,
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("org_id", org.id),
       supabase.from("departments").select("*").eq("org_id", org.id),
@@ -73,9 +74,10 @@ export default async function handler(req, res) {
       supabase.from("sample_media").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_people").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_workers").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+      supabase.from("sample_settings").select("*").eq("org_id", org.id),
     ]);
 
-    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult];
+    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult];
     const firstError = results.find((result) => result.error)?.error;
     if (firstError) throw firstError;
 
@@ -89,6 +91,8 @@ export default async function handler(req, res) {
     const media = mediaResult.data || [];
     const people = peopleResult.data || [];
     const workers = workersResult.data || [];
+    const settings = settingsResult.data || [];
+    const settingsMap = new Map(settings.map((item) => [item.key, item.value]));
 
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
     const departmentMap = new Map(departments.map((department) => [department.id, department]));
@@ -108,6 +112,7 @@ export default async function handler(req, res) {
         orgName: org.name,
         loadedAt: new Date().toISOString(),
       },
+      gateRules: settingsMap.get("gateRules") || undefined,
       styleList: styles.map((style) => ({
         id: style.id,
         externalRef: style.external_ref,

@@ -104,6 +104,31 @@ function applySnapshot(snapshot) {
   ["styleList", "samples", "reviews", "issues", "users", "workers"].forEach((key) => {
     if (Array.isArray(snapshot[key])) os.data[key] = snapshot[key];
   });
+  if (snapshot.gateRules) os.data.gateRules = { ...os.data.gateRules, ...snapshot.gateRules };
+  if (Array.isArray(snapshot.users)) {
+    os.data.departments = Array.from(new Set(snapshot.users.map((user) => user.department).filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+    os.data.roles = Array.from(new Set(snapshot.users.map((user) => user.role).filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+    os.data.departmentDetails = os.data.departments.map((department) => {
+      const members = snapshot.users.filter((user) => user.department === department);
+      const owner = members.find((user) => user.isGateOwner || user.isFinalApprover) || members[0];
+      const reviewMembers = members.filter((user) => user.permissions?.some((permission) => ["提交意见", "创建问题", "复验问题", "版型评审"].includes(permission)));
+      return {
+        name: department,
+        owner: owner?.name || "未指定",
+        participatesInReview: reviewMembers.length > 0,
+        receivesNotification: members.length > 0,
+        issueTypes: Array.from(new Set(members.flatMap((user) => user.scope || []))).filter(Boolean),
+        defaultReviewer: reviewMembers[0]?.name || owner?.name || "未指定",
+      };
+    });
+    os.data.permissionMatrix = os.data.roles.map((role) => {
+      const roleUsers = snapshot.users.filter((user) => user.role === role);
+      return {
+        role,
+        permissions: Array.from(new Set(roleUsers.flatMap((user) => user.permissions || []))).filter(Boolean),
+      };
+    });
+  }
   os.data.source = snapshot.source;
   os.data.currentStyleId = snapshot.currentStyleId || os.data.styleList[0]?.id || null;
   os.data.currentReviewId = snapshot.currentReviewId || os.getActiveReviewByStyle(os.data.currentStyleId)?.id || os.data.reviews[0]?.id || null;
@@ -176,14 +201,66 @@ function renderSummary() {
   `;
 }
 
+function dateText(value, fallback = "未记录") {
+  return value ? esc(String(value).replace("T", " ").slice(0, 16)) : fallback;
+}
+
+function buildMaterialCards(summary) {
+  const { style, sample, review, openIssues, blockingIssues } = summary;
+  const peopleByScope = (scope) => os.data.users.filter((user) => user.scope?.some((item) => item.includes(scope)) || user.reviewResponsibility?.includes(scope) || user.currentResponsibility?.includes(scope));
+  const ownerFor = (scope, fallback) => peopleByScope(scope)[0]?.name || fallback;
+  const hasMedia = Boolean(sample?.mediaList?.length || sample?.imageList?.length || sample?.videoList?.length);
+  const prepBlocked = style?.currentGate === "preparation_gate";
+  const materialIssueCount = (keyword) => openIssues.filter((issue) => `${issue.title} ${issue.description} ${issue.relatedArea} ${issue.sourceDepartment}`.includes(keyword)).length;
+  return [
+    {
+      name: "版子",
+      state: prepBlocked || materialIssueCount("版") ? "待确认" : "已确认",
+      owner: ownerFor("版", "版型负责人"),
+      note: materialIssueCount("版") ? `${materialIssueCount("版")} 个版型相关问题未关闭` : "无未关闭版型问题",
+      time: dateText(sample?.createdAt, "跟随样衣记录"),
+    },
+    {
+      name: "面料",
+      state: prepBlocked || materialIssueCount("面料") ? "待确认" : "已确认",
+      owner: ownerFor("面料", "面料负责人"),
+      note: materialIssueCount("面料") ? `${materialIssueCount("面料")} 个面料相关问题未关闭` : "无未关闭面料问题",
+      time: dateText(sample?.updatedAt, "跟随样衣记录"),
+    },
+    {
+      name: "辅料",
+      state: prepBlocked || materialIssueCount("辅料") || materialIssueCount("拉链") ? "待确认" : "已确认",
+      owner: ownerFor("辅料", "辅料负责人"),
+      note: materialIssueCount("辅料") || materialIssueCount("拉链") ? "有辅料/拉链相关问题未关闭" : "无未关闭辅料问题",
+      time: dateText(sample?.updatedAt, "跟随样衣记录"),
+    },
+    {
+      name: "样衣媒体",
+      state: hasMedia ? "已上传" : "待上传",
+      owner: os.userName(os.data.currentUserId),
+      note: hasMedia ? `${(sample.mediaList || []).length} 个 S3 文件，${sample.imageList?.length || 0} 个本地占位` : "照片或视频上传后会进入 S3",
+      time: dateText(sample?.updatedAt, "等待上传"),
+    },
+    {
+      name: "评审结论",
+      state: blockingIssues.length ? "阻塞" : review?.finalDecision && review.finalDecision !== "none" ? "已提交" : "待评审",
+      owner: summary.gateOwner?.name || "评审负责人",
+      note: blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : `${openIssues.length} 个未关闭问题`,
+      time: dateText(review?.timeline?.[0]?.time || sample?.updatedAt, "等待评审"),
+    },
+  ];
+}
+
 function renderGateFlow(style) {
   const order = ["preparation", "sample_making", "sample_review_gate", "shipment_decision"];
   const labels = ["准备", "打样", "评审", "决策"];
   const currentIndex = Math.max(0, order.indexOf(style.currentGate));
+  const summary = os.getStyleSummary(style.id);
   return labels.map((label, index) => {
     if (index === 0) {
-      const blocked = style.currentGate === "preparation_gate" || style.riskStatus === "overdue";
-      return `<div class="prep-gate-wrap ${blocked ? "blocked" : ""}"><details class="prep-gate ${blocked ? "blocked" : "done"}"><summary><span>准备</span></summary><div class="prep-detail-grid"><b class="ok">版子</b><b class="ok">面料</b><b class="${blocked ? "warn" : "ok"}">辅料</b><b class="ok">样衣</b></div></details><small>${blocked ? style.blockerSummary : "准备齐全"}</small></div>`;
+      const cards = buildMaterialCards(summary);
+      const blocked = style.currentGate === "preparation_gate" || cards.some((card) => ["待确认", "待上传", "阻塞"].includes(card.state));
+      return `<div class="prep-gate-wrap ${blocked ? "blocked" : ""}"><details class="prep-gate ${blocked ? "blocked" : "done"}"><summary><span>准备</span></summary><div class="prep-detail-grid">${cards.slice(0, 4).map((card) => `<b class="${["已确认", "已上传", "已提交"].includes(card.state) ? "ok" : "warn"}">${esc(card.name)}</b>`).join("")}</div></details><small>${blocked ? esc(style.blockerSummary || "仍有准备项待确认") : "准备齐全"}</small></div>`;
     }
     const className = index < currentIndex ? "done" : index === currentIndex ? "active" : "";
     return `<span class="${className}">${label}</span>`;
@@ -223,12 +300,18 @@ function renderStyleWorkspace() {
   }
   const timeline = document.querySelector("#style .timeline-large");
   if (timeline) {
-    timeline.innerHTML = `
-      <div class="timeline-item complete"><strong>收到样衣 / 资料</strong><span>闸口：资料接收完成 · 2026-06-16 10:30 · 业务顾瑶登记</span></div>
-      <div class="timeline-item ${style.currentGate === "preparation_gate" ? "current risk" : "complete"}"><strong>前期准备</strong><span>闸口：准备闸口 · ${style.currentGate === "preparation_gate" ? style.blockerSummary : "版子/面料/样衣完成"} · 责任：大红 / 王部长</span></div>
-      <div class="timeline-item complete"><strong>一次样</strong><span>闸口：已通过 · 2026-06-18 · 无阻塞问题</span></div>
-      <div class="timeline-item current ${blockingIssues.length ? "risk" : ""}"><strong>${esc(os.phaseLabels[style.samplePhase])}</strong><span>闸口：${esc(os.reviewStatusLabels[review.status])} · ${openIssues.length} 个未关闭问题 / ${blockingIssues.length} 个阻塞问题 · 评审负责人：${esc(gateOwner.name)} · 当前动作：${esc(summary.nextAction)}</span></div>
-      <div class="timeline-item"><strong>三次样</strong><span>等待中</span></div><div class="timeline-item"><strong>销售样</strong><span>未开始</span></div><div class="timeline-item"><strong>产前样</strong><span>未开始</span></div><div class="timeline-item"><strong>品质样</strong><span>未就绪</span></div>`;
+    const samplePhases = os.data.samples.filter((item) => item.styleId === style.id);
+    const timelineRows = [
+      ["收到资料 / 建立款式", `款式 ${style.styleNo} · ${style.brand} · ${dateText(sample.createdAt, "创建时间未记录")}`, "complete"],
+      ["样衣记录", `${sample.versionName} · ${sample.location} · 更新 ${dateText(sample.updatedAt, "未记录")}`, sample.status === "shipped" ? "complete" : "current"],
+      ["样衣媒体", `${(sample.mediaList || []).length} 个 S3 文件 · ${(sample.imageList || []).length + (sample.videoList || []).length} 个页面占位`, (sample.mediaList || []).length ? "complete" : ""],
+      [`${os.phaseLabels[style.samplePhase] || style.samplePhase}评审`, `${os.reviewStatusLabels[review.status] || review.status} · ${openIssues.length} 个未关闭 / ${blockingIssues.length} 个阻塞 · 负责人：${gateOwner.name}`, blockingIssues.length ? "current risk" : "current"],
+      ["寄样决策", `${summary.shipmentStatus.label} · 下一步：${summary.nextAction}`, summary.shipmentStatus.canShip ? "complete" : blockingIssues.length ? "current risk" : ""],
+    ];
+    samplePhases
+      .filter((item) => item.id !== sample.id)
+      .forEach((item) => timelineRows.splice(2, 0, [item.versionName, `${item.status} · ${item.location} · ${dateText(item.updatedAt, "未记录")}`, item.status === "shipped" ? "complete" : ""]));
+    timeline.innerHTML = timelineRows.map(([title, text, state]) => `<div class="timeline-item ${esc(state)}"><strong>${esc(title)}</strong><span>${esc(text)}</span></div>`).join("");
   }
   const snapshot = document.querySelector("#style .snapshot-content");
   if (snapshot) {
@@ -236,14 +319,7 @@ function renderStyleWorkspace() {
   }
   const materials = document.querySelector("#style .parallel-materials");
   if (materials) {
-    const blocked = style.currentGate === "preparation_gate";
-    materials.innerHTML = [
-      ["版子", blocked ? "待复核" : "完成", "徐海燕", blocked ? "阻塞" : "2026-06-17", blocked ? "主版已齐，口袋小片待复核。" : "主版已齐。"],
-      ["样衣", "完成", "顾瑶", "2026-06-16", "客户原样已收到。"],
-      ["面料", blocked ? "未到" : "完成", "李卫红", blocked ? "阻塞" : "2026-06-17", blocked ? "主面料等待到料。" : "主面料已确认。"],
-      ["辅料", blocked ? "未齐" : "未齐", "大红", "阻塞", "拉链色号等待客户确认。"],
-      ["资料确认", blocked ? "待确认" : "已确认", "王部长", blocked ? "阻塞" : "已通过", "资料齐套后推进打样。"],
-    ].map(([name, state, owner, time, note]) => `<div class="material-card ${state === "完成" || state === "已确认" ? "done" : "waiting"} checklist-card"><strong>${name}</strong><span>${state} · ${owner} · ${time}</span><small>${note}</small></div>`).join("");
+    materials.innerHTML = buildMaterialCards(summary).map((card) => `<div class="material-card ${["已确认", "已上传", "已提交"].includes(card.state) ? "done" : "waiting"} checklist-card"><strong>${esc(card.name)}</strong><span>${esc(card.state)} · ${esc(card.owner)} · ${card.time}</span><small>${esc(card.note)}</small></div>`).join("");
   }
 }
 
@@ -399,11 +475,15 @@ function renderSettings() {
 
   const summary = document.querySelector("#settings .settings-summary-grid");
   if (summary) {
+    const uniqueRoles = new Set(os.data.users.map((user) => user.role).filter(Boolean));
+    const gateOwnerCount = os.data.users.filter((user) => user.isGateOwner).length;
+    const finalApproverCount = os.data.users.filter((user) => user.isFinalApprover).length;
+    const workerRoutes = new Set(os.data.workers.map((worker) => worker.route).filter(Boolean));
     summary.innerHTML = `
-      <div><span>系统角色</span><strong>10</strong><small>业务、版型、材料、派发、评审、放行</small></div>
-      <div><span>Gate 负责人</span><strong>5</strong><small>准备、派发、压胶、评审、放行</small></div>
-      <div><span>例外审批人</span><strong>1</strong><small>${esc(os.userName(os.data.gateRules.finalApprover))}</small></div>
-      <div><span>打样路线</span><strong>${Object.keys(os.data.sampleRoutes).length}</strong><small>普通 / 压胶新长江 / 外发 / 如东</small></div>
+      <div><span>系统角色</span><strong>${uniqueRoles.size}</strong><small>${os.data.users.length} 名人员来自 Supabase</small></div>
+      <div><span>Gate 负责人</span><strong>${gateOwnerCount}</strong><small>${os.data.users.filter((user) => user.isGateOwner).map((user) => user.name).join(" / ") || "未指定"}</small></div>
+      <div><span>例外审批人</span><strong>${finalApproverCount}</strong><small>${esc(os.data.users.filter((user) => user.isFinalApprover).map((user) => user.name).join(" / ") || os.userName(os.data.gateRules.finalApprover))}</small></div>
+      <div><span>打样工人池</span><strong>${os.data.workers.length}</strong><small>${workerRoutes.size} 条路线：${esc(Array.from(workerRoutes).join(" / ") || "未配置")}</small></div>
     `;
   }
 
@@ -503,9 +583,10 @@ function renderSettings() {
 
   const training = document.querySelector("#settings .training-grid");
   if (training) {
-    const stats = os.data.trainingStats;
     const titleBlock = training.closest(".section-block")?.querySelector(".section-title");
-    if (titleBlock) titleBlock.innerHTML = `<div><h2>Reviewer Training / 评审员培训</h2><span>静态入口：培训职责、问题等级判断、意见转问题和小考</span></div><div class="training-stats"><span>已培训 ${stats.trained}</span><span>未培训 ${stats.untrained}</span><span>可成为 Reviewer ${stats.eligibleReviewers}</span></div>`;
+    const reviewerCount = os.data.users.filter((user) => user.permissions?.some((permission) => ["提交意见", "创建问题", "复验问题", "版型评审"].includes(permission))).length;
+    const pendingTraining = Math.max(0, os.data.users.length - reviewerCount);
+    if (titleBlock) titleBlock.innerHTML = `<div><h2>Reviewer Training / 评审员培训</h2><span>培训入口按当前 Supabase 人员权限统计</span></div><div class="training-stats"><span>可评审 ${reviewerCount}</span><span>待配置 ${pendingTraining}</span><span>人员总数 ${os.data.users.length}</span></div>`;
     training.innerHTML = os.data.trainingCards.map((card) => `<div class="training-card"><strong>${esc(card)}</strong><span>查看标准、示例和练习入口</span></div>`).join("");
   }
 }
@@ -527,20 +608,14 @@ function renderStyleDrawer(styleId, mode = "details") {
   if (!summary.style || !styleDrawer) return;
   const { style, sample, review, openIssues, blockingIssues, shipmentStatus, gateOwner, finalApprover } = summary;
   document.querySelector("#style-drawer-title").textContent = `${style.styleNo} / ${style.styleName}`;
-  const materials = [
-    ["版子", style.currentGate === "preparation_gate" ? "待复核" : "完成", "徐海燕", style.currentGate === "preparation_gate" ? "口袋小片待复核" : "主版已齐"],
-    ["面料", style.currentGate === "preparation_gate" ? "未到" : "完成", "李卫红", style.currentGate === "preparation_gate" ? "主面料等待到料" : "主面料已确认"],
-    ["辅料", style.currentGate === "preparation_gate" ? "未齐" : "完成", "大红", style.currentGate === "preparation_gate" ? "拉链色号待客户确认" : "辅料齐套"],
-    ["原样 / 样衣参考", "完成", "顾瑶", "客户原样已收到"],
-    ["资料确认", style.currentGate === "preparation_gate" ? "待确认" : "完成", "王部长", "资料齐套后进入派发"],
-  ];
+  const materials = buildMaterialCards(summary);
   const reviewState = blockingIssues.length ? "current risk" : "current";
   const decisionState = style.currentGate === "shipment_decision"
     ? shipmentStatus.canShip ? "current" : "current risk"
     : "";
   const timeline = [
-    ["收到样衣 / 资料", "业务登记客户信息，开始开发准备", "complete"],
-    ["前期准备", style.currentGate === "preparation_gate" ? style.blockerSummary : "版子、面料、辅料和参考样完成", style.currentGate === "preparation_gate" ? "current risk" : "complete"],
+    ["建立款式", `${style.brand} ${style.styleNo} · 预计寄样 ${style.plannedShipDate || "未设置"}`, "complete"],
+    ["当前样衣", `${sample?.versionName || "未生成样衣"} · ${sample?.location || "未设置位置"} · 更新 ${sample?.updatedAt || "未记录"}`, sample ? "complete" : ""],
     [os.phaseLabels[style.samplePhase], `${review ? os.reviewStatusLabels[review.status] : "未生成评审"} · ${openIssues.length} 个未关闭 / ${blockingIssues.length} 个阻塞`, reviewState],
     ["寄样决策", shipmentStatus.label, decisionState],
   ];
@@ -569,7 +644,7 @@ function renderStyleDrawer(styleId, mode = "details") {
     </div>
     <div class="drawer-section ${mode === "prep" ? "emphasis" : ""}">
       <h3>前期准备 checklist</h3>
-      <div class="drawer-checklist">${materials.map(([name, state, owner, note]) => `<div class="${state === "完成" ? "done" : "waiting"}"><strong>${esc(name)}</strong><span>${esc(state)} · ${esc(owner)}</span><small>${esc(note)}</small></div>`).join("")}</div>
+      <div class="drawer-checklist">${materials.map((card) => `<div class="${["已确认", "已上传", "已提交"].includes(card.state) ? "done" : "waiting"}"><strong>${esc(card.name)}</strong><span>${esc(card.state)} · ${esc(card.owner)}</span><small>${esc(card.note)}</small></div>`).join("")}</div>
     </div>
     <div class="drawer-actions">
       <button type="button" data-style-drawer="timeline" data-style-id="${style.id}">看时间线</button>
@@ -973,6 +1048,10 @@ document.addEventListener("change", (event) => {
   if (event.target.id === "gate-owner-select") {
     os.updateSampleReviewGateOwner(event.target.value);
     renderAll();
+    window.SampleOSBackend?.syncData?.("updateGateRule", {
+      key: "sampleReviewGateOwner",
+      userId: event.target.value,
+    }).then(loadBackendSnapshot).catch((error) => showToast(`Gate 负责人未同步：${error.message}`));
   }
   if (event.target.id === "sample-location-select") {
     const review = os.getReviewById(os.data.currentReviewId);

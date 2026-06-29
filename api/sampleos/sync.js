@@ -330,6 +330,36 @@ async function deleteWorker(supabase, orgId, body) {
   return { workerId: body.workerId };
 }
 
+async function updateGateRule(supabase, orgId, body) {
+  const key = String(body.key || "").trim();
+  const userId = String(body.userId || "").trim();
+  if (!key || !userId) throw new Error("key and userId are required");
+
+  const { data: existing, error: existingError } = await supabase
+    .from("sample_settings")
+    .select("value")
+    .eq("org_id", orgId)
+    .eq("key", "gateRules")
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  const value = {
+    ...(existing?.value || {}),
+    [key]: userId,
+  };
+
+  const { error } = await supabase
+    .from("sample_settings")
+    .upsert({
+      org_id: orgId,
+      key: "gateRules",
+      value,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "org_id,key" });
+  if (error) throw error;
+  return { key, userId };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -355,6 +385,7 @@ export default async function handler(req, res) {
       createWorker,
       deletePerson,
       deleteWorker,
+      updateGateRule,
     };
     const action = handlers[body.action];
     if (!action) return json(res, 400, { error: "Unknown sync action" });
