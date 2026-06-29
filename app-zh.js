@@ -9,6 +9,19 @@ const titleMap = {
   inbox: "沟通收件箱",
 };
 
+const titleMapJa = {
+  pipeline: "開発パイプライン",
+  style: "スタイル詳細",
+  review: "サンプルレビュー",
+  calendar: "サンプル納期カレンダー",
+  prep: "開発準備 / ボトルネック",
+  settings: "設定",
+  handoff: "量産引き継ぎプレビュー",
+  inbox: "コミュニケーション受信箱",
+};
+
+let currentLang = "zh";
+
 const views = document.querySelectorAll(".view");
 const title = document.querySelector("#view-title");
 const drawer = document.querySelector("#issue-drawer");
@@ -68,9 +81,45 @@ function showView(viewId) {
   if (!titleMap[viewId]) return;
   views.forEach((view) => view.classList.toggle("active", view.id === viewId));
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === viewId));
-  title.textContent = titleMap[viewId];
+  title.textContent = (currentLang === "ja" ? titleMapJa : titleMap)[viewId];
   updateTopbar(viewId);
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function showToast(message) {
+  let toast = document.querySelector(".sampleos-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.className = "sampleos-toast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add("show");
+  window.clearTimeout(showToast.timer);
+  showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+function applySnapshot(snapshot) {
+  if (!snapshot || snapshot.source?.kind !== "supabase") return;
+  ["styleList", "samples", "reviews", "issues"].forEach((key) => {
+    if (Array.isArray(snapshot[key])) os.data[key] = snapshot[key];
+  });
+  os.data.source = snapshot.source;
+  os.data.currentStyleId = snapshot.currentStyleId || os.data.styleList[0]?.id || null;
+  os.data.currentReviewId = snapshot.currentReviewId || os.getActiveReviewByStyle(os.data.currentStyleId)?.id || os.data.reviews[0]?.id || null;
+}
+
+async function loadBackendSnapshot() {
+  if (!window.SampleOSBackend?.loadSnapshot) return;
+  try {
+    const snapshot = await window.SampleOSBackend.loadSnapshot();
+    applySnapshot(snapshot);
+    renderAll();
+    updateTopbar(document.querySelector(".view.active")?.id || "pipeline");
+  } catch (error) {
+    console.warn("Sample OS snapshot failed", error);
+    showToast(`暂时使用本地数据：${error.message}`);
+  }
 }
 
 function ensureAdminActions() {
@@ -145,12 +194,16 @@ function renderPipeline() {
   renderSummary();
   const table = document.querySelector("#pipeline .pipeline-table");
   if (!table) return;
+  if (!os.data.styleList.length) {
+    table.innerHTML = `<div class="empty-state"><strong>暂无真实款式数据</strong><span>新建款式或上传样衣后，这里会从 Supabase 同步显示。</span></div>`;
+    return;
+  }
   table.innerHTML = `<div class="row head"><div>款式</div><div>当前闸口</div><div>开发闸口</div><div>卡点与下一步</div></div>` + os.data.styleList.map((style) => {
     const summary = os.getStyleSummary(style.id);
     return `
       <div class="row data-row pipeline-row" data-style-id="${style.id}">
         <div><strong>${esc(style.styleNo)}</strong><span>${esc(style.styleName)} · ${esc(style.brand)} ${esc(style.season)}</span></div>
-        <div class="stage-status"><strong>${esc(os.gateLabels[style.currentGate])}</strong><span class="status ${statusClass(summary.shipmentStatus.key)}">${esc(summary.shipmentStatus.label)}</span><small>路线：${esc(os.data.routeRules[style.route].label)} · 位置：${esc(summary.sample?.location || style.sampleLocation)}</small></div>
+        <div class="stage-status"><strong>${esc(os.gateLabels[style.currentGate] || style.currentGate)}</strong><span class="status ${statusClass(summary.shipmentStatus.key)}">${esc(summary.shipmentStatus.label)}</span><small>路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)} · 位置：${esc(summary.sample?.location || style.sampleLocation || "未设置")}</small></div>
         <div class="stage-line gate-flow">${renderGateFlow(style)}</div>
         <div class="block-summary"><strong>卡点：${esc(style.blockerSummary || `${summary.blockingIssues.length} 个阻塞问题`)}</strong><span>责任：${esc(summary.ownerNames)}</span><span>评审负责人：${esc(summary.gateOwner?.name)}</span><span>阻塞问题：${summary.blockingIssues.length ? `是 · ${summary.blockingIssues.length} 个` : "否"}</span><span>下一步：${esc(summary.nextAction)}</span><div class="pipeline-actions"><button type="button" data-style-drawer="timeline" data-style-id="${style.id}">时间线</button><button type="button" data-style-drawer="details" data-style-id="${style.id}">详情</button><button type="button" data-style-drawer="prep" data-style-id="${style.id}">准备材料</button><button class="primary" type="button" data-open-review="${style.id}">打开评审</button></div></div>
       </div>`;
@@ -161,6 +214,10 @@ function renderStyleWorkspace() {
   const summary = os.getStyleSummary(os.data.currentStyleId);
   const { style, sample, review, openIssues, blockingIssues, gateOwner, finalApprover } = summary;
   const header = document.querySelector("#style .style-header");
+  if (!style || !sample || !review) {
+    if (header) header.innerHTML = `<div><div class="eyebrow">单款详情</div><h2>暂无真实款式</h2><p>当前 Supabase 还没有可展示的款式、样衣和评审记录。</p></div>`;
+    return;
+  }
   if (header) {
     header.innerHTML = `<div><div class="eyebrow">款式 ${esc(style.styleNo)} / ${esc(style.brand)} / ${esc(style.season)}</div><h2>${esc(style.styleName)}</h2></div><div class="header-badges"><span class="status ${statusClass(summary.shipmentStatus.key)}">${esc(summary.shipmentStatus.label)}</span><span class="status neutral">${esc(os.phaseLabels[style.samplePhase])}</span><span class="status neutral">位置：${esc(sample.location)}</span><span class="status neutral">路线：${esc(os.data.routeRules[style.route].label)}</span><span class="status neutral">评审负责人：${esc(gateOwner.name)}</span><span class="status neutral">例外放行：${esc(finalApprover.name)}</span></div>`;
   }
@@ -192,11 +249,22 @@ function renderStyleWorkspace() {
 
 function renderReview() {
   const review = os.getReviewById(os.data.currentReviewId);
+  const emptyHero = document.querySelector("#review .review-hero");
+  if (!review) {
+    if (emptyHero) emptyHero.innerHTML = `<div class="hero-info"><div class="crumb">首页 / 样衣评审</div><div class="hero-title"><h2>暂无真实评审</h2><span class="status neutral">等待数据</span></div><div class="hero-meta"><span>请先新建款式或从 Supabase 同步评审记录。</span></div></div>`;
+    const mediaGrid = document.querySelector("#review .review-media-grid");
+    if (mediaGrid) mediaGrid.innerHTML = `<div class="empty-state"><strong>暂无样衣媒体</strong><span>有评审记录后可上传照片和视频。</span></div>`;
+    return;
+  }
   const summary = os.getStyleSummary(review.styleId);
   const { style, sample, openIssues, blockingIssues, gateOwner, finalApprover, shipmentStatus } = summary;
+  if (!style || !sample) {
+    if (emptyHero) emptyHero.innerHTML = `<div class="hero-info"><div class="crumb">首页 / 样衣评审 / ${esc(review.reviewNo)}</div><div class="hero-title"><h2>评审数据不完整</h2><span class="status amber">等待样衣</span></div><div class="hero-meta"><span>Supabase 中找不到关联款式或样衣。</span></div></div>`;
+    return;
+  }
   const hero = document.querySelector("#review .review-hero");
   if (hero) {
-    hero.querySelector(".hero-info").innerHTML = `<div class="crumb">首页 / 样衣评审 / ${esc(review.reviewNo)}</div><div class="hero-title"><h2>${esc(style.styleNo)}-${esc(review.reviewNo)}</h2><span class="status blue">${esc(sample.versionName)}</span></div><div class="hero-meta"><span>品牌：${esc(style.brand)}</span><span>季节：${esc(style.season)}</span><span>款式：${esc(style.category)}</span><span>阶段：${esc(sample.versionName)}</span><span>路线：${esc(os.data.routeRules[style.route].label)}</span><span>评审负责人：${esc(gateOwner.name)}</span><span>创建时间：${esc(sample.createdAt)}</span><span>预计寄样：${esc(sample.plannedShipDate)}</span></div>`;
+    hero.querySelector(".hero-info").innerHTML = `<div class="crumb">首页 / 样衣评审 / ${esc(review.reviewNo)}</div><div class="hero-title"><h2>${esc(style.styleNo)}-${esc(review.reviewNo)}</h2><span class="status blue">${esc(sample.versionName)}</span></div><div class="hero-meta"><span>品牌：${esc(style.brand)}</span><span>季节：${esc(style.season)}</span><span>款式：${esc(style.category)}</span><span>阶段：${esc(sample.versionName)}</span><span>路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</span><span>评审负责人：${esc(gateOwner.name)}</span><span>创建时间：${esc(sample.createdAt)}</span><span>预计寄样：${esc(sample.plannedShipDate)}</span></div>`;
     hero.querySelector(".location-card").innerHTML = `<span>样衣位置</span><strong>${esc(sample.location)}</strong><small>更新时间：${esc(sample.updatedAt)}</small><select id="sample-location-select">${os.data.sampleLocations.map((loc) => `<option ${loc.name === sample.location ? "selected" : ""}>${esc(loc.name)}</option>`).join("")}</select>`;
   }
   const strip = document.querySelector("#review .strip-main");
@@ -235,11 +303,24 @@ function renderMedia(sample, issues) {
 function renderDepartmentReviews(review) {
   const table = document.querySelector("#review .review-table");
   if (!table) return;
-  table.innerHTML = `<div class="review-table-row head"><span>部门</span><span>角色</span><span>负责人</span><span>状态</span><span>评审意见 / 关注点</span><span>产生问题</span><span>时间</span><span></span></div>` + review.departmentReviews.map((item) => {
+  const rows = review.departmentReviews.length
+    ? review.departmentReviews
+    : os.data.departmentDetails.filter((dept) => dept.participatesInReview).map((dept) => ({
+      department: dept.name,
+      role: "评审员",
+      reviewer: null,
+      status: "pending",
+      opinion: "",
+      focusTags: dept.issueTypes || [],
+      issueIds: [],
+      reviewedAt: "",
+    }));
+  table.innerHTML = `<div class="review-table-row head"><span>部门</span><span>角色</span><span>负责人</span><span>状态</span><span>评审意见 / 关注点</span><span>产生问题</span><span>时间</span><span></span></div>` + rows.map((item, index) => {
     const issueCount = item.issueIds.filter((id) => os.getIssuesByReview(review.id).some((issue) => issue.id === id && issue.status !== "closed")).length;
     const pill = item.status === "pass" ? "green" : item.status === "fail" ? "red" : "amber";
-    return `<div class="review-table-row" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${avatar(item.reviewer)}</span><span class="pill ${pill}">${esc(os.departmentStatusLabels[item.status])}</span><p>${esc(item.opinion)}<small>${esc(item.focusTags.join(" · "))}</small></p><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} 个问题` : "无"}</em><time>${esc(item.reviewedAt)}</time><button>✓</button></div>`;
+    return `<div class="review-table-row editable-review-row" data-review-row="${index}" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${item.reviewer ? avatar(item.reviewer) : avatar(os.data.currentUserId)}</span><select data-review-status><option value="pending" ${item.status === "pending" ? "selected" : ""}>待评审</option><option value="pass" ${item.status === "pass" ? "selected" : ""}>通过</option><option value="needs_improvement" ${item.status === "needs_improvement" ? "selected" : ""}>需要改进</option><option value="fail" ${item.status === "fail" ? "selected" : ""}>不通过</option></select><label><textarea data-review-opinion placeholder="在这里输入评审意见">${esc(item.opinion)}</textarea><small>${esc(item.focusTags.join(" · ") || "可直接填写真实评审意见")}</small></label><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} 个问题` : "无"}</em><time>${esc(item.reviewedAt || "未保存")}</time><button class="row-action ${pill}" type="button" data-save-department-review="${index}">保存</button></div>`;
   }).join("");
+  review.departmentReviews = rows;
 }
 
 function renderIssueList(review) {
@@ -249,6 +330,10 @@ function renderIssueList(review) {
   const openIssues = os.getOpenIssues(review.id);
   if (panelTitle) panelTitle.innerHTML = `质量闸口问题 <span class="badge-count">${openIssues.length}</span>`;
   if (!table) return;
+  if (!issues.length) {
+    table.innerHTML = `<div class="empty-state"><strong>暂无真实质量问题</strong><span>当前 Supabase 没有这次评审的问题记录；新增后这里会同步显示。</span></div>`;
+    return;
+  }
   table.innerHTML = `<div class="issue-table-row head"><span>问题</span><span>来源/证据</span><span>等级</span><span>是否阻塞</span><span>负责人</span><span>复验要求</span><span>状态</span></div>` + issues.map((issue) => {
     const level = os.data.issueLevelRules[issue.level];
     const blocking = os.getBlockingIssues(review.id).some((item) => item.id === issue.id);
@@ -262,7 +347,7 @@ function renderDecision(review, summary) {
   const currentUser = os.getUser(os.data.currentUserId);
   const canGate = currentUser?.id === summary.gateOwner.id;
   const canException = currentUser?.id === summary.finalApprover.id;
-  panel.innerHTML = `<div class="section-title"><h2>评审结论</h2><span>寄样结论权限：评审负责人 / 例外放行人</span></div><div class="gate-owner-card"><div><i class="avatar avatar-${esc(summary.gateOwner.avatarColor)}"></i><strong>${esc(summary.gateOwner.name)}</strong><small>评审负责人，可做普通寄样结论</small></div><span class="status ${canGate ? "green" : "red"}">${canGate ? "当前用户可最终放行" : "当前用户无最终放行权限"}</span></div><div class="decision-stack"><button class="approve ${canGate ? "" : "disabled"}" type="button">可以寄样</button><button class="revise ${canGate ? "" : "disabled"}" type="button">修改后寄样</button><button class="hold ${canGate ? "" : "disabled"}" type="button">暂停寄样</button><button class="exception ${canException ? "" : "disabled"}" type="button">例外放行</button><button class="primary-button" type="button">提交评审结论</button><small>当前寄样状态：${esc(summary.shipmentStatus.label)}。例外放行仅 ${esc(summary.finalApprover.name)} 可批准。</small></div><div class="exception-box exception-form"><strong>例外放行申请</strong><label>例外原因 <span>${esc(review.exceptionRequest?.reason || "客户会议 / 交期风险 / 样衣用途")}</span></label><label>风险说明 <span>${esc(review.exceptionRequest?.riskNote || "无")}</span></label><label>申请人 <span>${esc(os.userName(review.exceptionRequest?.applicant))}</span></label><label>审批人 <span>${esc(summary.finalApprover.name)} · 例外放行人</span></label><label>是否通知客户 <span>${review.exceptionRequest?.customerNotified ? "是" : "否，待审批后通知"}</span></label><label>审批结论 <span>${esc(review.exceptionRequest?.approvalStatus || "未申请")}</span></label></div>`;
+  panel.innerHTML = `<div class="section-title"><h2>评审结论</h2><span>寄样结论权限：评审负责人 / 例外放行人</span></div><div class="gate-owner-card"><div><i class="avatar avatar-${esc(summary.gateOwner.avatarColor)}"></i><strong>${esc(summary.gateOwner.name)}</strong><small>评审负责人，可做普通寄样结论</small></div><span class="status ${canGate ? "green" : "red"}">${canGate ? "当前用户可最终放行" : "当前用户无最终放行权限"}</span></div><div class="decision-stack" data-decision-stack><button class="approve ${canGate ? "" : "disabled"}" type="button" data-decision="can_ship">可以寄样</button><button class="revise ${canGate ? "" : "disabled"}" type="button" data-decision="ship_after_rework">修改后寄样</button><button class="hold ${canGate ? "" : "disabled"}" type="button" data-decision="hold_shipment">暂停寄样</button><button class="exception ${canException ? "" : "disabled"}" type="button" data-decision="exception_release">例外放行</button><button class="primary-button" type="button" data-submit-decision>提交评审结论</button><small>当前寄样状态：${esc(summary.shipmentStatus.label)}。例外放行仅 ${esc(summary.finalApprover.name)} 可批准。</small></div><div class="exception-box exception-form"><strong>例外放行申请</strong><label>例外原因 <input data-exception-reason value="${esc(review.exceptionRequest?.reason || "")}" placeholder="客户会议 / 交期风险 / 样衣用途"></label><label>风险说明 <textarea data-exception-risk-note placeholder="说明客户已知风险、需要同步的质量/交期影响">${esc(review.exceptionRequest?.riskNote || "")}</textarea></label><label>申请人 <span>${esc(os.userName(review.exceptionRequest?.applicant) || os.userName(os.data.currentUserId))}</span></label><label>审批人 <span>${esc(summary.finalApprover.name)} · 例外放行人</span></label><label>是否通知客户 <input type="checkbox" data-customer-notified ${review.exceptionRequest?.customerNotified ? "checked" : ""}></label><label>审批结论 <span>${esc(review.exceptionRequest?.approvalStatus || "未申请")}</span></label></div>`;
 }
 
 function renderTimeline(review) {
@@ -281,15 +366,28 @@ function renderCalendar() {
   const grid = document.querySelector("#calendar .calendar-grid");
   const riskList = document.querySelector("#calendar .risk-list");
   if (!grid || !riskList) return;
+  const badges = document.querySelector("#calendar .header-badges");
+  const today = new Date().toISOString().slice(0, 10);
+  const datedStyles = os.data.styleList.filter((style) => style.plannedShipDate);
+  const todayCount = datedStyles.filter((style) => style.plannedShipDate <= today).length;
+  const blockedCount = datedStyles.map((style) => os.getStyleSummary(style.id)).filter((summary) => ["blocked", "hold_shipment", "waiting_exception"].includes(summary.shipmentStatus.key)).length;
+  if (badges) {
+    badges.innerHTML = `<span class="status ${todayCount ? "red" : "green"}">今日/逾期 ${todayCount}</span><span class="status ${blockedCount ? "amber" : "green"}">风险 ${blockedCount}</span><span class="status neutral">Supabase 同步</span>`;
+  }
+  if (!datedStyles.length) {
+    grid.innerHTML = `<div class="empty-state"><strong>暂无真实交期</strong><span>只有 Supabase 款式里填写了预计寄样日期，才会出现在样衣日历。</span></div>`;
+    riskList.innerHTML = `<div class="risk-row neutral"><strong>无交期风险</strong><span>当前没有真实样衣日历数据。</span></div>`;
+    return;
+  }
   const groups = {};
-  os.data.styleList.forEach((style) => {
+  datedStyles.forEach((style) => {
     const date = style.plannedShipDate;
     groups[date] ||= [];
     groups[date].push(os.getStyleSummary(style.id));
   });
-  grid.innerHTML = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => `<div class="calendar-day ${date <= "2026-06-28" ? "urgent" : ""}"><strong>${date.slice(5)} ${date === "2026-06-28" ? "今天" : ""}</strong>${items.map(({ style, sample, openIssues, blockingIssues, calendarRisk }) => `<div class="calendar-item" title="点击进入单款详情" data-style-drawer="details" data-style-id="${style.id}"><span class="brand-dot salomon"></span><div><b>${esc(style.brand)} ${esc(style.styleNo)}</b><small>${esc(os.phaseLabels[style.samplePhase])} · ${style.quantity || sample?.imageList.length || 1} 件 · ${esc(sample?.location || style.sampleLocation)}</small><em>状态：${esc(os.riskLabels[calendarRisk])} · 原因：${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : openIssues.length ? `${openIssues.length} 个待处理问题` : "无阻塞"}</em></div></div>`).join("")}</div>`).join("");
+  grid.innerHTML = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => `<div class="calendar-day ${date <= today ? "urgent" : ""}"><strong>${date.slice(5)} ${date === today ? "今天" : ""}</strong>${items.map(({ style, sample, openIssues, blockingIssues, calendarRisk }) => `<div class="calendar-item" title="点击进入单款详情" data-style-drawer="details" data-style-id="${style.id}"><span class="brand-dot salomon"></span><div><b>${esc(style.brand)} ${esc(style.styleNo)}</b><small>${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${style.quantity || 1} 件 · ${esc(sample?.location || style.sampleLocation || "未设置")}</small><em>状态：${esc(os.riskLabels[calendarRisk] || calendarRisk)} · 原因：${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : openIssues.length ? `${openIssues.length} 个待处理问题` : "无阻塞"}</em></div></div>`).join("")}</div>`).join("");
   const riskOrder = { blocked: 1, overdue: 1, waiting_exception: 2, approaching_due: 3, normal: 4, exception_released: 5, shipped: 6 };
-  riskList.innerHTML = os.data.styleList.map((style) => os.getStyleSummary(style.id)).sort((a, b) => (riskOrder[a.calendarRisk] || 9) - (riskOrder[b.calendarRisk] || 9)).map(({ style, calendarRisk, blockingIssues, nextAction, ownerNames }) => `<div class="risk-row ${calendarRisk === "blocked" || calendarRisk === "overdue" ? "danger" : calendarRisk === "waiting_exception" ? "warning" : calendarRisk === "normal" ? "neutral" : calendarRisk === "exception_released" || calendarRisk === "shipped" ? "success" : "info"}"><strong>${esc(style.brand)} ${esc(style.styleNo)}</strong><span>${esc(os.riskLabels[calendarRisk])} · ${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : nextAction} · 当前责任：${esc(ownerNames)}</span></div>`).join("");
+  riskList.innerHTML = datedStyles.map((style) => os.getStyleSummary(style.id)).sort((a, b) => (riskOrder[a.calendarRisk] || 9) - (riskOrder[b.calendarRisk] || 9)).map(({ style, calendarRisk, blockingIssues, nextAction, ownerNames }) => `<div class="risk-row ${calendarRisk === "blocked" || calendarRisk === "overdue" ? "danger" : calendarRisk === "waiting_exception" ? "warning" : calendarRisk === "normal" ? "neutral" : calendarRisk === "exception_released" || calendarRisk === "shipped" ? "success" : "info"}"><strong>${esc(style.brand)} ${esc(style.styleNo)}</strong><span>${esc(os.riskLabels[calendarRisk] || calendarRisk)} · ${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : nextAction || "暂无下一步"} · 当前责任：${esc(ownerNames || "未指定")}</span></div>`).join("");
 }
 
 function renderSettings() {
@@ -726,13 +824,24 @@ function openPerson(row) {
 
 renderAll();
 updateTopbar(document.querySelector(".view.active")?.id || "pipeline");
+loadBackendSnapshot();
 window.SampleOSApp = {
   renderAll,
   showView,
   updateTopbar,
+  loadBackendSnapshot,
 };
 
 document.addEventListener("click", (event) => {
+  const langButton = event.target.closest(".language-switch button");
+  if (langButton) {
+    currentLang = langButton.textContent.includes("日本") ? "ja" : "zh";
+    document.querySelectorAll(".language-switch button").forEach((button) => button.classList.toggle("active", button === langButton));
+    showView(document.querySelector(".view.active")?.id || "pipeline");
+    showToast(currentLang === "ja" ? "日本語表示に切り替えました（一部項目は中国語データのままです）" : "已切换回中文");
+    return;
+  }
+
   const uploadTrigger = event.target.closest("[data-trigger-upload]");
   if (uploadTrigger) {
     event.preventDefault();
@@ -803,11 +912,78 @@ document.addEventListener("click", (event) => {
   if (closeIssue) {
     os.closeIssue(closeIssue.dataset.closeIssue);
     renderAll();
+    window.SampleOSBackend?.syncData?.("issueStatus", { issueId: closeIssue.dataset.closeIssue, status: "closed" })
+      .then(loadBackendSnapshot)
+      .catch((error) => showToast(`关闭问题未同步：${error.message}`));
     return;
   }
   if (event.target.closest("#review .issue-panel .section-title .primary")) {
-    os.addDemoIssue(os.data.currentReviewId);
-    renderAll();
+    const review = os.getReviewById(os.data.currentReviewId);
+    const sample = os.getSampleById(review?.sampleId);
+    const titleText = window.prompt("输入真实质量问题标题，例如：拉链色差 / 领口起皱");
+    if (!titleText) return;
+    const level = window.prompt("问题等级：minor / normal / major / critical", "normal") || "normal";
+    window.SampleOSBackend?.syncData?.("createIssue", {
+      reviewId: review.id,
+      styleId: review.styleId,
+      sampleId: sample?.id,
+      title: titleText,
+      level,
+      sourceDepartment: os.getUser(os.data.currentUserId)?.department || "品质部",
+      relatedArea: "",
+      evidence: "页面新增",
+    }).then(loadBackendSnapshot).catch((error) => showToast(`新增问题失败：${error.message}`));
+    return;
+  }
+
+  const decisionButton = event.target.closest("[data-decision]");
+  if (decisionButton && !decisionButton.classList.contains("disabled")) {
+    document.querySelectorAll("[data-decision]").forEach((button) => button.classList.toggle("selected", button === decisionButton));
+    decisionButton.closest("[data-decision-stack]").dataset.selectedDecision = decisionButton.dataset.decision;
+    return;
+  }
+
+  const submitDecision = event.target.closest("[data-submit-decision]");
+  if (submitDecision) {
+    const review = os.getReviewById(os.data.currentReviewId);
+    const stack = submitDecision.closest("[data-decision-stack]");
+    const finalDecision = stack?.dataset.selectedDecision || review.finalDecision || "none";
+    window.SampleOSBackend?.syncData?.("reviewDecision", {
+      reviewId: review.id,
+      finalDecision,
+      exceptionReason: document.querySelector("[data-exception-reason]")?.value || "",
+      exceptionRiskNote: document.querySelector("[data-exception-risk-note]")?.value || "",
+      exceptionApprovalStatus: finalDecision === "exception_release" ? "待审批" : null,
+      customerNotified: document.querySelector("[data-customer-notified]")?.checked || false,
+    }).then(() => {
+      showToast("评审结论已同步到 Supabase");
+      return loadBackendSnapshot();
+    }).catch((error) => showToast(`评审结论未同步：${error.message}`));
+    return;
+  }
+
+  const saveDepartmentReview = event.target.closest("[data-save-department-review]");
+  if (saveDepartmentReview) {
+    const review = os.getReviewById(os.data.currentReviewId);
+    const row = saveDepartmentReview.closest("[data-review-row]");
+    const index = Number(saveDepartmentReview.dataset.saveDepartmentReview);
+    const item = review.departmentReviews[index];
+    item.status = row.querySelector("[data-review-status]")?.value || "pending";
+    item.opinion = row.querySelector("[data-review-opinion]")?.value.trim() || "";
+    item.reviewer = item.reviewer || os.data.currentUserId;
+    window.SampleOSBackend?.syncData?.("departmentReview", {
+      reviewId: review.id,
+      department: item.department,
+      role: item.role,
+      reviewerId: item.reviewer,
+      status: item.status,
+      opinion: item.opinion,
+      focusTags: item.focusTags,
+    }).then(() => {
+      showToast("评审意见已同步");
+      return loadBackendSnapshot();
+    }).catch((error) => showToast(`评审意见未同步：${error.message}`));
+    renderDepartmentReviews(review);
     return;
   }
   const person = event.target.closest(".people-row[data-person]");
@@ -834,8 +1010,14 @@ document.addEventListener("change", (event) => {
   }
   if (event.target.id === "sample-location-select") {
     const review = os.getReviewById(os.data.currentReviewId);
+    const sample = os.getSampleById(review.sampleId);
     os.updateSampleLocation(review.styleId, event.target.value);
     renderAll();
+    window.SampleOSBackend?.syncData?.("sampleLocation", {
+      sampleId: sample.id,
+      location: event.target.value,
+      reason: "页面位置调整",
+    }).then(loadBackendSnapshot).catch((error) => showToast(`样衣位置未同步：${error.message}`));
   }
   if (event.target.id === "new-style-location") {
     updateRouteHint(event.target.value);

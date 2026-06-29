@@ -53,6 +53,21 @@
     });
   }
 
+  async function loadSnapshot() {
+    return requestJson("/api/sampleos/snapshot", {
+      method: "GET",
+      headers: authHeaders(),
+    });
+  }
+
+  async function syncData(action, payload = {}) {
+    return requestJson("/api/sampleos/sync", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ action, ...payload }),
+    });
+  }
+
   function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
   }
@@ -137,6 +152,8 @@
     setAccessToken,
     bootstrapProfile,
     seedDemoData,
+    loadSnapshot,
+    syncData,
     createUpload,
     uploadFile,
   };

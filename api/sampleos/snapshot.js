@@ -1,0 +1,217 @@
+import { createClient } from "@supabase/supabase-js";
+
+function json(res, status, body) {
+  res.statusCode = status;
+  res.setHeader("content-type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(body));
+}
+
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing environment variable: ${name}`);
+  return value;
+}
+
+function cleanDateTime(value) {
+  if (!value) return "";
+  return String(value).replace("T", " ").slice(0, 16);
+}
+
+function profileName(profileMap, id) {
+  return id ? profileMap.get(id)?.display_name || null : null;
+}
+
+async function firstOrg(supabase) {
+  const { data: orgs, error } = await supabase
+    .from("organizations")
+    .select("id, name")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) throw error;
+  if (orgs?.[0]) return orgs[0];
+
+  const { data: org, error: insertError } = await supabase
+    .from("organizations")
+    .insert({ name: "万誉" })
+    .select("id, name")
+    .single();
+  if (insertError) throw insertError;
+  return org;
+}
+
+export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    res.setHeader("allow", "GET");
+    return json(res, 405, { error: "Method not allowed" });
+  }
+
+  try {
+    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+      auth: { persistSession: false },
+    });
+    const org = await firstOrg(supabase);
+
+    const [
+      profilesResult,
+      departmentsResult,
+      stylesResult,
+      samplesResult,
+      reviewsResult,
+      departmentReviewsResult,
+      issuesResult,
+      mediaResult,
+    ] = await Promise.all([
+      supabase.from("profiles").select("*").eq("org_id", org.id),
+      supabase.from("departments").select("*").eq("org_id", org.id),
+      supabase.from("styles").select("*").eq("org_id", org.id).order("planned_ship_date", { ascending: true, nullsFirst: false }),
+      supabase.from("samples").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+      supabase.from("reviews").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+      supabase.from("review_department_reviews").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+      supabase.from("issues").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+      supabase.from("sample_media").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
+    ]);
+
+    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult];
+    const firstError = results.find((result) => result.error)?.error;
+    if (firstError) throw firstError;
+
+    const profiles = profilesResult.data || [];
+    const departments = departmentsResult.data || [];
+    const styles = stylesResult.data || [];
+    const samples = samplesResult.data || [];
+    const reviews = reviewsResult.data || [];
+    const departmentReviews = departmentReviewsResult.data || [];
+    const issues = issuesResult.data || [];
+    const media = mediaResult.data || [];
+
+    const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
+    const departmentMap = new Map(departments.map((department) => [department.id, department]));
+    const sampleReviewMap = new Map(reviews.map((review) => [review.sample_id, review]));
+    const reviewIssueMap = new Map();
+    issues.forEach((issue) => {
+      if (!issue.review_id) return;
+      reviewIssueMap.set(issue.review_id, [...(reviewIssueMap.get(issue.review_id) || []), issue.id]);
+    });
+
+    const payload = {
+      currentStyleId: styles[0]?.id || null,
+      currentReviewId: reviews[0]?.id || null,
+      source: {
+        kind: "supabase",
+        orgId: org.id,
+        orgName: org.name,
+        loadedAt: new Date().toISOString(),
+      },
+      styleList: styles.map((style) => ({
+        id: style.id,
+        externalRef: style.external_ref,
+        styleNo: style.style_no,
+        brand: style.brand,
+        season: style.season || "",
+        styleName: style.style_name,
+        category: style.category || "",
+        route: style.route || "normal",
+        currentGate: style.current_gate || "business_input",
+        samplePhase: style.sample_phase || "first_sample",
+        sampleLocation: "",
+        currentOwner: [],
+        gateOwner: style.gate_owner_id || null,
+        finalApprover: style.final_approver_id || null,
+        plannedShipDate: style.planned_ship_date || "",
+        riskStatus: style.risk_status || "normal",
+        nextAction: style.next_action || "",
+        blockerSummary: style.blocker_summary || "",
+        quantity: 1,
+      })),
+      samples: samples.map((sample) => {
+        const review = sampleReviewMap.get(sample.id);
+        return {
+          id: sample.id,
+          externalRef: sample.external_ref,
+          styleId: sample.style_id,
+          samplePhase: sample.sample_phase,
+          versionName: sample.version_name,
+          status: sample.status,
+          location: sample.location || "未设置",
+          holder: profileName(profileMap, sample.holder_profile_id) || "未指定",
+          createdAt: cleanDateTime(sample.created_at),
+          updatedAt: cleanDateTime(sample.updated_at),
+          imageList: [],
+          videoList: [],
+          mediaList: media.filter((item) => item.sample_id === sample.id).map((item) => ({
+            id: item.id,
+            label: item.label || "已上传文件",
+            fileName: item.s3_object_key?.split("/").pop() || item.label || "已上传文件",
+            mediaKind: item.media_kind,
+            mimeType: item.mime_type,
+            byteSize: item.byte_size,
+            uploadedAt: cleanDateTime(item.created_at),
+          })),
+          reviewId: review?.id || null,
+          plannedShipDate: sample.planned_ship_date || "",
+        };
+      }),
+      reviews: reviews.map((review) => ({
+        id: review.id,
+        externalRef: review.external_ref,
+        styleId: review.style_id,
+        sampleId: review.sample_id,
+        reviewNo: review.review_no,
+        status: review.status,
+        gateOwner: review.gate_owner_id || null,
+        finalApprover: review.final_approver_id || null,
+        issueIds: reviewIssueMap.get(review.id) || [],
+        finalDecision: review.final_decision || "none",
+        exceptionRequest: review.exception_reason || review.exception_risk_note || review.exception_approval_status
+          ? {
+            reason: review.exception_reason || "",
+            riskNote: review.exception_risk_note || "",
+            applicant: review.exception_applicant_id || null,
+            approver: review.exception_approver_id || review.final_approver_id || null,
+            customerNotified: Boolean(review.customer_notified),
+            approvalStatus: review.exception_approval_status || "未申请",
+          }
+          : null,
+        timeline: [
+          { time: cleanDateTime(review.updated_at) || "现在", type: "black", text: `Supabase · 载入评审 ${review.review_no}` },
+        ],
+        departmentReviews: departmentReviews.filter((item) => item.review_id === review.id).map((item) => ({
+          id: item.id,
+          department: departmentMap.get(item.department_id)?.name || "未指定部门",
+          role: item.role_name || "评审员",
+          reviewer: item.reviewer_id || null,
+          status: item.status || "pending",
+          opinion: item.opinion || "",
+          focusTags: item.focus_tags || [],
+          issueIds: [],
+          reviewedAt: cleanDateTime(item.reviewed_at || item.created_at),
+        })),
+      })),
+      issues: issues.map((issue) => ({
+        id: issue.id,
+        externalRef: issue.external_ref,
+        styleId: issue.style_id,
+        sampleId: issue.sample_id,
+        reviewId: issue.review_id,
+        title: issue.title,
+        description: issue.description || "",
+        sourceDepartment: departmentMap.get(issue.source_department_id)?.name || "未指定",
+        relatedArea: issue.related_area || "",
+        level: issue.level,
+        shipmentBlocking: Boolean(issue.shipment_blocking),
+        canShipWithNote: Boolean(issue.can_ship_with_note),
+        owner: issue.owner_id || null,
+        dueDate: cleanDateTime(issue.due_at),
+        status: issue.status,
+        verifier: issue.verifier_id || null,
+        evidence: issue.evidence_note || "",
+        createdAt: cleanDateTime(issue.created_at),
+        updatedAt: cleanDateTime(issue.updated_at),
+      })),
+    };
+
+    return json(res, 200, payload);
+  } catch (error) {
+    return json(res, 500, { error: "Could not load Sample OS data", detail: error.message });
+  }
+}
