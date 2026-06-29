@@ -1,7 +1,7 @@
 window.sampleOSData = {
   currentStyleId: "style_212",
   currentReviewId: "review_212_second",
-  currentUserId: "user_zhangbu",
+  currentUserId: "user_guyao",
   users: [
     { id: "user_guyao", name: "顾瑶", department: "业务部", role: "业务负责人", currentResponsibility: "收到客户信息后发起开发准备", reviewResponsibility: "确认客户邮件、技术包、物料清单、交期和寄样目的", permissions: ["发起开发", "提交意见", "创建问题", "申请寄样"], scope: ["萨洛蒙"], avatarColor: "guyao" },
     { id: "user_guyonghong", name: "顾永宏", department: "业务部", role: "业务负责人", currentResponsibility: "补齐客户要求和交样日期", reviewResponsibility: "补充寄样目的和风险说明", permissions: ["补充资料", "提交意见", "创建问题"], scope: ["萨洛蒙"], avatarColor: "guyonghong" },

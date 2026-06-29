@@ -41,12 +41,28 @@ function getBearerToken(req) {
 }
 
 async function getProfile(req) {
-  const token = getBearerToken(req);
-  if (!token) return null;
-
   const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false },
   });
+
+  const token = getBearerToken(req);
+  if (!token) {
+    const { data: orgs, error: orgsError } = await supabase
+      .from("organizations")
+      .select("id, name")
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (orgsError) throw orgsError;
+    if (orgs?.[0]) return { id: null, org_id: orgs[0].id };
+
+    const { data: org, error: orgError } = await supabase
+      .from("organizations")
+      .insert({ name: "万誉" })
+      .select("id, name")
+      .single();
+    if (orgError) throw orgError;
+    return { id: null, org_id: org.id };
+  }
 
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) return null;
@@ -153,7 +169,7 @@ export default async function handler(req, res) {
         sample_id: resolvedSampleId,
         review_id: resolvedReviewId || "",
         issue_id: resolvedIssueId || "",
-        uploaded_by: profile.id,
+        uploaded_by: profile.id || "",
         media_kind: mediaKind,
       },
     });

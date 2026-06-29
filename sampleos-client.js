@@ -29,8 +29,7 @@
 
   function authHeaders() {
     const token = getAccessToken();
-    if (!token) throw new Error("Missing Supabase access token");
-    return { authorization: `Bearer ${token}` };
+    return token ? { authorization: `Bearer ${token}` } : {};
   }
 
   async function getRuntimeConfig() {

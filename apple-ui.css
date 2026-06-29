@@ -4194,6 +4194,53 @@ body.apple-ui::before {
   line-height: 1.4;
 }
 
+.apple-ui .identity-switcher {
+  min-width: 210px;
+  display: grid;
+  gap: 4px;
+}
+
+.apple-ui .identity-control {
+  height: 38px;
+  display: grid;
+  grid-template-columns: auto minmax(116px, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 113, 227, 0.16);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 84% 10%, rgba(0, 113, 227, 0.13), transparent 40%),
+    rgba(255, 255, 255, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 10px 24px rgba(0, 113, 227, 0.06);
+}
+
+.apple-ui .identity-control span,
+.apple-ui .identity-switcher small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.apple-ui .identity-control select {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.apple-ui .identity-switcher small {
+  padding-left: 10px;
+  font-weight: 700;
+}
+
 .apple-ui .review-photo.upload-tile {
   cursor: pointer;
   border-style: dashed;

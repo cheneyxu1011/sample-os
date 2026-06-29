@@ -1,84 +1,65 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+(() => {
+  const IDENTITY_KEY = "sampleos.testIdentity";
+  const os = window.SampleOS;
+  if (!os) return;
 
-(async function () {
-  const backend = window.SampleOSBackend;
-  if (!backend) return;
-
-  const config = await backend.getRuntimeConfig().catch(() => null);
-  if (!config?.supabaseUrl || !config?.supabasePublishableKey) return;
-
-  const supabase = createClient(config.supabaseUrl, config.supabasePublishableKey);
   const topActions = document.querySelector(".top-actions");
-  if (!topActions || document.querySelector(".auth-mini")) return;
+  if (!topActions || document.querySelector(".identity-switcher")) return;
 
-  const auth = document.createElement("div");
-  auth.className = "auth-mini";
-  auth.innerHTML = `
-    <button class="row-action auth-trigger" type="button">登录</button>
-    <form class="auth-form" hidden>
-      <input name="email" type="email" autocomplete="email" placeholder="邮箱" required />
-      <input name="password" type="password" autocomplete="current-password" placeholder="密码" required />
-      <button type="submit">登录</button>
-      <button type="button" data-auth-signup>注册</button>
-      <small data-auth-status>请先登录后上传照片/视频</small>
-    </form>
+  function reviewerUsers() {
+    const preferred = [
+      "业务部",
+      "品质管理",
+      "品质部",
+      "工艺部",
+      "工业工程部",
+      "打样部",
+      "新长江工厂",
+      "管理层",
+    ];
+    return os.data.users
+      .filter((user) => user.permissions?.some((permission) => ["提交意见", "创建问题", "最终放行", "例外放行", "申请寄样"].includes(permission)))
+      .sort((a, b) => {
+        const ai = preferred.indexOf(a.department);
+        const bi = preferred.indexOf(b.department);
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      });
+  }
+
+  function setIdentity(userId) {
+    const user = os.getUser(userId) || os.getUser("user_guyao") || os.data.users[0];
+    if (!user) return;
+    os.data.currentUserId = user.id;
+    window.localStorage.setItem(IDENTITY_KEY, user.id);
+
+    const name = document.querySelector(".user-account strong");
+    const role = document.querySelector(".user-account small");
+    const avatar = document.querySelector(".user-account .avatar");
+    if (name) name.textContent = user.name;
+    if (role) role.textContent = user.role || user.department;
+    if (avatar) avatar.className = `avatar avatar-${user.avatarColor || "guyao"}`;
+
+    window.SampleOSApp?.renderAll?.();
+    window.dispatchEvent(new CustomEvent("sampleos:identity-change", { detail: { user } }));
+  }
+
+  const users = reviewerUsers();
+  const initialId = window.localStorage.getItem(IDENTITY_KEY) || "user_guyao";
+  const switcher = document.createElement("div");
+  switcher.className = "auth-mini identity-switcher";
+  switcher.innerHTML = `
+    <label class="identity-control">
+      <span>测试身份</span>
+      <select data-identity-switch>
+        ${users.map((user) => `<option value="${user.id}">${user.name} · ${user.department}</option>`).join("")}
+      </select>
+    </label>
+    <small>内测模式，无需邮箱密码</small>
   `;
-  topActions.insertBefore(auth, topActions.firstChild);
+  topActions.insertBefore(switcher, topActions.firstChild);
 
-  const trigger = auth.querySelector(".auth-trigger");
-  const form = auth.querySelector(".auth-form");
-  const status = auth.querySelector("[data-auth-status]");
-  const signup = auth.querySelector("[data-auth-signup]");
-
-  function setStatus(message) {
-    status.textContent = message;
-  }
-
-  async function syncSession() {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token || "";
-    backend.setAccessToken(token);
-    if (data.session?.user) {
-      trigger.textContent = data.session.user.email || "已登录";
-      form.hidden = true;
-      setStatus("已登录，可以上传");
-      await backend.bootstrapProfile({ orgName: "万誉", displayName: "管理员", department: "管理层", roleName: "后台管理员" }).catch(() => null);
-      await backend.seedDemoData().catch(() => null);
-    } else {
-      trigger.textContent = "登录";
-      setStatus("请先登录后上传照片/视频");
-    }
-  }
-
-  trigger.addEventListener("click", () => {
-    form.hidden = !form.hidden;
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const formData = new FormData(form);
-    setStatus("登录中...");
-    const { error } = await supabase.auth.signInWithPassword({
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-    if (error) setStatus(error.message);
-    await syncSession();
-  });
-
-  signup.addEventListener("click", async () => {
-    const formData = new FormData(form);
-    setStatus("注册中...");
-    const { error } = await supabase.auth.signUp({
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-    setStatus(error ? error.message : "注册成功。如需邮件确认，请先确认邮箱。");
-    await syncSession();
-  });
-
-  supabase.auth.onAuthStateChange(() => {
-    syncSession();
-  });
-  await syncSession();
-}());
+  const select = switcher.querySelector("[data-identity-switch]");
+  select.value = users.some((user) => user.id === initialId) ? initialId : "user_guyao";
+  select.addEventListener("change", () => setIdentity(select.value));
+  setIdentity(select.value);
+})();

@@ -97,8 +97,9 @@ function updateTopbar(viewId) {
     topPrimaryButton.style.display = isSettings || isPipeline ? "" : "none";
   }
   document.querySelector(".admin-actions")?.classList.toggle("show", isSettings);
-  if (userAccountRole) userAccountRole.textContent = isSettings ? "后台管理员" : "负责人";
-  if (userAccountName) userAccountName.textContent = isSettings ? "张部长" : "张部长";
+  const currentUser = os.getUser(os.data.currentUserId);
+  if (userAccountRole) userAccountRole.textContent = currentUser?.role || (isSettings ? "后台管理员" : "负责人");
+  if (userAccountName) userAccountName.textContent = currentUser?.name || "顾瑶";
 }
 
 function avatar(userId) {
@@ -725,6 +726,11 @@ function openPerson(row) {
 
 renderAll();
 updateTopbar(document.querySelector(".view.active")?.id || "pipeline");
+window.SampleOSApp = {
+  renderAll,
+  showView,
+  updateTopbar,
+};
 
 document.addEventListener("click", (event) => {
   const uploadTrigger = event.target.closest("[data-trigger-upload]");
