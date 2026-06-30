@@ -732,6 +732,21 @@ body.apple-ui::before {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  height: 100dvh;
+  max-height: 100dvh;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.apple-ui .drawer-header {
+  flex: 0 0 auto;
+}
+
+.apple-ui .drawer-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: max(28px, env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .apple-ui .drawer-field {
@@ -3489,7 +3504,15 @@ body.apple-ui::before {
 }
 
 .apple-ui .style-drawer {
-  width: min(520px, calc(100vw - 32px));
+  width: min(52vw, 760px);
+  min-width: 520px;
+}
+
+@media (max-width: 900px) {
+  .apple-ui .style-drawer {
+    width: min(100vw, 560px);
+    min-width: 0;
+  }
 }
 
 .apple-ui .drawer-summary-card {
