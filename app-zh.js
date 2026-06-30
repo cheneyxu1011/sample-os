@@ -287,13 +287,26 @@ function defaultReviewRoleTemplates(style) {
   return roleTemplates.filter((template) => requiredIds.includes(template.id));
 }
 
+function reviewDepartmentForTemplate(template) {
+  const departmentMap = {
+    business_pm: "业务部",
+    pattern_reviewer: "版型部",
+    quality_reviewer: "品质部",
+    process_reviewer: "工艺部",
+    ie_reviewer: "IE 部",
+    sample_feedback_owner: "打样部",
+    bonding_owner: "压胶开发",
+  };
+  return departmentMap[template.id] || template.reviewRole || template.name.split(" / ").pop();
+}
+
 function reviewRowFromRoleTemplate(template) {
   const assignedUser = roleAssignedUsers(template)[0];
   const assignedName = assignedUser?.name || template.people[0] || "待分配";
   return {
     id: `role_${template.id}`,
     roleTemplateId: template.id,
-    department: template.name.split(" / ").pop(),
+    department: reviewDepartmentForTemplate(template),
     role: template.reviewRole || template.name,
     reviewer: assignedUser?.id || null,
     reviewerName: assignedName,
@@ -311,7 +324,7 @@ function mergeReviewRowsWithRoleTemplates(review) {
   const existing = review.departmentReviews || [];
   return defaults.map((row) => {
     const saved = existing.find((item) => item.roleTemplateId === row.roleTemplateId || item.role === row.role || item.department === row.department);
-    return saved ? { ...row, ...saved, roleTemplateId: row.roleTemplateId, reviewerName: row.reviewerName, focusTags: saved.focusTags?.length ? saved.focusTags : row.focusTags } : row;
+    return saved ? { ...row, ...saved, department: row.department, roleTemplateId: row.roleTemplateId, reviewerName: row.reviewerName, focusTags: saved.focusTags?.length ? saved.focusTags : row.focusTags } : row;
   });
 }
 
