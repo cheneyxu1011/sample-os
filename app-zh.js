@@ -589,7 +589,7 @@ function renderMedia(sample, issues) {
     const isImage = media.mimeType?.startsWith("image/");
     const preview = isImage && media.url ? `<img class="media-preview" src="${esc(media.url)}" alt="${esc(media.label || media.fileName || "样衣照片")}" loading="lazy">` : "";
     const canOpen = Boolean(media.url);
-    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}" ${canOpen ? `data-open-media="${esc(media.id)}" role="button" tabindex="0"` : ""}>${preview}${isVideo ? `<div class="play">▶</div>` : ""}<input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签，例如正面、反面、拉链"><small class="media-meta">${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</small></div>`);
+    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}" ${canOpen ? `data-open-media="${esc(media.id)}" role="button" tabindex="0"` : ""}>${preview}${isVideo ? `<div class="play">▶</div>` : ""}<button class="media-delete-button" type="button" data-delete-media="${esc(media.id)}" aria-label="删除${isVideo ? "视频" : "图片"}">删除</button><input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签，例如正面、反面、拉链"><small class="media-meta">${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</small></div>`);
   });
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
   cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
@@ -635,6 +635,36 @@ function triggerMediaUpload(mediaKind) {
     return;
   }
   input.click();
+}
+
+async function deleteSampleMedia(mediaId) {
+  const review = os.getReviewById(os.data.currentReviewId);
+  const sample = os.getSampleById(review?.sampleId);
+  const media = sample?.mediaList?.find((item) => item.id === mediaId);
+  if (!sample || !media) {
+    showToast("没有找到这个媒体文件");
+    return;
+  }
+  const label = media.label || media.fileName || "这个文件";
+  const confirmed = window.confirm(`确定删除「${label}」吗？\n\n删除后它会从样衣评审页面移除，如导入错了可以重新上传。`);
+  if (!confirmed) return;
+
+  const previousMediaList = [...(sample.mediaList || [])];
+  sample.mediaList = previousMediaList.filter((item) => item.id !== mediaId);
+  sample.timeline ||= [];
+  sample.timeline.unshift({
+    time: new Date().toLocaleString("zh-CN", { hour12: false }),
+    text: `${os.userName(os.data.currentUserId)} · 删除媒体：${label}`,
+  });
+  renderReview();
+  try {
+    await window.SampleOSBackend?.syncData?.("deleteMedia", { mediaId });
+    showToast("媒体已删除，可以重新上传");
+  } catch (error) {
+    sample.mediaList = previousMediaList;
+    renderReview();
+    showToast(`删除失败：${error.message}`);
+  }
 }
 
 function renderDepartmentReviews(review) {
@@ -1404,6 +1434,14 @@ document.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     uploadTile.querySelector("[data-media-upload]")?.click();
+    return;
+  }
+
+  const deleteMediaButton = event.target.closest("[data-delete-media]");
+  if (deleteMediaButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    deleteSampleMedia(deleteMediaButton.dataset.deleteMedia);
     return;
   }
 

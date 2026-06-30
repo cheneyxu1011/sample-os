@@ -4540,6 +4540,37 @@ body.apple-ui::before {
   cursor: pointer;
 }
 
+.apple-ui .media-delete-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  border: 1px solid rgba(255, 59, 48, 0.22);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #d70015;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 10px 22px rgba(215, 0, 21, 0.12);
+  cursor: pointer;
+  opacity: 0.78;
+  transform: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.apple-ui .review-photo.uploaded-media:hover .media-delete-button,
+.apple-ui .review-photo.uploaded-media:focus-within .media-delete-button,
+.apple-ui .media-delete-button:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.apple-ui .media-delete-button:hover {
+  background: #fff1f1;
+}
+
 .apple-ui .media-meta {
   position: relative;
   z-index: 4;
@@ -5332,6 +5363,12 @@ body.apple-ui::before {
     flex-basis: 62%;
     border-width: 2px;
     background: #fff;
+  }
+
+  .apple-ui .media-delete-button {
+    opacity: 1;
+    transform: none;
+    padding: 7px 11px;
   }
 
   .apple-ui .media-panel,
