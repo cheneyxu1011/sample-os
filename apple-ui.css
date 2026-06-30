@@ -3083,6 +3083,146 @@ body.apple-ui::before {
   overflow-x: auto;
 }
 
+.apple-ui .settings-role-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.apple-ui .settings-role-tabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(210, 210, 215, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.apple-ui .settings-role-tabs button.active {
+  border-color: rgba(0, 113, 227, 0.34);
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--blue);
+  box-shadow: 0 10px 22px rgba(0, 113, 227, 0.1);
+}
+
+.apple-ui .role-template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+}
+
+.apple-ui .role-template-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(210, 210, 215, 0.76);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 90% 8%, rgba(0, 113, 227, 0.08), transparent 32%),
+    rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.055);
+}
+
+.apple-ui .role-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.apple-ui .role-card-head span,
+.apple-ui .role-template-card dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.apple-ui .role-card-head h3 {
+  margin: 2px 0 0;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.apple-ui .role-card-head b {
+  max-width: 38%;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(0, 113, 227, 0.08);
+  color: var(--blue);
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.apple-ui .role-template-card p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.apple-ui .role-template-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.apple-ui .role-template-card dl div {
+  min-width: 0;
+}
+
+.apple-ui .role-template-card dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.apple-ui .row-action.disabled {
+  opacity: 0.48;
+  pointer-events: none;
+  color: var(--muted);
+}
+
+.apple-ui .assignment-role-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.apple-ui .assignment-role-list label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(210, 210, 215, 0.74);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.apple-ui .assignment-role-list strong,
+.apple-ui .assignment-role-list small {
+  display: block;
+}
+
+.apple-ui .assignment-role-list strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.apple-ui .assignment-role-list small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
 .apple-ui .permission-table .people-row {
   width: 100%;
   grid-template-columns: 132px 82px minmax(145px, 1fr) 124px 68px minmax(176px, 0.9fr);
@@ -5403,6 +5543,35 @@ body.apple-ui::before {
       radial-gradient(circle at 88% 10%, rgba(0, 113, 227, 0.08), transparent 30%),
       rgba(255, 255, 255, 0.86);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055);
+  }
+
+  .apple-ui .settings-role-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    overflow-x: auto;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(18px);
+  }
+
+  .apple-ui .role-template-grid,
+  .apple-ui .assignment-role-list {
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui .role-card-head {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .apple-ui .role-card-head b {
+    max-width: none;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .apple-ui .role-template-card dl {
+    grid-template-columns: 1fr;
   }
 
   .apple-ui .review-table-row.head,

@@ -30,6 +30,7 @@ const navLabelMap = {
 };
 
 let currentLang = "zh";
+let settingsRoleTab = "templates";
 
 const views = document.querySelectorAll(".view");
 const title = document.querySelector("#view-title");
@@ -64,6 +65,28 @@ const departmentStatusHelp = {
   fail: "存在重大风险，必须转为 Issue，并由评审负责人判断是否阻止寄样。",
   pending: "等待该部门提交专业意见。",
 };
+const roleTemplates = [
+  { id: "business_pm", name: "Business PM / 业务负责人", type: "评审角色", stages: ["开发准备", "样衣评审"], responsibility: "确认客户邮件、TP、BOM、Comment、颜色、辅料、交期、寄样目的是否一致", permissions: ["发起开发", "补充资料", "提交意见", "创建 Issue", "申请寄样"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["顾瑶", "顾永宏"], reviewRole: "业务负责人", focusTags: ["客户邮件", "TP", "BOM", "Comment", "颜色", "辅料", "交期", "寄样目的"] },
+  { id: "pattern_reviewer", name: "Pattern Reviewer / 版型评审员", type: "评审角色", stages: ["样衣评审"], responsibility: "评审版型、关键尺寸、公差、结构、左右对称、纸样与实物一致性", permissions: ["提交意见", "创建尺寸/版型 Issue", "复验版型问题"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["徐海燕"], reviewRole: "版型评审员", focusTags: ["版型", "关键尺寸", "公差", "结构", "左右对称", "纸样一致性"] },
+  { id: "quality_reviewer", name: "Quality Reviewer / 品质评审员", type: "评审角色", stages: ["样衣评审", "整改复验"], responsibility: "确认外观、尺寸、历史问题、测试需求，判断是否存在质量阻断风险", permissions: ["提交意见", "创建质量 Issue", "复验 Issue", "提出质量判断建议"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["大前"], reviewRole: "品质评审员", focusTags: ["外观", "尺寸", "历史问题", "测试需求", "质量阻断风险"] },
+  { id: "process_reviewer", name: "Process Reviewer / 工艺评审员", type: "评审角色", stages: ["样衣评审", "工艺验证"], responsibility: "确认缝制、压胶、无缝工艺是否可执行，是否存在量产难点或工艺风险", permissions: ["提交意见", "创建工艺 Issue", "要求工艺小样验证"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["陈工艺"], reviewRole: "工艺评审员", focusTags: ["缝制", "压胶", "无缝工艺", "量产难点", "工艺风险"] },
+  { id: "ie_reviewer", name: "IE Reviewer / IE 评审员", type: "评审角色", stages: ["样衣评审", "量产可行性评估"], responsibility: "确认工时、瓶颈、设备需求、人员配置、产能和大货节拍风险", permissions: ["提交意见", "创建 IE Issue", "提出量产可行性建议"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["麦克"], reviewRole: "IE 评审员", focusTags: ["工时", "瓶颈", "设备", "人员配置", "产能", "大货节拍"] },
+  { id: "sample_feedback_owner", name: "Sample Feedback Owner / 打样反馈人", type: "流程角色", stages: ["打样完成", "样衣评审"], responsibility: "反馈实际打样过程中的资料不清、材料不齐、返工、临时改法和制作难点", permissions: ["提交意见", "创建打样异常 Issue"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["李师傅"], reviewRole: "打样反馈人", focusTags: ["资料不清", "材料不齐", "返工", "临时改法", "制作难点"] },
+  { id: "material_owner", name: "Material Owner / 面料负责人", type: "流程角色", stages: ["开发准备", "资料确认"], responsibility: "确认面料是否齐套、颜色/批次/缩率/预缩是否存在风险", permissions: ["面料确认", "创建面料 Issue", "更新面料状态"], reviewDefault: "否，必要时参与", finalRelease: "否", exceptionRelease: "否", people: ["李卫红"], reviewRole: "面料负责人", focusTags: ["面料齐套", "颜色", "批次", "缩率", "预缩"] },
+  { id: "trim_owner", name: "Trim Owner / 辅料负责人", type: "流程角色", stages: ["开发准备", "资料确认"], responsibility: "确认拉链、扣具、织带、洗标、吊牌等辅料是否齐套并符合要求", permissions: ["辅料确认", "创建辅料 Issue", "更新辅料状态"], reviewDefault: "否，必要时参与", finalRelease: "否", exceptionRelease: "否", people: ["大红"], reviewRole: "辅料负责人", focusTags: ["拉链", "扣具", "织带", "洗标", "吊牌"] },
+  { id: "preparation_gate_owner", name: "Preparation Gate Owner / 资料确认人", type: "Gate 角色", stages: ["准备闸口"], responsibility: "确认版子、面料、辅料、原样、客户要求是否齐全，确认后推进派发打样", permissions: ["资料确认", "推进到派发打样", "组织资料补齐"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: ["王部长"], reviewRole: "资料确认人", focusTags: ["版子", "面料", "辅料", "原样", "客户要求"] },
+  { id: "sample_dispatcher", name: "Sample Dispatcher / 普通打样派发人", type: "流程角色", stages: ["打样派发"], responsibility: "根据资料确认结果分配普通打样人员", permissions: ["派发打样", "普通打样", "提交异常"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: ["大戴"], reviewRole: "普通打样派发人", focusTags: ["派发打样", "普通打样", "打样异常"] },
+  { id: "bonding_owner", name: "Bonding Development Owner / 压胶开发负责人", type: "路线角色", stages: ["压胶开发确认"], responsibility: "确认压胶款式是否进入新长江流程，判断压胶工艺开发风险", permissions: ["压胶开发", "创建压胶 Issue", "要求工艺验证"], reviewDefault: "压胶款默认参与", finalRelease: "否", exceptionRelease: "否", people: ["张部长"], reviewRole: "压胶开发负责人", focusTags: ["压胶开发", "新长江流程", "工艺开发风险"] },
+  { id: "xinchangjiang_dispatcher", name: "Xinchangjiang Dispatcher / 新长江派发人", type: "路线角色", stages: ["新长江派发"], responsibility: "负责新长江打样人员分配和现场执行状态更新", permissions: ["新长江派发", "派发打样", "提交异常"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: ["夏红霞"], reviewRole: "新长江派发人", focusTags: ["新长江派发", "现场执行", "状态更新"] },
+  { id: "sample_review_gate_owner", name: "Sample Review Gate Owner / 样衣评审负责人", type: "Gate 角色", stages: ["样衣评审", "寄样决策"], responsibility: "组织样衣评审、确认 Issue 等级、判断是否阻塞寄样、做最终寄样结论", permissions: ["确认问题等级", "复验问题", "最终放行", "阻止寄样"], reviewDefault: "是", finalRelease: "是", exceptionRelease: "否", people: ["大前"], reviewRole: "样衣评审负责人", focusTags: ["Issue 等级", "阻塞寄样", "最终寄样结论"] },
+  { id: "final_approver", name: "Final Approver / 例外放行审批人", type: "审批角色", stages: ["例外放行", "重大争议"], responsibility: "处理重大问题带风险寄样、跨部门争议、例外放行审批", permissions: ["例外放行", "争议裁决"], reviewDefault: "否，仅例外时出现", finalRelease: "仅例外放行", exceptionRelease: "是", people: ["杨总"], reviewRole: "例外放行审批人", focusTags: ["例外放行", "重大争议"] },
+  { id: "production_reviewer", name: "Production Reviewer / 生产评审员", type: "可选评审角色", stages: ["量产可行性评估"], responsibility: "从大货现场角度确认样衣工艺是否能稳定复制，确认设备、人员、产线组织能力", permissions: ["提交意见", "创建量产风险 Issue"], reviewDefault: "可选，压胶/复杂款建议参与", finalRelease: "否", exceptionRelease: "否", people: [], reviewRole: "生产评审员", focusTags: ["大货复制", "设备", "人员", "产线组织"] },
+  { id: "measurement_reviewer", name: "Measurement Reviewer / 尺寸测量员", type: "可选评审角色", stages: ["样衣评审", "复验"], responsibility: "按统一量法测量关键尺寸，记录实测数据，标记超公差部位", permissions: ["提交尺寸复核", "创建尺寸 Issue", "上传测量表", "复验尺寸整改"], reviewDefault: "可选，尺寸风险款建议参与", finalRelease: "否", exceptionRelease: "否", people: [], reviewRole: "尺寸测量员", focusTags: ["关键尺寸", "实测数据", "超公差"] },
+  { id: "lab_testing_owner", name: "Lab & Testing Owner / 测试负责人", type: "可选评审角色", stages: ["测试确认", "压胶/功能样评审"], responsibility: "判断是否需要洗后、拉力、剥离、防水、色牢度等测试，上传测试报告并确认结果", permissions: ["创建测试 Issue", "上传测试报告", "确认测试结果", "要求复验"], reviewDefault: "可选，压胶/功能款建议参与", finalRelease: "否", exceptionRelease: "否", people: [], reviewRole: "测试负责人", focusTags: ["洗后", "拉力", "剥离", "防水", "色牢度"] },
+  { id: "sample_keeper", name: "Sample Keeper / 样衣管理员", type: "流程角色", stages: ["样衣位置管理"], responsibility: "维护样衣位置，确认当前持有人，记录样衣流转", permissions: ["更新样衣位置", "上传位置记录", "确认已寄出"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [], reviewRole: "样衣管理员", focusTags: ["样衣位置", "持有人", "流转记录"] },
+  { id: "shipment_owner", name: "Sample Shipment Owner / 寄样负责人", type: "流程角色", stages: ["寄样执行"], responsibility: "根据 Gate Owner 的寄样结论执行寄样，填写快递单号，更新样衣状态", permissions: ["执行寄样", "填写快递单号", "更新样衣位置", "上传寄样凭证"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [], reviewRole: "寄样负责人", focusTags: ["寄样执行", "快递单号", "寄样凭证"] },
+  { id: "document_controller", name: "Document Controller / 资料版本管理员", type: "流程角色", stages: ["资料管理"], responsibility: "确认当前使用的是最新 TP、BOM、纸样、客户 Comment，维护资料版本，标记旧版作废", permissions: ["上传资料", "标记资料版本", "作废旧版本", "创建资料不一致 Issue"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [], reviewRole: "资料版本管理员", focusTags: ["TP", "BOM", "纸样", "客户 Comment", "资料版本"] },
+];
 const glowTargets = [
   ".summary-card",
   ".section-block",
@@ -234,6 +257,62 @@ function updateTopbar(viewId) {
 function avatar(userId) {
   const user = os.getUser(userId);
   return `<i class="avatar avatar-${esc(user?.avatarColor || "zhao")}"></i>${esc(user?.name || "未指定")}`;
+}
+
+function userByName(name) {
+  return os.data.users.find((user) => user.name === name);
+}
+
+function roleAssignedUsers(template) {
+  return template.people.map(userByName).filter(Boolean);
+}
+
+function roleAssignedLabel(template) {
+  return template.people.length ? template.people.join("、") : "待分配";
+}
+
+function personRoleTemplates(user) {
+  return roleTemplates.filter((template) => template.people.includes(user.name) || user.assignedRoleIds?.includes(template.id));
+}
+
+function inheritedPermissions(user) {
+  const assigned = personRoleTemplates(user);
+  const inherited = assigned.flatMap((template) => template.permissions);
+  return Array.from(new Set(assigned.length ? inherited : (user.permissions || []))).filter(Boolean);
+}
+
+function defaultReviewRoleTemplates(style) {
+  const requiredIds = ["business_pm", "pattern_reviewer", "quality_reviewer", "process_reviewer", "ie_reviewer", "sample_feedback_owner"];
+  if (style?.route === "bonding_xinchangjiang") requiredIds.push("bonding_owner");
+  return roleTemplates.filter((template) => requiredIds.includes(template.id));
+}
+
+function reviewRowFromRoleTemplate(template) {
+  const assignedUser = roleAssignedUsers(template)[0];
+  const assignedName = assignedUser?.name || template.people[0] || "待分配";
+  return {
+    id: `role_${template.id}`,
+    roleTemplateId: template.id,
+    department: template.name.split(" / ").pop(),
+    role: template.reviewRole || template.name,
+    reviewer: assignedUser?.id || null,
+    reviewerName: assignedName,
+    status: "pending",
+    opinion: "",
+    focusTags: template.focusTags || [],
+    issueIds: [],
+    reviewedAt: "",
+  };
+}
+
+function mergeReviewRowsWithRoleTemplates(review) {
+  const style = os.getStyleById(review.styleId);
+  const defaults = defaultReviewRoleTemplates(style).map(reviewRowFromRoleTemplate);
+  const existing = review.departmentReviews || [];
+  return defaults.map((row) => {
+    const saved = existing.find((item) => item.roleTemplateId === row.roleTemplateId || item.role === row.role || item.department === row.department);
+    return saved ? { ...row, ...saved, roleTemplateId: row.roleTemplateId, reviewerName: row.reviewerName, focusTags: saved.focusTags?.length ? saved.focusTags : row.focusTags } : row;
+  });
 }
 
 function statusClass(key) {
@@ -673,18 +752,7 @@ function renderDepartmentReviews(review) {
   if (titleBlock) {
     titleBlock.innerHTML = `<div><h2>部门评审</h2><span>各部门先独立提交专业意见。部门评审不等于最终放行。</span><small class="panel-training-tip">评审意见如果需要别人处理、需要复验、影响寄样，就必须转为 Issue。</small></div>`;
   }
-  const rows = review.departmentReviews.length
-    ? review.departmentReviews
-    : os.data.departmentDetails.filter((dept) => dept.participatesInReview).map((dept) => ({
-      department: dept.name,
-      role: "评审员",
-      reviewer: null,
-      status: "pending",
-      opinion: "",
-      focusTags: dept.issueTypes || [],
-      issueIds: [],
-      reviewedAt: "",
-    }));
+  const rows = mergeReviewRowsWithRoleTemplates(review);
   const reviewIssues = os.getIssuesByReview(review.id);
   table.innerHTML = `<div class="review-table-row head"><span>部门</span><span>角色</span><span>负责人</span><span>状态</span><span>评审意见 / 关注点</span><span>产生问题</span><span>时间</span><span>操作</span></div>` + rows.map((item, index) => {
     const issueIds = Array.isArray(item.issueIds) ? item.issueIds : [];
@@ -698,7 +766,8 @@ function renderDepartmentReviews(review) {
       : `<button class="row-action ${pill}" type="button" data-save-department-review="${index}">保存</button>`;
     const statusNote = departmentStatusHelp[item.status] || departmentStatusHelp.pending;
     const failWarning = item.status === "fail" && !issueCount ? `<small class="review-warning">请将该评审意见转为质量闸口 Issue，否则无法完成部门评审。</small>` : "";
-    return `<div class="review-table-row editable-review-row ${isLocked ? "is-locked" : ""}" data-review-row="${index}" data-review-row-key="${esc(rowKey)}" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${item.reviewer ? avatar(item.reviewer) : avatar(os.data.currentUserId)}</span><label class="review-status-cell"><select data-review-status ${isLocked ? "disabled" : ""}><option value="pass" ${item.status === "pass" ? "selected" : ""}>通过</option><option value="needs_improvement" ${item.status === "needs_improvement" ? "selected" : ""}>需要改进</option><option value="fail" ${item.status === "fail" ? "selected" : ""}>不通过</option></select><small data-review-status-help>${esc(statusNote)}</small></label><label><textarea data-review-opinion ${isLocked ? "readonly" : ""} placeholder="在这里输入评审意见">${esc(item.opinion)}</textarea><small>关注点：${esc(item.focusTags.join(" · ") || "可直接填写真实评审意见")}</small>${failWarning}</label><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} 个 Issue` : "普通意见"}</em><time>${esc(item.reviewedAt || "未保存")}</time><div class="row-actions-inline">${saveOrEdit}<button class="row-action primary" type="button" data-issue-from-review="${index}">转为 Issue</button></div></div>`;
+    const reviewerLabel = item.reviewer ? avatar(item.reviewer) : `<i class="avatar avatar-zhao"></i>${esc(item.reviewerName || "待分配")}`;
+    return `<div class="review-table-row editable-review-row ${isLocked ? "is-locked" : ""}" data-review-row="${index}" data-review-row-key="${esc(rowKey)}" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${reviewerLabel}</span><label class="review-status-cell"><select data-review-status ${isLocked ? "disabled" : ""}><option value="pending" ${item.status === "pending" ? "selected" : ""}>待评审</option><option value="pass" ${item.status === "pass" ? "selected" : ""}>通过</option><option value="needs_improvement" ${item.status === "needs_improvement" ? "selected" : ""}>需要改进</option><option value="fail" ${item.status === "fail" ? "selected" : ""}>不通过</option></select><small data-review-status-help>${esc(statusNote)}</small></label><label><textarea data-review-opinion ${isLocked ? "readonly" : ""} placeholder="在这里输入评审意见">${esc(item.opinion)}</textarea><small>关注点：${esc(item.focusTags.join(" · ") || "可直接填写真实评审意见")}</small>${failWarning}</label><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} 个 Issue` : "普通意见"}</em><time>${esc(item.reviewedAt || "未保存")}</time><div class="row-actions-inline">${saveOrEdit}<button class="row-action primary" type="button" data-issue-from-review="${index}">转为 Issue</button></div></div>`;
   }).join("");
   review.departmentReviews = rows;
 }
@@ -844,6 +913,39 @@ function renderCalendar() {
   syncFilterButtons();
 }
 
+function renderRoleTemplateCards() {
+  return `<div class="role-template-grid">${roleTemplates.map((template) => {
+    const reviewClass = template.reviewDefault.startsWith("是") ? "green" : template.reviewDefault.includes("压胶") || template.reviewDefault.includes("可选") ? "amber" : "neutral";
+    const finalClass = template.finalRelease === "是" ? "green" : template.finalRelease.includes("例外") ? "amber" : "neutral";
+    const exceptionClass = template.exceptionRelease === "是" ? "green" : "neutral";
+    return `<article class="role-template-card">
+      <div class="role-card-head"><div><span>${esc(template.type)}</span><h3>${esc(template.name)}</h3></div><b>${esc(roleAssignedLabel(template))}</b></div>
+      <p>${esc(template.responsibility)}</p>
+      <dl>
+        <div><dt>默认参与阶段</dt><dd>${esc(template.stages.join("、"))}</dd></div>
+        <div><dt>默认出现在评审页</dt><dd><span class="status ${reviewClass}">${esc(template.reviewDefault)}</span></dd></div>
+        <div><dt>可最终放行</dt><dd><span class="status ${finalClass}">${esc(template.finalRelease)}</span></dd></div>
+        <div><dt>可例外放行</dt><dd><span class="status ${exceptionClass}">${esc(template.exceptionRelease)}</span></dd></div>
+      </dl>
+      <div class="permission-tags">${template.permissions.map((permission) => `<i>${esc(permission)}</i>`).join("")}</div>
+    </article>`;
+  }).join("")}</div>`;
+}
+
+function renderPersonAssignmentRows() {
+  return `<div class="people-row head"><span>人员姓名</span><span>所属部门</span><span>已分配角色</span><span>适用品牌 / 路线</span><span>关键权限</span><span>状态</span><span>操作</span></div>` + os.data.users.map((user) => {
+    const enabled = user.enabled !== false;
+    const assignedRoles = personRoleTemplates(user);
+    const permissions = inheritedPermissions(user);
+    const scopes = Array.from(new Set([...(user.scope || []), ...assignedRoles.flatMap((role) => role.stages)])).filter(Boolean);
+    const canReview = assignedRoles.some((role) => role.reviewDefault !== "否");
+    const canFinal = assignedRoles.some((role) => role.finalRelease === "是");
+    const canException = assignedRoles.some((role) => role.exceptionRelease === "是");
+    const dataPerson = [user.name, user.department, assignedRoles.map((role) => role.name).join("、") || user.role, user.currentResponsibility, user.reviewResponsibility, "人员继承固定角色模板权限", permissions.join("、"), scopes.join(" / "), canReview ? "可参与评审" : "不可参与评审", `固定角色：${assignedRoles.map((role) => role.name.split(" / ").pop()).join(" / ") || "未分配"}`, canReview ? "是" : "否", canFinal ? "是" : "否", canException ? "是" : "否"].join("|");
+    return `<div class="people-row" role="button" tabindex="0" data-person="${esc(dataPerson)}"><strong><i class="avatar avatar-${esc(user.avatarColor)}"></i>${esc(user.name)}</strong><span>${esc(user.department)}</span><em>${esc(assignedRoles.map((role) => role.name.split(" / ").pop()).join(" / ") || "未分配固定角色")}</em><small>${esc(scopes.join(" / ") || "待设置")}</small><div class="permission-tags">${permissions.slice(0, 3).map((permission) => `<i>${esc(permission)}</i>`).join("")}</div><span class="status ${enabled ? "green" : "neutral"}">${enabled ? "启用" : "停用"}</span><div class="row-actions-inline"><button type="button" data-assign-role="${esc(user.id)}">分配角色</button><button type="button">编辑人员</button><button type="button">停用</button></div></div>`;
+  }).join("");
+}
+
 function renderSettings() {
   const settingsHeader = document.querySelector("#settings .style-header");
   if (settingsHeader) {
@@ -853,15 +955,11 @@ function renderSettings() {
 
   const summary = document.querySelector("#settings .settings-summary-grid");
   if (summary) {
-    const uniqueRoles = new Set(os.data.users.map((user) => user.role).filter(Boolean));
-    const gateOwnerCount = os.data.users.filter((user) => user.isGateOwner).length;
-    const finalApproverCount = os.data.users.filter((user) => user.isFinalApprover).length;
-    const workerRoutes = new Set(os.data.workers.map((worker) => worker.route).filter(Boolean));
     summary.innerHTML = `
-      <div><span>系统角色</span><strong>${uniqueRoles.size}</strong><small>${os.data.users.length} 名人员来自 Supabase</small></div>
-      <div><span>Gate 负责人</span><strong>${gateOwnerCount}</strong><small>${os.data.users.filter((user) => user.isGateOwner).map((user) => user.name).join(" / ") || "未指定"}</small></div>
-      <div><span>例外审批人</span><strong>${finalApproverCount}</strong><small>${esc(os.data.users.filter((user) => user.isFinalApprover).map((user) => user.name).join(" / ") || os.userName(os.data.gateRules.finalApprover))}</small></div>
-      <div><span>打样工人池</span><strong>${os.data.workers.length}</strong><small>${workerRoutes.size} 条路线：${esc(Array.from(workerRoutes).join(" / ") || "未配置")}</small></div>
+      <div><span>系统角色</span><strong>10</strong><small>核心流程角色固定，不随人员新增</small></div>
+      <div><span>Gate 负责人</span><strong>5</strong><small>准备、派发、压胶、评审、例外</small></div>
+      <div><span>例外审批人</span><strong>1</strong><small>杨总，只处理例外放行</small></div>
+      <div><span>打样路线</span><strong>2</strong><small>普通打样 / 压胶新长江</small></div>
     `;
   }
 
@@ -874,19 +972,13 @@ function renderSettings() {
 
   const peopleTitle = document.querySelector("#settings .people-panel .section-title");
   if (peopleTitle) {
-    peopleTitle.innerHTML = `<div><h2>人员角色与系统权限</h2><span>人员职责会驱动流程权限、评审任务和放行判断</span></div><div class="panel-actions"><button class="row-action primary" type="button">+ 新增人员</button><button class="row-action" type="button">批量导入</button><button class="row-action" type="button">角色模板</button></div>`;
+    peopleTitle.innerHTML = `<div><h2>角色模板与人员分配</h2><span>先定义固定评审角色，再将现有人员分配到对应职责。</span></div><div class="panel-actions"><button class="row-action primary" type="button">+ 新增人员</button><button class="row-action disabled" type="button" aria-disabled="true">新增角色模板</button><button class="row-action" type="button" data-open-assignment>分配角色</button><button class="row-action" type="button">批量导入</button></div>`;
   }
 
   const peopleTable = document.querySelector("#settings .permission-table");
   if (peopleTable) {
-    peopleTable.innerHTML = `<div class="people-row head"><span>姓名</span><span>部门</span><span>系统角色</span><span>适用范围</span><span>关键权限</span><span>状态</span><span>操作</span></div>` + os.data.users.map((user) => {
-      const enabled = user.enabled !== false;
-      const canReview = user.permissions.some((permission) => ["提交意见", "创建问题", "复验问题", "版型评审"].includes(permission));
-      const canFinal = user.permissions.includes("最终放行");
-      const canException = user.permissions.includes("例外放行");
-      const dataPerson = [user.name, user.department, user.role, user.currentResponsibility, user.reviewResponsibility, "按角色权限矩阵执行", user.permissions.join("、"), user.scope.join(" / "), canReview ? "可参与评审" : "不可参与评审", `${canReview ? "可参与评审" : "不可参与评审"}；${canFinal ? "可最终放行" : "不可最终放行"}；${canException ? "可例外放行" : "不可例外放行"}`, canReview ? "是" : "否", canFinal ? "是" : "否", canException ? "是" : "否"].join("|");
-      return `<div class="people-row" role="button" tabindex="0" data-person="${esc(dataPerson)}"><strong><i class="avatar avatar-${esc(user.avatarColor)}"></i>${esc(user.name)}</strong><span>${esc(user.department)}</span><em>${esc(user.role)}</em><small>${esc(user.scope.join(" / "))}</small><div class="permission-tags">${user.permissions.slice(0, 3).map((permission) => `<i>${esc(permission)}</i>`).join("")}</div><span class="status ${enabled ? "green" : "neutral"}">${enabled ? "启用" : "停用"}</span><div class="row-actions-inline"><button type="button">编辑</button><button type="button">停用</button></div></div>`;
-    }).join("");
+    peopleTable.classList.toggle("role-template-mode", settingsRoleTab === "templates");
+    peopleTable.innerHTML = `<div class="settings-role-tabs"><button class="${settingsRoleTab === "templates" ? "active" : ""}" type="button" data-settings-role-tab="templates">角色模板</button><button class="${settingsRoleTab === "assignments" ? "active" : ""}" type="button" data-settings-role-tab="assignments">人员分配</button></div>${settingsRoleTab === "templates" ? renderRoleTemplateCards() : renderPersonAssignmentRows()}`;
   }
 
   const workerTitle = document.querySelector("#settings .worker-panel .section-title");
@@ -1060,6 +1152,23 @@ function renderPersonModal() {
     </form>`;
 }
 
+function renderAssignmentModal(options = {}) {
+  const selectedUser = os.getUser(options.userId) || os.data.users[0];
+  const userRoles = new Set(selectedUser?.assignedRoleIds || roleTemplates.filter((template) => selectedUser && template.people.includes(selectedUser.name)).map((template) => template.id));
+  const scopeOptions = ["萨洛蒙", "SUPREME", "迪桑特", "普通打样", "压胶 / 新长江", "样衣评审", "例外放行"];
+  const selectedScopes = selectedUser?.scope || ["萨洛蒙", "样衣评审"];
+  const isDefaultOwner = personRoleTemplates(selectedUser || {}).some((role) => role.people[0] === selectedUser?.name);
+  const participatesReview = personRoleTemplates(selectedUser || {}).some((role) => role.reviewDefault !== "否");
+  return `
+    <form class="modal-card wide assignment-modal-card" data-modal-form="assignment">
+      <div class="modal-header"><div><span>固定角色模板</span><h2>分配角色</h2></div><button type="button" data-close-modal>×</button></div>
+      <section><h3>选择人员</h3><div class="form-grid"><label>人员<select name="userId" required>${optionList(os.data.users.map((user) => ({ value: user.id, label: `${user.name} · ${user.department}` })), selectedUser?.id)}</select></label><label class="inline-check"><input name="defaultOwner" type="checkbox" ${isDefaultOwner ? "checked" : ""}>作为默认负责人</label><label class="inline-check"><input name="reviewParticipant" type="checkbox" ${participatesReview ? "checked" : ""}>参与样衣评审页</label></div></section>
+      <section><h3>固定角色</h3><div class="assignment-role-list">${roleTemplates.map((template) => `<label><input type="checkbox" name="roleIds" value="${esc(template.id)}" ${userRoles.has(template.id) ? "checked" : ""}><span><strong>${esc(template.name)}</strong><small>${esc(template.type)} · ${esc(template.permissions.slice(0, 3).join(" / "))}</small></span></label>`).join("")}</div></section>
+      <section><h3>适用范围</h3>${checkList(scopeOptions, "scopes", selectedScopes)}</section>
+      <div class="modal-actions"><button type="button" data-close-modal>取消</button><button class="primary-button" type="submit">保存分配</button></div>
+    </form>`;
+}
+
 function renderWorkerModal() {
   return `
     <form class="modal-card" data-modal-form="worker">
@@ -1122,7 +1231,7 @@ function renderIssueModal(prefill = {}) {
 
 function openModal(type, options = {}) {
   if (!modalRoot) return;
-  const templates = { person: renderPersonModal, worker: renderWorkerModal, style: renderStyleModal, issue: renderIssueModal };
+  const templates = { person: renderPersonModal, assignment: renderAssignmentModal, worker: renderWorkerModal, style: renderStyleModal, issue: renderIssueModal };
   modalRoot.innerHTML = `<div class="modal-backdrop" data-close-modal></div>${templates[type]?.(options) || ""}`;
   modalRoot.classList.remove("media-viewer-open", "issue-modal-open");
   modalRoot.classList.add("open");
@@ -1165,6 +1274,28 @@ async function handlePersonSubmit(form) {
   });
   await loadBackendSnapshot();
   showToast("人员已同步到 Supabase");
+}
+
+async function handleAssignmentSubmit(form) {
+  const fields = form.elements;
+  const user = os.getUser(fields.userId.value);
+  if (!user) throw new Error("请选择要分配角色的人员");
+  const roleIds = selectedValues(form, "roleIds");
+  if (!roleIds.length) throw new Error("请至少选择一个固定角色");
+  user.assignedRoleIds = roleIds;
+  user.scope = selectedValues(form, "scopes");
+  user.reviewParticipant = Boolean(fields.reviewParticipant?.checked);
+  user.permissions = inheritedPermissions(user);
+  user.enabled = user.enabled !== false;
+  if (fields.defaultOwner?.checked) {
+    roleIds.forEach((roleId) => {
+      const template = roleTemplates.find((role) => role.id === roleId);
+      if (template && !template.people.includes(user.name)) template.people.unshift(user.name);
+    });
+  }
+  renderSettings();
+  renderReview();
+  showToast(`${user.name} 已按固定角色模板更新权限`);
 }
 
 async function handleWorkerSubmit(form) {
@@ -1444,6 +1575,27 @@ document.addEventListener("click", (event) => {
     }
   }
 
+  const settingsTab = event.target.closest("[data-settings-role-tab]");
+  if (settingsTab) {
+    settingsRoleTab = settingsTab.dataset.settingsRoleTab;
+    renderSettings();
+    return;
+  }
+
+  const openAssignment = event.target.closest("[data-open-assignment]");
+  if (openAssignment) {
+    openModal("assignment");
+    return;
+  }
+
+  const assignRole = event.target.closest("[data-assign-role]");
+  if (assignRole) {
+    event.preventDefault();
+    event.stopPropagation();
+    openModal("assignment", { userId: assignRole.dataset.assignRole });
+    return;
+  }
+
   const styleDrawerButton = event.target.closest("[data-style-drawer]");
   if (styleDrawerButton) {
     openStyleDrawer(styleDrawerButton.dataset.styleId, styleDrawerButton.dataset.styleDrawer);
@@ -1653,6 +1805,7 @@ document.addEventListener("submit", async (event) => {
   const type = form.dataset.modalForm;
   try {
     if (type === "person") await handlePersonSubmit(form);
+    if (type === "assignment") await handleAssignmentSubmit(form);
     if (type === "worker") await handleWorkerSubmit(form);
     if (type === "style") await handleStyleSubmit(form);
     if (type === "issue") await handleIssueSubmit(form);
