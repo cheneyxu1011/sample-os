@@ -4018,6 +4018,29 @@ body.apple-ui::before {
   line-height: 1.35;
 }
 
+.apple-ui .owner-recommendation {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(52, 199, 89, 0.2);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(52, 199, 89, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.78);
+}
+
+.apple-ui .owner-recommendation strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.apple-ui .owner-recommendation span {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .apple-ui .attachment-status-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -456,7 +456,7 @@ function dateText(value, fallback = "未记录") {
 }
 
 function buildMaterialCards(summary) {
-  const { style, sample, review, openIssues, blockingIssues } = summary;
+  const { style, sample, openIssues } = summary;
   const peopleByScope = (scope) => os.data.users.filter((user) => user.scope?.some((item) => item.includes(scope)) || user.reviewResponsibility?.includes(scope) || user.currentResponsibility?.includes(scope));
   const ownerFor = (scope, fallback) => peopleByScope(scope)[0]?.name || fallback;
   const s3MediaCount = sample?.mediaList?.length || 0;
@@ -465,39 +465,53 @@ function buildMaterialCards(summary) {
   const materialIssueCount = (keyword) => openIssues.filter((issue) => `${issue.title} ${issue.description} ${issue.relatedArea} ${issue.sourceDepartment}`.includes(keyword)).length;
   return [
     {
-      name: "版子",
+      name: "客户资料已收到",
+      state: prepBlocked ? "待补全" : "已确认",
+      owner: ownerFor("业务", "业务负责人"),
+      note: "客户邮件、Comment、寄样目的可在详情页继续补充",
+      time: dateText(sample?.createdAt, "创建后补充"),
+    },
+    {
+      name: "TP / 技术包已收到",
+      state: prepBlocked ? "待上传" : "已上传",
+      owner: ownerFor("业务", "业务负责人"),
+      note: "创建后进入详情页上传 TP，并统一进入 S3",
+      time: dateText(sample?.updatedAt, "等待上传"),
+    },
+    {
+      name: "版子准备",
       state: prepBlocked || materialIssueCount("版") ? "待确认" : "已确认",
       owner: ownerFor("版", "版型负责人"),
       note: materialIssueCount("版") ? `${materialIssueCount("版")} 个版型相关问题未关闭` : "无未关闭版型问题",
       time: dateText(sample?.createdAt, "跟随样衣记录"),
     },
     {
-      name: "面料",
+      name: "面料准备",
       state: prepBlocked || materialIssueCount("面料") ? "待确认" : "已确认",
       owner: ownerFor("面料", "面料负责人"),
       note: materialIssueCount("面料") ? `${materialIssueCount("面料")} 个面料相关问题未关闭` : "无未关闭面料问题",
       time: dateText(sample?.updatedAt, "跟随样衣记录"),
     },
     {
-      name: "辅料",
+      name: "辅料准备",
       state: prepBlocked || materialIssueCount("辅料") || materialIssueCount("拉链") ? "待确认" : "已确认",
       owner: ownerFor("辅料", "辅料负责人"),
       note: materialIssueCount("辅料") || materialIssueCount("拉链") ? "有辅料/拉链相关问题未关闭" : "无未关闭辅料问题",
       time: dateText(sample?.updatedAt, "跟随样衣记录"),
     },
     {
-      name: "样衣媒体",
+      name: "原样 / 样衣参考确认",
       state: hasMedia ? "已上传" : "待上传",
       owner: os.userName(os.data.currentUserId),
-      note: hasMedia ? `${s3MediaCount} 个 S3 文件已同步` : "照片或视频上传后会进入 S3",
+      note: hasMedia ? `${s3MediaCount} 个 S3 文件可作为参考` : "参考图片、原样图片创建后上传到 S3",
       time: dateText(sample?.updatedAt, "等待上传"),
     },
     {
-      name: "评审结论",
-      state: blockingIssues.length ? "阻塞" : review?.finalDecision && review.finalDecision !== "none" ? "已提交" : "待评审",
-      owner: summary.gateOwner?.name || "评审负责人",
-      note: blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : `${openIssues.length} 个未关闭问题`,
-      time: dateText(review?.timeline?.[0]?.time || sample?.updatedAt, "等待评审"),
+      name: "打样资料待王部长确认",
+      state: prepBlocked ? "待确认" : "已确认",
+      owner: "王部长",
+      note: "资料齐套确认后推进到派发打样",
+      time: dateText(sample?.updatedAt, "等待确认"),
     },
   ];
 }
@@ -1168,15 +1182,15 @@ function renderWorkerModal() {
 
 function renderStyleModal() {
   const brandOwners = os.data.users.filter((user) => user.department === "业务部").map((user) => ({ value: user.id, label: user.name }));
+  const doneDate = nextDateValue(3);
+  const shipDate = offsetDateValue(doneDate, 1);
+  const recommendedSummary = recommendedOwnerSummary("normal", "office_sample_room");
   return `
     <form class="modal-card wide" data-modal-form="style">
       <div class="modal-header"><div><span>开发入口</span><h2>新建款式 / 新建开发任务</h2></div><button type="button" data-close-modal>×</button></div>
-      <section><h3>款式基础信息</h3><div class="form-grid"><label>品牌<select name="brand" required><option>萨洛蒙</option><option>其他</option></select></label><label>款号<input name="styleNo" required placeholder="212 / SW4SS27-002"></label><label>款式名称<input name="styleName" required placeholder="户外冲锋衣"></label><label>季节<select name="season" required><option>SS27</option><option>FW26</option><option>27SS</option><option>26FW</option></select></label><label>品类<select name="category"><option>冲锋衣</option><option>裤子</option><option>Polo</option><option>T恤</option><option>卫衣</option><option>外套</option><option>衬衫</option><option>其他</option></select></label><label>颜色<input name="color" placeholder="可选"></label><label>尺码<input name="size" placeholder="可选"></label><label>件数<input name="quantity" type="number" min="1" value="1" required></label></div></section>
-      <section><h3>样衣阶段 / 打样路线</h3><div class="form-grid"><label>第几次样品<select name="samplePhase">${optionList(Object.entries(os.data.samplePhases).map(([value, label]) => ({ value, label })), "first_sample")}</select></label><label>在哪里打样<select name="sampleLocation" id="new-style-location">${optionList(os.data.sampleLocationOptions.map((item) => ({ value: item.id, label: item.label })), "office_sample_room")}</select></label><label>打样路线<select name="route" id="new-style-route">${optionList(Object.entries(os.data.sampleRoutes).map(([value, label]) => ({ value, label })), "normal")}</select></label><div class="route-hint" id="route-hint">事务所打样间，建议路线：普通款式</div></div></section>
-      <section><h3>负责人设置</h3><div class="form-grid"><label>业务负责人<select name="businessOwner">${optionList(brandOwners, "user_guyao")}</select></label><label>版子负责人<select name="patternOwner">${optionList([{ value: "user_xuhaiyan", label: "徐海燕" }], "user_xuhaiyan")}</select></label><label>面料负责人<select name="fabricOwner">${optionList([{ value: "user_liweihong", label: "李卫红" }], "user_liweihong")}</select></label><label>辅料负责人<select name="trimOwner">${optionList([{ value: "user_dahong", label: "大红" }], "user_dahong")}</select></label><label>准备闸口<select name="prepOwner">${optionList([{ value: "user_wangbu", label: "王部长" }], "user_wangbu")}</select></label><label>普通打样派发<select name="normalDispatcher">${optionList([{ value: "user_dadai", label: "大戴" }], "user_dadai")}</select></label><label>压胶开发负责人<select name="bondingOwner">${optionList([{ value: "user_zhangbu", label: "张部长" }], "user_zhangbu")}</select></label><label>新长江派发人<select name="xcjDispatcher">${optionList([{ value: "user_xiahongxia", label: "夏红霞" }], "user_xiahongxia")}</select></label><label>评审负责人<select name="reviewOwner">${optionList(os.data.users.filter((u) => u.isGateOwner).map((u) => ({ value: u.id, label: u.name })), os.data.gateRules.sampleReviewGateOwner)}</select></label><label>例外放行<select name="finalApprover">${optionList(os.data.users.filter((u) => u.isFinalApprover).map((u) => ({ value: u.id, label: u.name })), os.data.gateRules.finalApprover)}</select></label></div></section>
-      <section><h3>交期与日历同步</h3><div class="form-grid"><label>预计打样完成日期<input name="sampleDoneDate" type="date" required value="2026-07-03"></label><label>预计寄样日期<input name="plannedShipDate" type="date" required value="2026-07-05"></label><label>客户要求到样日期<input name="customerDueDate" type="date"></label><label class="inline-check"><input name="syncCalendar" type="checkbox" checked>同步到样衣日历</label><label class="inline-check"><input name="highRisk" type="checkbox">设为高风险</label></div></section>
-      <section><h3>资料准备</h3>${checkList(["客户资料已收到", "TP / 技术包已收到", "版子准备", "面料准备", "辅料准备", "原样 / 样衣参考确认", "打样资料待王部长确认"], "prepItems", [])}</section>
-      <section><h3>附件 / 图片</h3><div class="attachment-status-grid"><div>客户资料：待接入 S3</div><div>TP：待接入 S3</div><div>参考图片：请在评审页上传</div><div>原样图片：请在评审页上传</div></div><small class="muted-note">当前已接入评审页照片和视频上传；资料附件不会伪造上传状态。</small></section>
+      <section><h3>款式基础信息</h3><div class="form-grid"><label>品牌<select name="brand" required><option>萨洛蒙</option><option>其他</option></select></label><label>款号<input name="styleNo" required placeholder="212 / SW4SS27-002"></label><label>款式名称<input name="styleName" required placeholder="户外冲锋衣"></label><label>季节<select name="season" required><option>SS27</option><option>FW26</option><option>27SS</option><option>26FW</option></select></label><label>品类<select name="category" required><option>冲锋衣</option><option>裤子</option><option>Polo</option><option>T恤</option><option>卫衣</option><option>外套</option><option>衬衫</option><option>其他</option></select></label><label>业务负责人<select name="businessOwner" required>${optionList(brandOwners, "user_guyao")}</select></label><label>颜色<input name="color" placeholder="可选"></label><label>尺码<input name="size" placeholder="可选"></label><label>件数<input name="quantity" type="number" min="1" value="1"></label></div></section>
+      <section><h3>打样信息</h3><div class="form-grid"><label>第几次样品<select name="samplePhase" required>${optionList(Object.entries(os.data.samplePhases).map(([value, label]) => ({ value, label })), "first_sample")}</select></label><label>在哪里打样<select name="sampleLocation" id="new-style-location" required>${optionList(os.data.sampleLocationOptions.map((item) => ({ value: item.id, label: item.label })), "office_sample_room")}</select></label><label>打样路线<select name="route" id="new-style-route" required>${optionList(Object.entries(os.data.sampleRoutes).map(([value, label]) => ({ value, label })), "normal")}</select></label><label>预计打样完成日期<input name="sampleDoneDate" id="new-style-done-date" type="date" required value="${doneDate}"></label><label>预计寄样日期<input name="plannedShipDate" id="new-style-ship-date" type="date" required value="${shipDate}"></label><label>客户要求到样日期<input name="customerDueDate" type="date"></label><label class="inline-check"><input name="highRisk" type="checkbox">是否高风险</label><label class="inline-check"><input name="syncCalendar" type="checkbox" checked>同步到样衣日历</label></div></section>
+      <section><h3>系统推荐</h3><div class="route-hint" id="route-hint">事务所打样间，建议路线：普通款式</div><div class="owner-recommendation" id="owner-recommendation"><strong>系统已根据打样路线自动分配负责人，可在款式详情页修改。</strong><span>${esc(recommendedSummary)}</span></div><small class="muted-note">客户资料、TP、参考图片、原样图片将在创建后进入款式详情页上传，并统一进入 S3。</small></section>
       <div class="modal-actions"><button type="button" data-close-modal>取消</button><button type="button" data-save-draft>保存草稿</button><button class="primary-button" type="submit">创建款式</button></div>
     </form>`;
 }
@@ -1185,6 +1199,39 @@ function nextDateValue(days = 1) {
   const date = new Date();
   date.setDate(date.getDate() + days);
   return dateKey(date);
+}
+
+function offsetDateValue(value, days = 1) {
+  const date = value ? new Date(`${value}T00:00:00`) : new Date();
+  date.setDate(date.getDate() + days);
+  return dateKey(date);
+}
+
+function recommendedOwnerSummary(route = "normal", locationId = "office_sample_room") {
+  const locationOption = os.data.sampleLocationOptions.find((item) => item.id === locationId);
+  const routeLabel = os.data.sampleRoutes[route] || route;
+  const base = ["业务负责人：表单选择", "版子：徐海燕", "面料：李卫红", "辅料：大红", "准备闸口：王部长", `评审负责人：${os.userName(os.data.gateRules.sampleReviewGateOwner) || "大前"}`];
+  if (route === "bonding_xinchangjiang" || route === "xinchangjiang") {
+    base.push("压胶开发：张部长", "新长江派发：夏红霞");
+  } else {
+    base.push("普通打样派发：大戴");
+  }
+  return `${locationOption?.label || "样衣间"} · ${routeLabel} · ${base.join(" / ")}`;
+}
+
+function userIdByName(name) {
+  return os.data.users.find((user) => user.name === name)?.id || null;
+}
+
+function updateStyleCreateRecommendations() {
+  const locationSelect = document.querySelector("#new-style-location");
+  const routeSelect = document.querySelector("#new-style-route");
+  const hint = document.querySelector("#route-hint");
+  const summary = document.querySelector("#owner-recommendation span");
+  if (!locationSelect || !routeSelect) return;
+  const option = os.data.sampleLocationOptions.find((item) => item.id === locationSelect.value);
+  if (hint && option) hint.textContent = `${option.label}，建议路线：${os.data.sampleRoutes[routeSelect.value] || routeSelect.value}`;
+  if (summary) summary.textContent = recommendedOwnerSummary(routeSelect.value, locationSelect.value);
 }
 
 function mediaOptionList(sample, selected = "") {
@@ -1316,13 +1363,28 @@ async function handleStyleSubmit(form) {
     season: fields.season.value,
     styleName: fields.styleName.value.trim(),
     category: fields.category.value,
+    color: fields.color.value.trim(),
+    size: fields.size.value.trim(),
     route,
     samplePhase: phase,
     sampleLocation: locationOption?.label || "样衣间",
+    sampleDoneDate: fields.sampleDoneDate.value,
     plannedShipDate: fields.plannedShipDate.value,
+    customerDueDate: fields.customerDueDate.value,
     versionName: os.phaseLabels[phase],
     highRisk: fields.highRisk.checked,
+    syncCalendar: fields.syncCalendar.checked,
     quantity: Number(fields.quantity.value || 1),
+    businessOwnerId: fields.businessOwner.value,
+    patternOwnerId: userIdByName("徐海燕"),
+    fabricOwnerId: userIdByName("李卫红"),
+    trimOwnerId: userIdByName("大红"),
+    prepOwnerId: userIdByName("王部长"),
+    reviewOwnerId: os.data.gateRules.sampleReviewGateOwner,
+    finalApproverId: os.data.gateRules.finalApprover,
+    normalDispatcherId: route === "normal" ? userIdByName("大戴") : null,
+    bondingOwnerId: route === "bonding_xinchangjiang" ? userIdByName("张部长") : null,
+    xcjDispatcherId: route === "bonding_xinchangjiang" || route === "xinchangjiang" ? userIdByName("夏红霞") : null,
   };
   if (!window.SampleOSBackend?.syncData) throw new Error("后端同步接口未加载");
   const response = await window.SampleOSBackend.syncData("createStyle", payload);
@@ -1330,7 +1392,8 @@ async function handleStyleSubmit(form) {
   os.data.currentStyleId = response.result.styleId;
   os.data.currentReviewId = response.result.reviewId;
   renderAll();
-  showToast("新建款式已同步到 Supabase 和样衣日历");
+  openStyleDrawer(response.result.styleId, "prep");
+  showToast("款式已创建，进入详情页继续补资料");
 }
 
 async function handleIssueSubmit(form) {
@@ -1408,9 +1471,8 @@ function updateIssueLevelFields(form) {
 function updateRouteHint(locationId) {
   const option = os.data.sampleLocationOptions.find((item) => item.id === locationId);
   const routeSelect = document.querySelector("#new-style-route");
-  const hint = document.querySelector("#route-hint");
   if (option && routeSelect) routeSelect.value = option.recommendedRoute;
-  if (hint && option) hint.textContent = `${option.label}，建议路线：${os.data.sampleRoutes[option.recommendedRoute]}`;
+  updateStyleCreateRecommendations();
 }
 
 function renderAll() {
@@ -1558,6 +1620,12 @@ document.addEventListener("click", (event) => {
       openModal("worker");
       return;
     }
+  }
+
+  const saveDraft = event.target.closest("[data-save-draft]");
+  if (saveDraft) {
+    showToast("已保留当前填写内容；点击创建款式后进入详情页继续补全。");
+    return;
   }
 
   const settingsTab = event.target.closest("[data-settings-role-tab]");
@@ -1771,6 +1839,13 @@ document.addEventListener("change", (event) => {
   }
   if (event.target.id === "new-style-location") {
     updateRouteHint(event.target.value);
+  }
+  if (event.target.id === "new-style-route") {
+    updateStyleCreateRecommendations();
+  }
+  if (event.target.id === "new-style-done-date") {
+    const shipDate = document.querySelector("#new-style-ship-date");
+    if (shipDate) shipDate.value = offsetDateValue(event.target.value, 1);
   }
   if (event.target.matches("[data-issue-level]")) {
     const form = event.target.closest("[data-modal-form='issue']");
