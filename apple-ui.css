@@ -2722,6 +2722,10 @@ body.apple-ui::before {
   align-items: stretch;
 }
 
+.apple-ui #style .style-detail-grid {
+  grid-template-columns: 1fr;
+}
+
 .apple-ui #style .section-block {
   border-radius: 16px;
   background:

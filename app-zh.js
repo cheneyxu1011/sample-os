@@ -557,21 +557,6 @@ function renderStyleWorkspace() {
   if (header) {
     header.innerHTML = `<div><div class="eyebrow">款式 ${esc(style.styleNo)} / ${esc(style.brand)} / ${esc(style.season)}</div><h2>${esc(style.styleName)}</h2></div><div class="header-badges"><span class="status ${statusClass(summary.shipmentStatus.key)}">${esc(summary.shipmentStatus.label)}</span><span class="status neutral">${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)}</span><span class="status neutral">位置：${esc(sample.location)}</span><span class="status neutral">路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</span><span class="status neutral">评审负责人：${esc(gateOwner.name)}</span><span class="status neutral">例外放行：${esc(finalApprover.name)}</span></div>`;
   }
-  const timeline = document.querySelector("#style .timeline-large");
-  if (timeline) {
-    const samplePhases = os.data.samples.filter((item) => item.styleId === style.id);
-    const timelineRows = [
-      ["收到资料 / 建立款式", `款式 ${style.styleNo} · ${style.brand} · ${dateText(sample.createdAt, "创建时间未记录")}`, "complete"],
-      ["样衣记录", `${sample.versionName} · ${sample.location} · 更新 ${dateText(sample.updatedAt, "未记录")}`, sample.status === "shipped" ? "complete" : "current"],
-      ["样衣媒体", (sample.mediaList || []).length ? `${(sample.mediaList || []).length} 个 S3 文件已同步` : "暂无 S3 媒体，评审页可上传照片/视频", (sample.mediaList || []).length ? "complete" : ""],
-      [`${os.phaseLabels[style.samplePhase] || style.samplePhase}评审`, `${os.reviewStatusLabels[review.status] || review.status} · ${openIssues.length} 个未关闭 / ${blockingIssues.length} 个阻塞 · 负责人：${gateOwner.name}`, blockingIssues.length ? "current risk" : "current"],
-      ["寄样决策", `${summary.shipmentStatus.label} · 下一步：${summary.nextAction}`, summary.shipmentStatus.canShip ? "complete" : blockingIssues.length ? "current risk" : ""],
-    ];
-    samplePhases
-      .filter((item) => item.id !== sample.id)
-      .forEach((item) => timelineRows.splice(2, 0, [item.versionName, `${item.status} · ${item.location} · ${dateText(item.updatedAt, "未记录")}`, item.status === "shipped" ? "complete" : ""]));
-    timeline.innerHTML = timelineRows.map(([title, text, state]) => `<div class="timeline-item ${esc(state)}"><strong>${esc(title)}</strong><span>${esc(text)}</span></div>`).join("");
-  }
   const snapshot = document.querySelector("#style .snapshot-content");
   if (snapshot) {
     snapshot.innerHTML = `<h3>${esc(os.phaseLabels[style.samplePhase])}评审</h3><p>跨部门评审状态来自同一个评审任务 ${esc(review.reviewNo)}。</p><div class="snapshot-gate"><span>${summary.shipmentStatus.canShip ? "当前可寄样" : "当前不可寄样"}</span><strong>原因：${blockingIssues.length ? blockingIssues.map((issue) => issue.title).join(" / ") : summary.shipmentStatus.label} · 责任：${esc(summary.ownerNames)} · 下一步：${esc(summary.nextAction)}</strong></div><div class="mini-stats"><span><strong>${openIssues.length}</strong> 未关闭</span><span><strong>${blockingIssues.length}</strong> 阻塞</span><span><strong>${review.departmentReviews.length}</strong> 部门</span></div><button class="primary-button" data-view="review" type="button">打开评审</button>`;
