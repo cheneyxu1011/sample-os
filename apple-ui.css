@@ -20,16 +20,189 @@ body.apple-ui {
   --glow-blue-soft: rgba(94, 164, 255, 0.12);
   --glow-green: rgba(52, 199, 89, 0.14);
   --glow-amber: rgba(255, 149, 0, 0.14);
+  --jp-ui-font:
+    "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    "YuGothic",
+    "Meiryo",
+    "Noto Sans CJK JP",
+    "Noto Sans JP",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   background:
     radial-gradient(circle at 82% 8%, rgba(0, 113, 227, 0.1), transparent 28%),
     radial-gradient(circle at 10% 28%, rgba(52, 199, 89, 0.055), transparent 22%),
     linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 42%, #f2f2f7 100%);
   color: var(--ink);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--jp-ui-font);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
+}
+
+/* Japanese-system typography pass: system fonts only, no web fonts. */
+.apple-ui,
+.apple-ui p,
+.apple-ui span,
+.apple-ui small,
+.apple-ui strong,
+.apple-ui em,
+.apple-ui label,
+.apple-ui div {
+  line-height: 1.5;
+}
+
+.apple-ui #view-title,
+.apple-ui .hero-title h2,
+.apple-ui .style-header h2,
+.apple-ui .modal-header h2,
+.apple-ui .drawer-header h2 {
+  font-size: clamp(28px, 3vw, 32px);
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.apple-ui .section-title h2,
+.apple-ui .table-header h2,
+.apple-ui .calendar-panel h2,
+.apple-ui .people-panel h2,
+.apple-ui .role-card-head h3,
+.apple-ui .snapshot-content h3,
+.apple-ui .drawer-section h3 {
+  font-size: clamp(18px, 1.8vw, 22px);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.apple-ui .pipeline-table,
+.apple-ui .review-table,
+.apple-ui .issue-table,
+.apple-ui .permission-table,
+.apple-ui .calendar-layout,
+.apple-ui .drawer-body,
+.apple-ui .modal-card,
+.apple-ui .section-block {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.apple-ui .row.data-row strong,
+.apple-ui .review-table-row strong,
+.apple-ui .issue-table-row strong,
+.apple-ui .calendar-item b,
+.apple-ui .month-cell b,
+.apple-ui .drawer-summary-card strong,
+.apple-ui .drawer-checklist strong {
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.apple-ui small,
+.apple-ui .muted-note,
+.apple-ui .section-title span,
+.apple-ui .drawer-summary-card span,
+.apple-ui .role-card-head span,
+.apple-ui .role-template-card dt,
+.apple-ui .panel-training-tip,
+.apple-ui .hero-meta span,
+.apple-ui .block-summary span,
+.apple-ui .calendar-item small,
+.apple-ui .month-event,
+.apple-ui .side-metric span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.apple-ui .status,
+.apple-ui .filter-button,
+.apple-ui .tab,
+.apple-ui .workspace-tab,
+.apple-ui .permission-chip,
+.apple-ui .permission-tags i,
+.apple-ui .drawer-tags i,
+.apple-ui .badge-count,
+.apple-ui .issue-created,
+.apple-ui .priority,
+.apple-ui .shipment,
+.apple-ui .language-switch button {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.apple-ui button,
+.apple-ui .primary-button,
+.apple-ui .row-action,
+.apple-ui .pipeline-actions button,
+.apple-ui .modal-actions button,
+.apple-ui .drawer-actions button,
+.apple-ui .decision-stack button,
+.apple-ui .row-actions-inline button {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.apple-ui .row-actions-inline button,
+.apple-ui .media-delete-button,
+.apple-ui .settings-role-tabs button,
+.apple-ui .check-grid label,
+.apple-ui .inline-check {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.apple-ui .long-copy,
+.apple-ui .role-template-card p,
+.apple-ui .snapshot-content p,
+.apple-ui .issue-level-help,
+.apple-ui .exception-form textarea,
+.apple-ui .modal-card textarea {
+  line-height: 1.6;
+}
+
+.apple-ui .status,
+.apple-ui .permission-tags i,
+.apple-ui .drawer-tags i,
+.apple-ui .filter-button,
+.apple-ui .tab,
+.apple-ui .workspace-tab,
+.apple-ui .row-action,
+.apple-ui .primary-button,
+.apple-ui .language-switch button,
+.apple-ui .settings-role-tabs button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.apple-ui input,
+.apple-ui textarea,
+.apple-ui select,
+.apple-ui .media-label-input {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.apple-ui input::placeholder,
+.apple-ui textarea::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.apple-ui button,
+.apple-ui input,
+.apple-ui textarea,
+.apple-ui select {
+  font-family: var(--jp-ui-font);
 }
 
 body.apple-ui::before {
@@ -5766,5 +5939,168 @@ body.apple-ui::before {
     width: calc(100vw - 24px);
     max-height: calc(100vh - 32px);
     overflow-y: auto;
+  }
+}
+
+/* Final Japanese-system typography overrides. Keep at EOF so component rules cannot fall back to Chinese UI fonts. */
+body.apple-ui,
+body.apple-ui button,
+body.apple-ui input,
+body.apple-ui textarea,
+body.apple-ui select {
+  font-family: var(--jp-ui-font);
+}
+
+body.apple-ui {
+  line-height: 1.5;
+}
+
+.apple-ui p,
+.apple-ui label,
+.apple-ui small,
+.apple-ui span,
+.apple-ui strong,
+.apple-ui em,
+.apple-ui li,
+.apple-ui td,
+.apple-ui th {
+  line-height: 1.5;
+}
+
+.apple-ui #view-title,
+.apple-ui .hero-title h2,
+.apple-ui .style-header h2,
+.apple-ui .modal-header h2,
+.apple-ui .drawer-header h2 {
+  font-size: clamp(28px, 3vw, 32px);
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.apple-ui .section-title h2,
+.apple-ui .table-header h2,
+.apple-ui .calendar-panel h2,
+.apple-ui .people-panel h2,
+.apple-ui .role-card-head h3,
+.apple-ui .snapshot-content h3,
+.apple-ui .drawer-section h3 {
+  font-size: clamp(18px, 1.8vw, 22px);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.apple-ui .pipeline-table,
+.apple-ui .review-table,
+.apple-ui .issue-table,
+.apple-ui .permission-table,
+.apple-ui .calendar-layout,
+.apple-ui .drawer-body,
+.apple-ui .modal-card,
+.apple-ui .section-block {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.apple-ui small,
+.apple-ui .muted-note,
+.apple-ui .section-title span,
+.apple-ui .drawer-summary-card span,
+.apple-ui .role-card-head span,
+.apple-ui .role-template-card dt,
+.apple-ui .panel-training-tip,
+.apple-ui .hero-meta span,
+.apple-ui .block-summary span,
+.apple-ui .calendar-item small,
+.apple-ui .month-event,
+.apple-ui .side-metric span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.apple-ui .status,
+.apple-ui .filter-button,
+.apple-ui .tab,
+.apple-ui .workspace-tab,
+.apple-ui .permission-chip,
+.apple-ui .permission-tags i,
+.apple-ui .drawer-tags i,
+.apple-ui .badge-count,
+.apple-ui .issue-created,
+.apple-ui .priority,
+.apple-ui .shipment,
+.apple-ui .language-switch button {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.apple-ui button,
+.apple-ui .primary-button,
+.apple-ui .row-action,
+.apple-ui .pipeline-actions button,
+.apple-ui .modal-actions button,
+.apple-ui .drawer-actions button,
+.apple-ui .decision-stack button,
+.apple-ui .row-actions-inline button {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.apple-ui .long-copy,
+.apple-ui .role-template-card p,
+.apple-ui .snapshot-content p,
+.apple-ui .issue-level-help,
+.apple-ui .exception-form textarea,
+.apple-ui .modal-card textarea {
+  line-height: 1.6;
+}
+
+.apple-ui input,
+.apple-ui textarea,
+.apple-ui select,
+.apple-ui .media-label-input {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.apple-ui .status,
+.apple-ui .permission-tags i,
+.apple-ui .drawer-tags i,
+.apple-ui .filter-button,
+.apple-ui .tab,
+.apple-ui .workspace-tab,
+.apple-ui .row-action,
+.apple-ui .primary-button,
+.apple-ui .language-switch button,
+.apple-ui .settings-role-tabs button {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (max-width: 768px) {
+  .apple-ui #view-title,
+  .apple-ui .hero-title h2,
+  .apple-ui .style-header h2,
+  .apple-ui .modal-header h2,
+  .apple-ui .drawer-header h2 {
+    font-size: clamp(24px, 7vw, 32px);
+    line-height: 1.15;
+  }
+
+  .apple-ui button,
+  .apple-ui .primary-button,
+  .apple-ui .row-action,
+  .apple-ui .pipeline-actions button,
+  .apple-ui .modal-actions button,
+  .apple-ui .drawer-actions button,
+  .apple-ui .decision-stack button,
+  .apple-ui .row-actions-inline button {
+    font-size: 13px;
   }
 }
