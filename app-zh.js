@@ -461,7 +461,7 @@ function renderPipeline() {
         <div><strong>${esc(style.styleNo)}</strong><span>${esc(style.styleName)} · ${esc(style.brand)} ${esc(style.season)}</span></div>
         <div class="stage-status"><strong>${esc(os.gateLabels[style.currentGate] || style.currentGate)}</strong><span class="status ${statusClass(summary.shipmentStatus.key)}">${esc(summary.shipmentStatus.label)}</span><small>路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)} · 位置：${esc(summary.sample?.location || style.sampleLocation || "未设置")}</small></div>
         <div class="stage-line gate-flow">${renderGateFlow(style)}</div>
-        <div class="block-summary"><strong>卡点：${esc(style.blockerSummary || `${summary.blockingIssues.length} 个阻塞问题`)}</strong><span>责任：${esc(summary.ownerNames)}</span><span>评审负责人：${esc(summary.gateOwner?.name)}</span><span>阻塞问题：${summary.blockingIssues.length ? `是 · ${summary.blockingIssues.length} 个` : "否"}</span><span>下一步：${esc(summary.nextAction)}</span><div class="pipeline-actions"><button type="button" data-style-drawer="timeline" data-style-id="${style.id}">时间线</button><button type="button" data-style-drawer="details" data-style-id="${style.id}">详情</button><button type="button" data-style-drawer="prep" data-style-id="${style.id}">准备材料</button><button class="primary" type="button" data-open-review="${style.id}">打开评审</button></div></div>
+        <div class="block-summary"><strong>卡点：${esc(style.blockerSummary || `${summary.blockingIssues.length} 个阻塞问题`)}</strong><span>责任：${esc(summary.ownerNames)}</span><span>评审负责人：${esc(summary.gateOwner?.name)}</span><span>阻塞问题：${summary.blockingIssues.length ? `是 · ${summary.blockingIssues.length} 个` : "否"}</span><span>下一步：${esc(summary.nextAction)}</span><div class="pipeline-actions"><button type="button" data-style-drawer="details" data-style-id="${style.id}">详情</button><button type="button" data-style-drawer="prep" data-style-id="${style.id}">准备材料</button><button class="primary" type="button" data-open-review="${style.id}">打开评审</button></div></div>
       </div>`;
   }).join("");
   syncFilterButtons();
@@ -568,7 +568,6 @@ function renderReview() {
   renderDepartmentReviews(review);
   renderIssueList(review);
   renderDecision(review, summary);
-  renderTimeline(review);
   renderVersions(style.id, sample.id);
 }
 
@@ -734,22 +733,6 @@ function renderDecision(review, summary) {
   const hasCriticalBlocking = summary.blockingIssues.some((issue) => issue.level === "critical");
   const approveDisabled = !canGate || hasCriticalBlocking;
   panel.innerHTML = `<div class="section-title"><h2>评审结论</h2><span>寄样结论权限：评审负责人 / 例外放行人</span></div><div class="gate-owner-card"><div><i class="avatar avatar-${esc(summary.gateOwner.avatarColor)}"></i><strong>${esc(summary.gateOwner.name)}</strong><small>评审负责人，可做普通寄样结论</small></div><span class="status ${canGate ? "green" : "red"}">${canGate ? "当前用户可最终放行" : "当前用户无最终放行权限"}</span></div><div class="decision-stack" data-decision-stack><button class="approve ${approveDisabled ? "disabled" : ""}" type="button" data-decision="can_ship">可以寄样</button><button class="revise ${canGate ? "" : "disabled"}" type="button" data-decision="ship_after_rework">修改后寄样</button><button class="hold ${canGate ? "" : "disabled"}" type="button" data-decision="hold_shipment">暂停寄样</button><button class="exception ${canException ? "" : "disabled"}" type="button" data-decision="exception_release">例外放行</button><button class="primary-button" type="button" data-submit-decision>提交评审结论</button><small>当前寄样状态：${esc(summary.shipmentStatus.label)}。${hasCriticalBlocking ? "存在严重 Blocking Issue，必须复验后重新评审。" : `例外放行仅 ${esc(summary.finalApprover.name)} 可批准。`}</small></div><div class="exception-box exception-form"><strong>例外放行申请</strong><label>例外原因 <input data-exception-reason value="${esc(review.exceptionRequest?.reason || "")}" placeholder="客户会议 / 交期风险 / 样衣用途"></label><label>风险说明 <textarea data-exception-risk-note placeholder="说明客户已知风险、需要同步的质量/交期影响">${esc(review.exceptionRequest?.riskNote || "")}</textarea></label><label>申请人 <span>${esc(os.userName(review.exceptionRequest?.applicant) || os.userName(os.data.currentUserId))}</span></label><label>审批人 <span>${esc(summary.finalApprover.name)} · 例外放行人</span></label><label>是否通知客户 <input type="checkbox" data-customer-notified ${review.exceptionRequest?.customerNotified ? "checked" : ""}></label><label>审批结论 <span>${esc(review.exceptionRequest?.approvalStatus || "未申请")}</span></label></div>`;
-}
-
-function renderTimeline(review) {
-  const timeline = document.querySelector("#review .vertical-timeline");
-  if (!timeline) return;
-  const issueEvents = os.getIssuesByReview(review.id).map((issue) => {
-    const level = os.data.issueLevelRules[issue.level]?.label || issue.level;
-    const isRisk = ["major", "critical"].includes(issue.level) || issue.shipmentBlocking;
-    return {
-      time: issue.createdAt || issue.updatedAt || "现在",
-      type: isRisk ? "red" : "blue",
-      text: `${issue.sourceDepartment || "页面"} · 新增${level} Issue：${issue.title}${isRisk ? "，同步风险状态" : ""}`,
-    };
-  });
-  const entries = [...issueEvents, ...(review.timeline || [])];
-  timeline.innerHTML = entries.map((item) => `<div class="${item.type === "red" ? "danger" : ""}"><b>${esc(item.time)}</b><span>${esc(item.text)}</span></div>`).join("");
 }
 
 function renderVersions(styleId, activeSampleId) {
@@ -1004,16 +987,6 @@ function renderStyleDrawer(styleId, mode = "details") {
   const { style, sample, review, openIssues, blockingIssues, shipmentStatus, gateOwner, finalApprover } = summary;
   document.querySelector("#style-drawer-title").textContent = `${style.styleNo} / ${style.styleName}`;
   const materials = buildMaterialCards(summary);
-  const reviewState = blockingIssues.length ? "current risk" : "current";
-  const decisionState = style.currentGate === "shipment_decision"
-    ? shipmentStatus.canShip ? "current" : "current risk"
-    : "";
-  const timeline = [
-    ["建立款式", `${style.brand} ${style.styleNo} · 预计寄样 ${style.plannedShipDate || "未设置"}`, "complete"],
-    ["当前样衣", `${sample?.versionName || "未生成样衣"} · ${sample?.location || "未设置位置"} · 更新 ${sample?.updatedAt || "未记录"}`, sample ? "complete" : ""],
-    [os.phaseLabels[style.samplePhase], `${review ? os.reviewStatusLabels[review.status] : "未生成评审"} · ${openIssues.length} 个未关闭 / ${blockingIssues.length} 个阻塞`, reviewState],
-    ["寄样决策", shipmentStatus.label, decisionState],
-  ];
   const body = document.querySelector("#style-drawer-body");
   body.innerHTML = `
     <div class="drawer-summary-card">
@@ -1033,16 +1006,11 @@ function renderStyleDrawer(styleId, mode = "details") {
       <strong>${esc(summary.nextAction)}</strong>
       <small>寄样状态：${esc(shipmentStatus.label)}</small>
     </div>
-    <div class="drawer-section ${mode !== "timeline" ? "" : "emphasis"}">
-      <h3>开发时间线</h3>
-      <div class="drawer-timeline">${timeline.map(([name, note, state]) => `<div class="${esc(state)}"><i></i><strong>${esc(name)}</strong><span>${esc(note)}</span></div>`).join("")}</div>
-    </div>
     <div class="drawer-section ${mode === "prep" ? "emphasis" : ""}">
       <h3>前期准备 checklist</h3>
       <div class="drawer-checklist">${materials.map((card) => `<div class="${["已确认", "已上传", "已提交"].includes(card.state) ? "done" : "waiting"}"><strong>${esc(card.name)}</strong><span>${esc(card.state)} · ${esc(card.owner)}</span><small>${esc(card.note)}</small></div>`).join("")}</div>
     </div>
     <div class="drawer-actions">
-      <button type="button" data-style-drawer="timeline" data-style-id="${style.id}">看时间线</button>
       <button type="button" data-style-drawer="prep" data-style-id="${style.id}">看准备材料</button>
       <button class="primary-button" type="button" data-open-review="${style.id}">打开评审</button>
     </div>
