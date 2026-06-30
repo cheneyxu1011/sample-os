@@ -486,6 +486,36 @@
 
               <div class="section-block issue-panel">
                 <div class="section-title"><h2>质量闸口问题 <span class="badge-count">4</span></h2><button class="row-action primary" type="button">新增 问题</button></div>
+                <div class="decision-panel decision-compact">
+                  <div class="decision-compact-head">
+                    <div>
+                      <h3>寄样结论</h3>
+                      <span>由评审负责人判断，例外放行由杨总审批。</span>
+                    </div>
+                    <span class="status red">待评审负责人判断</span>
+                  </div>
+                  <div class="gate-owner-card">
+                    <div><i class="avatar avatar-zhao"></i><strong>大前</strong><small>评审负责人</small></div>
+                    <span class="status red">当前用户无最终放行权限</span>
+                  </div>
+                  <div class="decision-stack">
+                    <button class="approve disabled" type="button" aria-disabled="true">可以寄样</button>
+                    <button class="revise disabled" type="button" aria-disabled="true">修改后寄样</button>
+                    <button class="hold disabled" type="button" aria-disabled="true">暂停寄样</button>
+                    <button class="exception disabled" type="button" aria-disabled="true">例外放行</button>
+                    <button class="primary-button" type="button">提交结论</button>
+                    <small>当前寄样状态：待评审负责人判断。</small>
+                  </div>
+                  <details class="exception-box exception-form">
+                    <summary>例外放行申请</summary>
+                    <label>例外原因 <span>客户会议 / 交期风险 / 样衣用途</span></label>
+                    <label>风险说明 <span>重大问题带说明寄样，客户需知晓风险。</span></label>
+                    <label>申请人 <span>顾瑶 · 业务负责人</span></label>
+                    <label>审批人 <span>杨总 · 例外放行人</span></label>
+                    <label>是否通知客户 <span>否，待审批后通知</span></label>
+                    <label>审批结论 <span>待审批</span></label>
+                  </details>
+                </div>
                 <div class="issue-table">
                   <div class="issue-table-row head"><span>问题</span><span>来源/证据</span><span>等级</span><span>是否阻塞</span><span>负责人</span><span>复验要求</span><span>状态</span></div>
                   <div class="issue-table-row issue-blocking">
@@ -504,34 +534,6 @@
                     <strong>压胶剥离风险未验证 <small>肩缝压胶</small></strong><span>工艺部 · 待测试</span>
                     <b class="priority critical">严重</b><span class="shipment no">是</span><span><i class="avatar avatar-zhang"></i>张部长</span><time>剥离测试后复验</time><em>待验证</em>
                   </div>
-                </div>
-              </div>
-
-              <div class="section-block decision-panel">
-                <div class="section-title">
-                  <h2>评审结论</h2>
-                  <span>寄样结论权限：评审负责人 / 例外放行人</span>
-                </div>
-                <div class="gate-owner-card">
-                  <div><i class="avatar avatar-zhao"></i><strong>大前</strong><small>评审负责人，可做普通寄样结论</small></div>
-                  <span class="status red">当前用户无最终放行权限</span>
-                </div>
-                <div class="decision-stack">
-                  <button class="approve disabled" type="button" aria-disabled="true">可以寄样</button>
-                  <button class="revise disabled" type="button" aria-disabled="true">修改后寄样</button>
-                  <button class="hold disabled" type="button" aria-disabled="true">暂停寄样</button>
-                  <button class="exception disabled" type="button" aria-disabled="true">例外放行</button>
-                  <button class="primary-button" type="button">提交评审结论</button>
-                  <small>可以寄样 / 修改后寄样 / 暂停寄样仅评审负责人可操作；例外放行仅杨总可批准。</small>
-                </div>
-                <div class="exception-box exception-form">
-                  <strong>例外放行申请</strong>
-                  <label>例外原因 <span>客户会议 / 交期风险 / 样衣用途</span></label>
-                  <label>风险说明 <span>必填：重大问题带说明寄样，客户需知晓风险。</span></label>
-                  <label>申请人 <span>顾瑶 · 业务负责人</span></label>
-                  <label>审批人 <span>杨总 · 例外放行人</span></label>
-                  <label>是否通知客户 <span>否，待审批后通知</span></label>
-                  <label>审批结论 <span>待审批</span></label>
                 </div>
               </div>
 
