@@ -177,31 +177,53 @@ async function createStyle(supabase, orgId, body) {
   const samplePhase = body.samplePhase || "first_sample";
   const plannedShipDate = body.plannedShipDate || null;
   const now = new Date().toISOString();
+  const sampleVariants = Array.isArray(body.sampleVariants)
+    ? body.sampleVariants.map((item) => ({
+      color: String(item?.color || "").trim(),
+      size: String(item?.size || "").trim(),
+      quantity: Math.max(1, Number(item?.quantity || 1)),
+    })).filter((item) => item.color || item.size || item.quantity > 0)
+    : [];
+  const quantity = sampleVariants.reduce((sum, item) => sum + item.quantity, 0) || Math.max(1, Number(body.quantity || 1));
 
-  const { data: style, error: styleError } = await supabase
+  const stylePayload = {
+    org_id: orgId,
+    external_ref: `style_${styleNo}_${Date.now()}`,
+    style_no: styleNo,
+    brand: body.brand || "未指定品牌",
+    season: body.season || "",
+    style_name: styleName,
+    category: body.category || "",
+    route: body.route || "normal",
+    current_gate: "preparation_gate",
+    sample_phase: samplePhase,
+    risk_status: body.highRisk ? "approaching_due" : "normal",
+    planned_ship_date: plannedShipDate,
+    gate_owner_id: body.reviewOwnerId || null,
+    final_approver_id: body.finalApproverId || null,
+    sample_variants: sampleVariants,
+    quantity,
+    next_action: "准备材料齐套后由负责人确认",
+    blocker_summary: "准备闸口未完成",
+    created_at: now,
+    updated_at: now,
+  };
+
+  let { data: style, error: styleError } = await supabase
     .from("styles")
-    .insert({
-      org_id: orgId,
-      external_ref: `style_${styleNo}_${Date.now()}`,
-      style_no: styleNo,
-      brand: body.brand || "未指定品牌",
-      season: body.season || "",
-      style_name: styleName,
-      category: body.category || "",
-      route: body.route || "normal",
-      current_gate: "preparation_gate",
-      sample_phase: samplePhase,
-      risk_status: body.highRisk ? "approaching_due" : "normal",
-      planned_ship_date: plannedShipDate,
-      gate_owner_id: body.reviewOwnerId || null,
-      final_approver_id: body.finalApproverId || null,
-      next_action: "准备材料齐套后由负责人确认",
-      blocker_summary: "准备闸口未完成",
-      created_at: now,
-      updated_at: now,
-    })
+    .insert(stylePayload)
     .select("id")
     .single();
+  if (styleError && /sample_variants|quantity/i.test(styleError.message || "")) {
+    const { sample_variants: _sampleVariants, quantity: _quantity, ...legacyStylePayload } = stylePayload;
+    const legacyResult = await supabase
+      .from("styles")
+      .insert(legacyStylePayload)
+      .select("id")
+      .single();
+    style = legacyResult.data;
+    styleError = legacyResult.error;
+  }
   if (styleError) throw styleError;
 
   const { data: sample, error: sampleError } = await supabase

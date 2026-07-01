@@ -130,7 +130,7 @@ window.sampleOSData = {
   trainingStats: { trained: 18, untrained: 7, eligibleReviewers: 25 },
   trainingCards: ["业务评审员职责卡", "版师评审员职责卡", "品质评审员职责卡", "工艺评审员职责卡", "IE 评审员职责卡", "打样评审员职责卡", "问题等级判断训练", "意见转问题示例", "培训小考"],
   styleList: [
-    { id: "style_212", externalRef: "style_212", styleNo: "212", brand: "萨洛蒙", season: "SS27", styleName: "户外冲锋衣", category: "夹克", route: "normal", currentGate: "sample_review_gate", samplePhase: "second_sample", sampleLocation: "样衣间", currentOwner: ["user_daqian", "user_zhao", "user_chen"], preparationGateOwner: "user_wangbu", gateOwner: "user_daqian", finalApprover: "user_yang", plannedShipDate: "2026-06-30", riskStatus: "blocked", nextAction: "确认质量与工艺问题责任人", blockerSummary: "2 个问题阻止寄样" },
+    { id: "style_212", externalRef: "style_212", styleNo: "212", brand: "萨洛蒙", season: "SS27", styleName: "户外冲锋衣", category: "夹克", route: "normal", currentGate: "sample_review_gate", samplePhase: "second_sample", sampleLocation: "样衣间", currentOwner: ["user_daqian", "user_zhao", "user_chen"], preparationGateOwner: "user_wangbu", gateOwner: "user_daqian", finalApprover: "user_yang", plannedShipDate: "2026-06-30", riskStatus: "blocked", nextAction: "确认质量与工艺问题责任人", blockerSummary: "2 个问题阻止寄样", sampleVariants: [{ color: "蓝色", size: "M", quantity: 1 }], quantity: 1 },
   ],
   samples: [
     { id: "sample_212_second", externalRef: "sample_212_second", styleId: "style_212", samplePhase: "second_sample", versionName: "二次样", status: "reviewing", location: "样衣间", holder: "李师傅", createdAt: "2026-06-29 15:12", updatedAt: "2026-06-29 15:12", imageList: ["正面", "背面", "领口 / 帽口", "袖口", "下摆抽绳", "压胶缝", "口袋"], videoList: ["整体视频 00:32"], mediaList: [], reviewId: "review_212_second", plannedShipDate: "2026-06-30" },

@@ -197,7 +197,8 @@ export default async function handler(req, res) {
         riskStatus: style.risk_status || "normal",
         nextAction: style.next_action || "",
         blockerSummary: style.blocker_summary || "",
-        quantity: 1,
+        sampleVariants: Array.isArray(style.sample_variants) ? style.sample_variants : [],
+        quantity: Number(style.quantity || 1),
       })),
       samples: samplePayload,
       reviews: reviews.map((review) => ({

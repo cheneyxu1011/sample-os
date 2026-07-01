@@ -3953,6 +3953,47 @@ body.apple-ui::before {
   grid-template-columns: 1fr;
 }
 
+.apple-ui .section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.apple-ui .section-title-row h3 {
+  margin: 0;
+}
+
+.apple-ui .section-title-row button,
+.apple-ui .sample-variant-row button {
+  min-height: 34px;
+  border: 1px solid rgba(0, 113, 227, 0.24);
+  border-radius: 10px;
+  background: rgba(234, 244, 255, 0.72);
+  color: var(--blue);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.apple-ui .sample-variant-list {
+  display: grid;
+  gap: 8px;
+}
+
+.apple-ui .sample-variant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 92px 64px;
+  gap: 8px;
+  align-items: end;
+}
+
+.apple-ui .sample-variant-row button {
+  border-color: rgba(215, 0, 21, 0.18);
+  background: rgba(255, 241, 240, 0.72);
+  color: var(--red);
+}
+
 .apple-ui .modal-card label {
   display: grid;
   gap: 6px;
@@ -4062,9 +4103,15 @@ body.apple-ui::before {
 @media (max-width: 900px) {
   .apple-ui .drawer-summary-card,
   .apple-ui .form-grid,
+  .apple-ui .sample-variant-row,
   .apple-ui .check-grid,
   .apple-ui .attachment-status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .apple-ui .section-title-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

@@ -656,7 +656,7 @@ function renderReview() {
       <div class="hero-info">
         <div class="crumb">首页 / 样衣评审 / ${esc(review.reviewNo)}</div>
         <div class="hero-title"><h2>${esc(style.styleNo)}-${esc(review.reviewNo)}</h2><span class="status blue">${esc(sample.versionName)}</span></div>
-        <div class="hero-meta"><span>品牌：${esc(style.brand)}</span><span>季节：${esc(style.season)}</span><span>款式：${esc(style.category)}</span><span>阶段：${esc(sample.versionName)}</span><span>路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</span><span>评审负责人：${esc(gateOwner.name)}</span><span>创建时间：${esc(sample.createdAt)}</span><span>预计寄样：${esc(sample.plannedShipDate)}</span></div>
+        <div class="hero-meta"><span>品牌：${esc(style.brand)}</span><span>季节：${esc(style.season)}</span><span>款式：${esc(style.category)}</span><span>样衣：${esc(sampleVariantSummary(style))}</span><span>阶段：${esc(sample.versionName)}</span><span>路线：${esc(os.data.routeRules[style.route]?.label || os.data.sampleRoutes[style.route] || style.route)}</span><span>评审负责人：${esc(gateOwner.name)}</span><span>创建时间：${esc(sample.createdAt)}</span><span>预计寄样：${esc(sample.plannedShipDate)}</span></div>
       </div>
       <div class="review-process">
         <div class="process-step done"><b>✓</b><span>样衣完成</span><small>${esc(sample.createdAt || "")}</small></div>
@@ -915,7 +915,7 @@ function renderCalendar() {
     groups[date].push(summary);
   });
   if (Object.keys(groups).length) {
-    grid.innerHTML = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => `<div class="calendar-day ${date <= todayKey ? "urgent" : ""}"><strong>${date.slice(5)} ${date === todayKey ? "今天" : ""}</strong>${items.map(({ style, sample, openIssues, blockingIssues, calendarRisk }) => `<div class="calendar-item" title="点击进入单款详情" data-style-drawer="details" data-style-id="${style.id}"><span class="brand-dot salomon"></span><div><b>${esc(style.brand)} ${esc(style.styleNo)}</b><small>${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${style.quantity || 1} 件 · ${esc(sample?.location || style.sampleLocation || "未设置")}</small><em>状态：${esc(os.riskLabels[calendarRisk] || calendarRisk)} · 原因：${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : openIssues.length ? `${openIssues.length} 个待处理问题` : "无阻塞"}</em></div></div>`).join("")}</div>`).join("");
+    grid.innerHTML = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => `<div class="calendar-day ${date <= todayKey ? "urgent" : ""}"><strong>${date.slice(5)} ${date === todayKey ? "今天" : ""}</strong>${items.map(({ style, sample, openIssues, blockingIssues, calendarRisk }) => `<div class="calendar-item" title="点击进入单款详情" data-style-drawer="details" data-style-id="${style.id}"><span class="brand-dot salomon"></span><div><b>${esc(style.brand)} ${esc(style.styleNo)}</b><small>${esc(os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${esc(sampleVariantSummary(style))} · ${esc(sample?.location || style.sampleLocation || "未设置")}</small><em>状态：${esc(os.riskLabels[calendarRisk] || calendarRisk)} · 原因：${blockingIssues.length ? `${blockingIssues.length} 个阻塞问题` : openIssues.length ? `${openIssues.length} 个待处理问题` : "无阻塞"}</em></div></div>`).join("")}</div>`).join("");
   }
   const riskOrder = { blocked: 1, overdue: 1, waiting_exception: 2, approaching_due: 3, normal: 4, exception_released: 5, shipped: 6 };
   if (summaries.length) {
@@ -953,7 +953,7 @@ function renderCalendar() {
       const items = monthGroups[key] || [];
       const muted = cursor.getMonth() !== activeMonthIndex;
       const weekend = [0, 6].includes(cursor.getDay());
-      cells.push(`<div class="month-cell ${muted ? "muted-date" : ""} ${weekend ? "weekend" : ""}"><b>${cursor.getMonth() + 1}/${String(cursor.getDate()).padStart(2, "0")}</b>${items.map(({ style, sample, calendarRisk }) => `<span class="month-event ${monthEventClass(calendarRisk)}" data-style-drawer="details" data-style-id="${style.id}">${esc(style.brand)} ${esc(style.styleNo)} · ${esc(sample?.versionName || os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${style.quantity || 1}件</span>`).join("")}</div>`);
+      cells.push(`<div class="month-cell ${muted ? "muted-date" : ""} ${weekend ? "weekend" : ""}"><b>${cursor.getMonth() + 1}/${String(cursor.getDate()).padStart(2, "0")}</b>${items.map(({ style, sample, calendarRisk }) => `<span class="month-event ${monthEventClass(calendarRisk)}" data-style-drawer="details" data-style-id="${style.id}">${esc(style.brand)} ${esc(style.styleNo)} · ${esc(sample?.versionName || os.phaseLabels[style.samplePhase] || style.samplePhase)} · ${esc(sampleVariantSummary(style))}</span>`).join("")}</div>`);
     }
     monthCalendar.innerHTML = weekdays + cells.join("");
   }
@@ -1228,6 +1228,36 @@ function renderWorkerModal() {
     </form>`;
 }
 
+function renderSampleVariantRow(index = 0, variant = {}) {
+  return `
+    <div class="sample-variant-row" data-sample-variant-row>
+      <label>颜色<input name="variantColor" placeholder="如：黑色 / 蓝色" value="${esc(variant.color || "")}"></label>
+      <label>尺码<input name="variantSize" placeholder="如：M / L / XL" value="${esc(variant.size || "")}"></label>
+      <label>件数<input name="variantQuantity" type="number" min="1" value="${Number(variant.quantity || 1)}"></label>
+      <button type="button" data-remove-sample-variant aria-label="删除第 ${index + 1} 个颜色尺码组合">删除</button>
+    </div>`;
+}
+
+function collectSampleVariants(form) {
+  const rows = Array.from(form.querySelectorAll("[data-sample-variant-row]"));
+  const variants = rows.map((row) => {
+    const color = row.querySelector('[name="variantColor"]')?.value.trim() || "";
+    const size = row.querySelector('[name="variantSize"]')?.value.trim() || "";
+    const quantity = Math.max(1, Number(row.querySelector('[name="variantQuantity"]')?.value || 1));
+    return { color, size, quantity };
+  }).filter((item) => item.color || item.size || item.quantity > 0);
+  return variants.length ? variants : [{ color: "", size: "", quantity: 1 }];
+}
+
+function sampleVariantSummary(style) {
+  const variants = style?.sampleVariants || [];
+  if (!variants.length) return `${style?.quantity || 1} 件`;
+  return variants.map((item) => {
+    const spec = [item.color, item.size].filter(Boolean).join(" / ") || "未填颜色尺码";
+    return `${spec} ${item.quantity || 1}件`;
+  }).join("；");
+}
+
 function renderStyleModal() {
   const brandOwners = os.data.users.filter((user) => user.department === "业务部").map((user) => ({ value: user.id, label: user.name }));
   const doneDate = nextDateValue(3);
@@ -1236,7 +1266,8 @@ function renderStyleModal() {
   return `
     <form class="modal-card wide" data-modal-form="style">
       <div class="modal-header"><div><span>开发入口</span><h2>新建款式 / 新建开发任务</h2></div><button type="button" data-close-modal>×</button></div>
-      <section><h3>款式基础信息</h3><div class="form-grid"><label>品牌<select name="brand" required><option>萨洛蒙</option><option>其他</option></select></label><label>款号<input name="styleNo" required placeholder="212 / SW4SS27-002"></label><label>款式名称<input name="styleName" required placeholder="户外冲锋衣"></label><label>季节<select name="season" required><option>SS27</option><option>FW26</option><option>27SS</option><option>26FW</option></select></label><label>品类<select name="category" required><option>冲锋衣</option><option>裤子</option><option>Polo</option><option>T恤</option><option>卫衣</option><option>外套</option><option>衬衫</option><option>其他</option></select></label><label>业务负责人<select name="businessOwner" required>${optionList(brandOwners, "user_guyao")}</select></label><label>颜色<input name="color" placeholder="可选"></label><label>尺码<input name="size" placeholder="可选"></label><label>件数<input name="quantity" type="number" min="1" value="1"></label></div></section>
+      <section><h3>款式基础信息</h3><div class="form-grid"><label>品牌<select name="brand" required><option>萨洛蒙</option><option>迪桑特</option><option>其他</option></select></label><label>款号<input name="styleNo" required placeholder="212 / SW4SS27-002"></label><label>款式名称<input name="styleName" required placeholder="户外冲锋衣"></label><label>季节<select name="season" required><option>SS27</option><option>FW26</option><option>27SS</option><option>26FW</option></select></label><label>品类<select name="category" required><option>冲锋衣</option><option>裤子</option><option>Polo</option><option>T恤</option><option>卫衣</option><option>外套</option><option>衬衫</option><option>其他</option></select></label><label>业务负责人<select name="businessOwner" required>${optionList(brandOwners, "user_guyao")}</select></label></div></section>
+      <section><div class="section-title-row"><h3>样衣颜色 / 尺码 / 件数</h3><button type="button" data-add-sample-variant>添加组合</button></div><div class="sample-variant-list" data-sample-variant-list>${renderSampleVariantRow(0)}</div><small class="muted-note">同一个款号可一次录入多个颜色和尺码组合，系统会自动汇总总件数。</small></section>
       <section><h3>打样信息</h3><div class="form-grid"><label>第几次样品<select name="samplePhase" required>${optionList(Object.entries(os.data.samplePhases).map(([value, label]) => ({ value, label })), "first_sample")}</select></label><label>在哪里打样<select name="sampleLocation" id="new-style-location" required>${optionList(os.data.sampleLocationOptions.map((item) => ({ value: item.id, label: item.label })), "office_sample_room")}</select></label><label>打样路线<select name="route" id="new-style-route" required>${optionList(Object.entries(os.data.sampleRoutes).map(([value, label]) => ({ value, label })), "normal")}</select></label><label>预计打样完成日期<input name="sampleDoneDate" id="new-style-done-date" type="date" required value="${doneDate}"></label><label>预计寄样日期<input name="plannedShipDate" id="new-style-ship-date" type="date" required value="${shipDate}"></label><label>客户要求到样日期<input name="customerDueDate" type="date"></label><label class="inline-check"><input name="highRisk" type="checkbox">是否高风险</label><label class="inline-check"><input name="syncCalendar" type="checkbox" checked>同步到样衣日历</label></div></section>
       <section><h3>系统推荐</h3><div class="route-hint" id="route-hint">事务所打样间，建议路线：普通款式</div><div class="owner-recommendation" id="owner-recommendation"><strong>系统已根据打样路线自动分配负责人，可在款式详情页修改。</strong><span>${esc(recommendedSummary)}</span></div><small class="muted-note">客户资料、TP、参考图片、原样图片将在创建后进入款式详情页上传，并统一进入 S3。</small></section>
       <div class="modal-actions"><button type="button" data-close-modal>取消</button><button type="button" data-save-draft>保存草稿</button><button class="primary-button" type="submit">创建款式</button></div>
@@ -1405,14 +1436,17 @@ async function handleStyleSubmit(form) {
   const locationOption = os.data.sampleLocationOptions.find((item) => item.id === fields.sampleLocation.value);
   const route = fields.route.value;
   const phase = fields.samplePhase.value;
+  const sampleVariants = collectSampleVariants(form);
+  const quantity = sampleVariants.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 1;
   const payload = {
     styleNo: fields.styleNo.value.trim(),
     brand: fields.brand.value,
     season: fields.season.value,
     styleName: fields.styleName.value.trim(),
     category: fields.category.value,
-    color: fields.color.value.trim(),
-    size: fields.size.value.trim(),
+    color: sampleVariants.map((item) => item.color).filter(Boolean).join(" / "),
+    size: sampleVariants.map((item) => item.size).filter(Boolean).join(" / "),
+    sampleVariants,
     route,
     samplePhase: phase,
     sampleLocation: locationOption?.label || "样衣间",
@@ -1422,7 +1456,7 @@ async function handleStyleSubmit(form) {
     versionName: os.phaseLabels[phase],
     highRisk: fields.highRisk.checked,
     syncCalendar: fields.syncCalendar.checked,
-    quantity: Number(fields.quantity.value || 1),
+    quantity,
     businessOwnerId: fields.businessOwner.value,
     patternOwnerId: userIdByName("徐海燕"),
     fabricOwnerId: userIdByName("李卫红"),
@@ -1673,6 +1707,22 @@ document.addEventListener("click", (event) => {
   const saveDraft = event.target.closest("[data-save-draft]");
   if (saveDraft) {
     showToast("已保留当前填写内容；点击创建款式后进入详情页继续补全。");
+    return;
+  }
+
+  const addSampleVariant = event.target.closest("[data-add-sample-variant]");
+  if (addSampleVariant) {
+    const list = addSampleVariant.closest("section")?.querySelector("[data-sample-variant-list]");
+    if (list) list.insertAdjacentHTML("beforeend", renderSampleVariantRow(list.querySelectorAll("[data-sample-variant-row]").length));
+    return;
+  }
+
+  const removeSampleVariant = event.target.closest("[data-remove-sample-variant]");
+  if (removeSampleVariant) {
+    const list = removeSampleVariant.closest("[data-sample-variant-list]");
+    const rows = list?.querySelectorAll("[data-sample-variant-row]");
+    if (rows?.length > 1) removeSampleVariant.closest("[data-sample-variant-row]")?.remove();
+    else showToast("至少保留一个颜色尺码组合");
     return;
   }
 
