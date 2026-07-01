@@ -112,7 +112,7 @@ async function ensureDemoEntities(supabase, orgId) {
       current_gate: "sample_review_gate",
       sample_phase: "second_sample",
       risk_status: "blocked",
-      planned_ship_date: "2026-06-28",
+      planned_ship_date: "2026-06-30",
       next_action: "确认质量与工艺问题责任人",
       blocker_summary: "2 个问题阻止寄样",
     }, { onConflict: "org_id,external_ref" })
@@ -125,13 +125,13 @@ async function ensureDemoEntities(supabase, orgId) {
     .from("samples")
     .upsert({
       org_id: orgId,
-      external_ref: "sample_212_2",
+      external_ref: "sample_212_second",
       style_id: style.id,
       sample_phase: "second_sample",
       version_name: "二次样",
       status: "reviewing",
-      location: "开发车间",
-      planned_ship_date: "2026-06-28",
+      location: "样衣间",
+      planned_ship_date: "2026-06-30",
     }, { onConflict: "org_id,external_ref" })
     .select("id")
     .single();

@@ -31,6 +31,8 @@ const navLabelMap = {
 
 let currentLang = "zh";
 let settingsRoleTab = "templates";
+const SAMPLE_OS_TEST_STYLE_ID = "style_212";
+const SAMPLE_OS_SINGLE_STYLE_MODE = true;
 
 const views = document.querySelectorAll(".view");
 const title = document.querySelector("#view-title");
@@ -163,8 +165,35 @@ function showToast(message) {
   showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2400);
 }
 
+function matchesTestStyle(style) {
+  if (!SAMPLE_OS_SINGLE_STYLE_MODE) return true;
+  return style?.externalRef === SAMPLE_OS_TEST_STYLE_ID || style?.id === SAMPLE_OS_TEST_STYLE_ID || String(style?.styleNo || "") === "212";
+}
+
+function filterSingleStylePayload(payload) {
+  if (!SAMPLE_OS_SINGLE_STYLE_MODE || !payload) return payload;
+  const filtered = { ...payload };
+  const styles = Array.isArray(payload.styleList) ? payload.styleList.filter(matchesTestStyle).slice(0, 1) : [];
+  const styleIds = new Set(styles.map((style) => style.id));
+  const samples = Array.isArray(payload.samples) ? payload.samples.filter((sample) => styleIds.has(sample.styleId)) : [];
+  const sampleIds = new Set(samples.map((sample) => sample.id));
+  const reviews = Array.isArray(payload.reviews) ? payload.reviews.filter((review) => styleIds.has(review.styleId) || sampleIds.has(review.sampleId)) : [];
+  const reviewIds = new Set(reviews.map((review) => review.id));
+  filtered.styleList = styles;
+  filtered.samples = samples;
+  filtered.reviews = reviews;
+  filtered.issues = Array.isArray(payload.issues) ? payload.issues.filter((issue) => styleIds.has(issue.styleId) || sampleIds.has(issue.sampleId) || reviewIds.has(issue.reviewId)) : [];
+  filtered.currentStyleId = styles[0]?.id || null;
+  filtered.currentReviewId = reviews.find((review) => review.styleId === filtered.currentStyleId)?.id || reviews[0]?.id || null;
+  return filtered;
+}
+
 function applySnapshot(snapshot) {
   if (!snapshot || snapshot.source?.kind !== "supabase") return;
+  snapshot = filterSingleStylePayload(snapshot);
+  if (SAMPLE_OS_SINGLE_STYLE_MODE && !snapshot.styleList?.length) {
+    throw new Error(`Supabase 中未找到测试款式 ${SAMPLE_OS_TEST_STYLE_ID}`);
+  }
   ["styleList", "samples", "reviews", "issues", "users", "workers"].forEach((key) => {
     if (Array.isArray(snapshot[key])) os.data[key] = snapshot[key];
   });
@@ -208,6 +237,8 @@ function applySnapshot(snapshot) {
     });
   }
   os.data.source = snapshot.source;
+  os.data.singleStyleMode = SAMPLE_OS_SINGLE_STYLE_MODE;
+  os.data.testStyleId = SAMPLE_OS_TEST_STYLE_ID;
   os.data.currentStyleId = snapshot.currentStyleId || os.data.styleList[0]?.id || null;
   os.data.currentReviewId = snapshot.currentReviewId || os.getActiveReviewByStyle(os.data.currentStyleId)?.id || os.data.reviews[0]?.id || null;
 }
@@ -222,6 +253,9 @@ async function loadBackendSnapshot() {
   } catch (error) {
     console.warn("Sample OS snapshot failed", error);
     showToast(`暂时使用本地数据：${error.message}`);
+    os.data.source = { kind: "local-fallback", loadedAt: new Date().toISOString(), reason: error.message };
+    renderAll();
+    updateTopbar(document.querySelector(".view.active")?.id || "pipeline");
   }
 }
 
@@ -449,6 +483,7 @@ function renderSidebarMetrics() {
   const activeStyle = os.getStyleById(os.data.currentStyleId);
   panel.innerHTML = `
     <div class="panel-label">${currentLang === "ja" ? "今日" : "今日"}</div>
+    ${os.data.source?.kind === "local-fallback" ? `<div class="fallback-hint">${currentLang === "ja" ? "ローカルテストデータを使用中" : "当前使用本地测试数据"}</div>` : ""}
     <div class="side-metric">
       <span>${currentLang === "ja" ? "未解決課題" : "未关闭问题"}</span>
       <strong>${os.data.issues.filter((issue) => issue.status !== "closed").length}</strong>

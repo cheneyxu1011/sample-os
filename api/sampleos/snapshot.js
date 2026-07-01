@@ -2,6 +2,9 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createClient } from "@supabase/supabase-js";
 
+const SAMPLE_OS_TEST_STYLE_ID = "style_212";
+const SAMPLE_OS_SINGLE_STYLE_MODE = true;
+
 function json(res, status, body) {
   res.statusCode = status;
   res.setHeader("content-type", "application/json; charset=utf-8");
@@ -21,6 +24,11 @@ function cleanDateTime(value) {
 
 function profileName(profileMap, id) {
   return id ? profileMap.get(id)?.display_name || null : null;
+}
+
+function matchesTestStyle(style) {
+  if (!SAMPLE_OS_SINGLE_STYLE_MODE) return true;
+  return style?.external_ref === SAMPLE_OS_TEST_STYLE_ID || style?.id === SAMPLE_OS_TEST_STYLE_ID || String(style?.style_no || "") === "212";
 }
 
 async function mediaAccessUrl(s3, item) {
@@ -94,12 +102,22 @@ export default async function handler(req, res) {
 
     const profiles = profilesResult.data || [];
     const departments = departmentsResult.data || [];
-    const styles = stylesResult.data || [];
-    const samples = samplesResult.data || [];
-    const reviews = reviewsResult.data || [];
-    const departmentReviews = departmentReviewsResult.data || [];
-    const issues = issuesResult.data || [];
-    const media = mediaResult.data || [];
+    const allStyles = stylesResult.data || [];
+    const selectedStyles = SAMPLE_OS_SINGLE_STYLE_MODE ? allStyles.filter(matchesTestStyle).slice(0, 1) : allStyles;
+    const selectedStyleIds = new Set(selectedStyles.map((style) => style.id));
+    const allSamples = samplesResult.data || [];
+    const samples = SAMPLE_OS_SINGLE_STYLE_MODE ? allSamples.filter((sample) => selectedStyleIds.has(sample.style_id)) : allSamples;
+    const selectedSampleIds = new Set(samples.map((sample) => sample.id));
+    const allReviews = reviewsResult.data || [];
+    const reviews = SAMPLE_OS_SINGLE_STYLE_MODE ? allReviews.filter((review) => selectedStyleIds.has(review.style_id) || selectedSampleIds.has(review.sample_id)) : allReviews;
+    const selectedReviewIds = new Set(reviews.map((review) => review.id));
+    const allDepartmentReviews = departmentReviewsResult.data || [];
+    const departmentReviews = SAMPLE_OS_SINGLE_STYLE_MODE ? allDepartmentReviews.filter((item) => selectedReviewIds.has(item.review_id)) : allDepartmentReviews;
+    const allIssues = issuesResult.data || [];
+    const issues = SAMPLE_OS_SINGLE_STYLE_MODE ? allIssues.filter((issue) => selectedStyleIds.has(issue.style_id) || selectedSampleIds.has(issue.sample_id) || selectedReviewIds.has(issue.review_id)) : allIssues;
+    const allMedia = mediaResult.data || [];
+    const media = SAMPLE_OS_SINGLE_STYLE_MODE ? allMedia.filter((item) => selectedSampleIds.has(item.sample_id)) : allMedia;
+    const styles = selectedStyles;
     const people = peopleResult.data || [];
     const workers = workersResult.data || [];
     const settings = settingsResult.data || [];
@@ -109,6 +127,7 @@ export default async function handler(req, res) {
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
     const departmentMap = new Map(departments.map((department) => [department.id, department]));
     const sampleReviewMap = new Map(reviews.map((review) => [review.sample_id, review]));
+    const sampleByStyleMap = new Map(samples.map((sample) => [sample.style_id, sample]));
     const reviewIssueMap = new Map();
     issues.forEach((issue) => {
       if (!issue.review_id) return;
@@ -134,7 +153,7 @@ export default async function handler(req, res) {
         samplePhase: sample.sample_phase,
         versionName: sample.version_name,
         status: sample.status,
-        location: sample.location || "未设置",
+        location: SAMPLE_OS_SINGLE_STYLE_MODE ? "样衣间" : (sample.location || "未设置"),
         holder: profileName(profileMap, sample.holder_profile_id) || "未指定",
         createdAt: cleanDateTime(sample.created_at),
         updatedAt: cleanDateTime(sample.updated_at),
@@ -142,7 +161,7 @@ export default async function handler(req, res) {
         videoList: [],
         mediaList,
         reviewId: review?.id || null,
-        plannedShipDate: sample.planned_ship_date || "",
+        plannedShipDate: SAMPLE_OS_SINGLE_STYLE_MODE ? "2026-06-30" : (sample.planned_ship_date || ""),
       };
     }));
 
@@ -153,6 +172,8 @@ export default async function handler(req, res) {
         kind: "supabase",
         orgId: org.id,
         orgName: org.name,
+        singleStyleMode: SAMPLE_OS_SINGLE_STYLE_MODE,
+        testStyleId: SAMPLE_OS_TEST_STYLE_ID,
         loadedAt: new Date().toISOString(),
       },
       settings: settingsMap,
@@ -168,11 +189,11 @@ export default async function handler(req, res) {
         route: style.route || "normal",
         currentGate: style.current_gate || "business_input",
         samplePhase: style.sample_phase || "first_sample",
-        sampleLocation: "",
+        sampleLocation: SAMPLE_OS_SINGLE_STYLE_MODE ? "样衣间" : (sampleByStyleMap.get(style.id)?.location || ""),
         currentOwner: [],
         gateOwner: style.gate_owner_id || null,
         finalApprover: style.final_approver_id || null,
-        plannedShipDate: style.planned_ship_date || "",
+        plannedShipDate: SAMPLE_OS_SINGLE_STYLE_MODE ? "2026-06-30" : (style.planned_ship_date || ""),
         riskStatus: style.risk_status || "normal",
         nextAction: style.next_action || "",
         blockerSummary: style.blocker_summary || "",

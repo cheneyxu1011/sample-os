@@ -5051,6 +5051,18 @@ body.apple-ui::before {
   transform: translate(-50%, 0);
 }
 
+.fallback-hint {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 251, 235, 0.72);
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 /* Luminous interaction pass */
 .apple-ui .summary-card,
 .apple-ui .section-block,

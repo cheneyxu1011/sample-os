@@ -1,4 +1,6 @@
 window.sampleOSData = {
+  singleStyleMode: true,
+  testStyleId: "style_212",
   currentStyleId: "style_212",
   currentReviewId: "review_212_second",
   currentUserId: "user_guyao",
@@ -8,7 +10,7 @@ window.sampleOSData = {
     { id: "user_xuhaiyan", name: "徐海燕", department: "打版组", role: "版型评审员", currentResponsibility: "确认版子完整并安排处理", reviewResponsibility: "评审版型、尺寸、公差、结构、纸样与实物一致性", permissions: ["版型评审", "创建问题", "复验问题"], scope: ["版子"], avatarColor: "xu" },
     { id: "user_liweihong", name: "李卫红", department: "打样面料", role: "面料负责人", currentResponsibility: "确认开发样所需面料", reviewResponsibility: "确认面料齐套、颜色、批次和缩率风险", permissions: ["面料确认", "创建问题", "更新状态"], scope: ["面料"], avatarColor: "liweihong" },
     { id: "user_dahong", name: "大红", department: "打样辅料", role: "辅料负责人", currentResponsibility: "确认拉链、扣具、织带等辅料", reviewResponsibility: "确认辅料规格、颜色、功能和齐套性", permissions: ["辅料确认", "创建问题", "更新状态"], scope: ["辅料"], avatarColor: "dahong" },
-    { id: "user_wangbu", name: "王部长", department: "开发管理", role: "资料确认人 / 评审负责人", currentResponsibility: "确认资料齐套并推进派发打样", reviewResponsibility: "可主持样衣评审并确认寄样结论", permissions: ["资料确认", "推进打样", "组织评审", "最终放行"], scope: ["准备闸口", "样衣评审"], avatarColor: "wangbu", isGateOwner: true },
+    { id: "user_wangbu", name: "王部长", department: "开发管理", role: "资料确认人", currentResponsibility: "确认资料齐套并推进派发打样", reviewResponsibility: "不作为样衣评审最终放行人", permissions: ["资料确认", "推进打样", "组织资料补齐"], scope: ["准备闸口"], avatarColor: "wangbu", isGateOwner: true },
     { id: "user_dadai", name: "大戴", department: "打样间", role: "打样派发人", currentResponsibility: "负责普通款式打样人员分配", reviewResponsibility: "反馈普通打样过程异常", permissions: ["派发打样", "普通打样", "提交异常"], scope: ["普通打样"], avatarColor: "dadai" },
     { id: "user_zhangbu", name: "张部长", department: "新长江工厂", role: "压胶开发负责人", currentResponsibility: "确认压胶开发和工艺风险", reviewResponsibility: "评审压胶参数、胶带匹配和量产稳定性", permissions: ["压胶开发", "创建问题", "要求验证"], scope: ["压胶开发"], avatarColor: "zhang", isGateOwner: false },
     { id: "user_xiahongxia", name: "夏红霞", department: "新长江工厂", role: "新长江派发人", currentResponsibility: "负责新长江打样人员分配", reviewResponsibility: "反馈新长江打样执行异常", permissions: ["新长江派发", "派发打样", "提交异常"], scope: ["新长江派发"], avatarColor: "xia" },
@@ -29,6 +31,17 @@ window.sampleOSData = {
     xinchangjiangDispatcher: "user_xiahongxia",
     normalDispatcher: "user_dadai",
   },
+  roleTemplates: [
+    { id: "business_pm", name: "Business PM / 业务负责人", people: ["顾瑶", "顾永宏"], reviewDefault: true },
+    { id: "pattern_reviewer", name: "Pattern Reviewer / 版型评审员", people: ["徐海燕"], reviewDefault: true },
+    { id: "quality_reviewer", name: "Quality Reviewer / 品质评审员", people: ["大前"], reviewDefault: true },
+    { id: "process_reviewer", name: "Process Reviewer / 工艺评审员", people: ["陈工艺"], reviewDefault: true },
+    { id: "ie_reviewer", name: "IE Reviewer / IE 评审员", people: ["麦克"], reviewDefault: true },
+    { id: "sample_feedback_owner", name: "Sample Feedback Owner / 打样反馈人", people: ["李师傅"], reviewDefault: true },
+    { id: "preparation_gate_owner", name: "Preparation Gate Owner / 资料确认人", people: ["王部长"], reviewDefault: false },
+    { id: "sample_review_gate_owner", name: "Sample Review Gate Owner / 样衣评审负责人", people: ["大前"], reviewDefault: true },
+    { id: "final_approver", name: "Final Approver / 例外放行审批人", people: ["杨总"], reviewDefault: false },
+  ],
   issueLevelRules: {
     minor: { label: "轻微", shipmentRule: "可寄样，但必须记录", systemAction: "不锁寄样按钮" },
     normal: { label: "一般", shipmentRule: "评审负责人判断是否修改后寄样", systemAction: "提示风险" },
@@ -117,13 +130,13 @@ window.sampleOSData = {
   trainingStats: { trained: 18, untrained: 7, eligibleReviewers: 25 },
   trainingCards: ["业务评审员职责卡", "版师评审员职责卡", "品质评审员职责卡", "工艺评审员职责卡", "IE 评审员职责卡", "打样评审员职责卡", "问题等级判断训练", "意见转问题示例", "培训小考"],
   styleList: [
-    { id: "style_212", styleNo: "212", brand: "萨洛蒙", season: "SS27", styleName: "户外冲锋衣", category: "夹克", route: "normal", currentGate: "sample_review_gate", samplePhase: "second_sample", sampleLocation: "开发车间", currentOwner: ["user_daqian", "user_zhao", "user_zhangbu"], gateOwner: "user_daqian", finalApprover: "user_yang", plannedShipDate: "2026-06-28", riskStatus: "blocked", nextAction: "确认质量与工艺问题责任人", blockerSummary: "2 个问题阻止寄样" },
+    { id: "style_212", externalRef: "style_212", styleNo: "212", brand: "萨洛蒙", season: "SS27", styleName: "户外冲锋衣", category: "夹克", route: "normal", currentGate: "sample_review_gate", samplePhase: "second_sample", sampleLocation: "样衣间", currentOwner: ["user_daqian", "user_zhao", "user_chen"], preparationGateOwner: "user_wangbu", gateOwner: "user_daqian", finalApprover: "user_yang", plannedShipDate: "2026-06-30", riskStatus: "blocked", nextAction: "确认质量与工艺问题责任人", blockerSummary: "2 个问题阻止寄样" },
   ],
   samples: [
-    { id: "sample_212_2", styleId: "style_212", samplePhase: "second_sample", versionName: "二次样", status: "reviewing", location: "开发车间", holder: "李师傅", createdAt: "2026-06-28 10:30", updatedAt: "2026-06-28 11:10", imageList: ["正面", "背面", "领口 / 帽口", "袖口", "下摆抽绳", "压胶缝", "口袋"], videoList: ["整体视频 00:32"], mediaList: [], reviewId: "review_212_second", plannedShipDate: "2026-06-28" },
+    { id: "sample_212_second", externalRef: "sample_212_second", styleId: "style_212", samplePhase: "second_sample", versionName: "二次样", status: "reviewing", location: "样衣间", holder: "李师傅", createdAt: "2026-06-29 15:12", updatedAt: "2026-06-29 15:12", imageList: ["正面", "背面", "领口 / 帽口", "袖口", "下摆抽绳", "压胶缝", "口袋"], videoList: ["整体视频 00:32"], mediaList: [], reviewId: "review_212_second", plannedShipDate: "2026-06-30" },
   ],
   reviews: [
-    { id: "review_212_second", styleId: "style_212", sampleId: "sample_212_2", reviewNo: "SR-002", status: "reviewing", gateOwner: "user_daqian", finalApprover: "user_yang", issueIds: ["issue_neck", "issue_hood", "issue_cuff", "issue_tape", "issue_pocket", "issue_label"], finalDecision: "none", exceptionRequest: { reason: "客户会议 / 交期风险 / 样衣用途", riskNote: "重大问题带说明寄样，客户需知晓风险。", applicant: "user_guyao", approver: "user_yang", customerNotified: false, approvalStatus: "待审批" }, timeline: [
+    { id: "review_212_second", externalRef: "review_212_second", styleId: "style_212", sampleId: "sample_212_second", reviewNo: "SR-002", status: "reviewing", gateOwner: "user_daqian", finalApprover: "user_yang", issueIds: ["issue_neck", "issue_hood", "issue_cuff", "issue_tape", "issue_pocket", "issue_label"], finalDecision: "none", exceptionRequest: { reason: "客户会议 / 交期风险 / 样衣用途", riskNote: "重大问题带说明寄样，客户需知晓风险。", applicant: "user_guyao", approver: "user_yang", customerNotified: false, approvalStatus: "待审批" }, timeline: [
       { time: "10:30", type: "green", text: "李师傅 · 样衣制作完成并上传图片" },
       { time: "10:45", type: "black", text: "系统 · 自动生成评审任务 SR-002" },
       { time: "11:00", type: "blue", text: "工业工程部 · 完成独立评审" },
@@ -132,29 +145,21 @@ window.sampleOSData = {
       { time: "11:18", type: "red", text: "工艺部 · 严重问题：压胶剥离风险需复验" },
     ], departmentReviews: [
       { department: "业务部", role: "业务负责人", reviewer: "user_guyao", status: "pass", opinion: "颜色、辅料、物料清单与邮件要求一致。", focusTags: ["客户需求", "技术包/物料清单", "寄样需求"], issueIds: [], reviewedAt: "11:05" },
-      { department: "版师", role: "版型评审员", reviewer: "user_xuhaiyan", status: "pass", opinion: "版型符合要求，尺寸符合公差。", focusTags: ["版型", "尺寸", "纸样一致"], issueIds: [], reviewedAt: "11:08" },
+      { department: "版型部", role: "版型评审员", reviewer: "user_xuhaiyan", status: "pass", opinion: "版型符合要求，尺寸符合公差。", focusTags: ["版型", "尺寸", "纸样一致"], issueIds: [], reviewedAt: "11:08" },
       { department: "品质部", role: "质量评审员", reviewer: "user_zhao", status: "fail", opinion: "领口起皱，需整改并复验。", focusTags: ["外观", "历史问题", "测试/复验"], issueIds: ["issue_neck"], reviewedAt: "11:12" },
       { department: "工艺部", role: "工艺评审员", reviewer: "user_chen", status: "needs_improvement", opinion: "帽子缝合建议双压线，压胶参数需确认。", focusTags: ["工艺可行", "压胶稳定", "技术包一致"], issueIds: ["issue_hood", "issue_tape"], reviewedAt: "11:10" },
-      { department: "工业工程部", role: "工业工程评审员", reviewer: "user_mike", status: "pass", opinion: "工序可行，无明显瓶颈。", focusTags: ["工时", "瓶颈", "量产产能"], issueIds: [], reviewedAt: "11:00" },
+      { department: "IE 部", role: "IE 评审员", reviewer: "user_mike", status: "pass", opinion: "工序可行，无明显瓶颈。", focusTags: ["工时", "瓶颈", "量产产能"], issueIds: [], reviewedAt: "11:00" },
       { department: "打样部", role: "打样反馈人", reviewer: "user_lishifu", status: "pass", opinion: "制作完成，袖口松紧需复核。", focusTags: ["打样异常", "资料清晰", "制作困难"], issueIds: ["issue_cuff"], reviewedAt: "10:45" },
     ] },
   ],
   issues: [
-    { id: "issue_neck", styleId: "style_212", sampleId: "sample_212_2", reviewId: "review_212_second", title: "领口起皱", description: "领口内侧起皱，需要整改并复验。", sourceDepartment: "品质部", relatedArea: "领口 / 帽口", level: "major", shipmentBlocking: true, canShipWithNote: false, owner: "user_zhao", dueDate: "2026-06-28 18:00", status: "in_progress", verifier: "user_zhao", evidence: "图片证据", createdAt: "2026-06-28 11:12", updatedAt: "2026-06-28 11:12" },
-    { id: "issue_hood", styleId: "style_212", sampleId: "sample_212_2", reviewId: "review_212_second", title: "帽子缝合建议双压线", description: "帽子接缝建议改双压线。", sourceDepartment: "工艺部", relatedArea: "帽子接缝", level: "normal", shipmentBlocking: false, canShipWithNote: true, owner: "user_chen", dueDate: "2026-06-29 10:00", status: "not_started", verifier: "user_chen", evidence: "技术包对照", createdAt: "2026-06-28 11:10", updatedAt: "2026-06-28 11:10" },
-    { id: "issue_cuff", styleId: "style_212", sampleId: "sample_212_2", reviewId: "review_212_second", title: "袖口松紧不平", description: "左袖口松紧略不平。", sourceDepartment: "打样部", relatedArea: "左袖口", level: "minor", shipmentBlocking: false, canShipWithNote: true, owner: "user_lishifu", dueDate: "2026-06-29 12:00", status: "not_started", verifier: null, evidence: "视频证据", createdAt: "2026-06-28 10:45", updatedAt: "2026-06-28 10:45" },
-    { id: "issue_tape", styleId: "style_212", sampleId: "sample_212_2", reviewId: "review_212_second", title: "压胶剥离风险未验证", description: "肩缝压胶剥离风险未验证。", sourceDepartment: "工艺部", relatedArea: "压胶缝", level: "critical", shipmentBlocking: true, canShipWithNote: false, owner: "user_zhangbu", dueDate: "2026-06-29 16:00", status: "pending_verification", verifier: "user_zhangbu", evidence: "待测试", createdAt: "2026-06-28 11:18", updatedAt: "2026-06-28 11:18" },
-    { id: "issue_pocket", styleId: "style_212", sampleId: "sample_212_2", reviewId: "review_212_second", title: "口袋位置偏高", description: "客户可能要求下移。", sourceDepartment: "业务部", relatedArea: "口袋", level: "normal", shipmentBlocking: false, canShipWithNote: true, owner: "user_xuhaiyan", dueDate: "2026-06-29 15:00", status: "closed", verifier: "user_xuhaiyan", evidence: "图片证据", createdAt: "2026-06-28 11:00", updatedAt: "2026-06-28 12:00" },
-    { id: "issue_label", styleId: "style_212", sampleId: "sample_212_2", reviewId: "review_212_second", title: "洗标位置需确认", description: "洗标位置需要业务确认。", sourceDepartment: "业务部", relatedArea: "洗标", level: "normal", shipmentBlocking: false, canShipWithNote: true, owner: "user_guyao", dueDate: "2026-06-29 13:00", status: "closed", verifier: "user_guyao", evidence: "邮件要求", createdAt: "2026-06-28 11:03", updatedAt: "2026-06-28 12:10" },
+    { id: "issue_neck", styleId: "style_212", sampleId: "sample_212_second", reviewId: "review_212_second", title: "领口起皱", description: "领口内侧起皱，需要整改并复验。", sourceDepartment: "品质部", relatedArea: "领口 / 帽口", level: "major", shipmentBlocking: true, canShipWithNote: false, owner: "user_zhao", dueDate: "2026-06-30 18:00", status: "in_progress", verifier: "user_zhao", evidence: "图片证据", createdAt: "2026-06-29 11:12", updatedAt: "2026-06-29 11:12" },
+    { id: "issue_hood", styleId: "style_212", sampleId: "sample_212_second", reviewId: "review_212_second", title: "帽子缝合建议双压线", description: "帽子接缝建议改双压线。", sourceDepartment: "工艺部", relatedArea: "帽子接缝", level: "normal", shipmentBlocking: false, canShipWithNote: true, owner: "user_chen", dueDate: "2026-06-30 10:00", status: "not_started", verifier: "user_chen", evidence: "技术包对照", createdAt: "2026-06-29 11:10", updatedAt: "2026-06-29 11:10" },
+    { id: "issue_cuff", styleId: "style_212", sampleId: "sample_212_second", reviewId: "review_212_second", title: "袖口松紧不平", description: "左袖口松紧略不平。", sourceDepartment: "打样部", relatedArea: "左袖口", level: "minor", shipmentBlocking: false, canShipWithNote: true, owner: "user_lishifu", dueDate: "2026-06-30 12:00", status: "not_started", verifier: null, evidence: "视频证据", createdAt: "2026-06-29 10:45", updatedAt: "2026-06-29 10:45" },
+    { id: "issue_tape", styleId: "style_212", sampleId: "sample_212_second", reviewId: "review_212_second", title: "压胶剥离风险未验证", description: "肩缝压胶剥离风险未验证。", sourceDepartment: "工艺部", relatedArea: "压胶缝", level: "critical", shipmentBlocking: true, canShipWithNote: false, owner: "user_chen", dueDate: "2026-06-30 16:00", status: "pending_verification", verifier: "user_chen", evidence: "待测试", createdAt: "2026-06-29 11:18", updatedAt: "2026-06-29 11:18" },
+    { id: "issue_pocket", styleId: "style_212", sampleId: "sample_212_second", reviewId: "review_212_second", title: "口袋位置偏高", description: "客户可能要求下移。", sourceDepartment: "业务部", relatedArea: "口袋", level: "normal", shipmentBlocking: false, canShipWithNote: true, owner: "user_xuhaiyan", dueDate: "2026-06-30 15:00", status: "closed", verifier: "user_xuhaiyan", evidence: "图片证据", createdAt: "2026-06-29 11:00", updatedAt: "2026-06-29 12:00" },
+    { id: "issue_label", styleId: "style_212", sampleId: "sample_212_second", reviewId: "review_212_second", title: "洗标位置需确认", description: "洗标位置需要业务确认。", sourceDepartment: "业务部", relatedArea: "洗标", level: "normal", shipmentBlocking: false, canShipWithNote: true, owner: "user_guyao", dueDate: "2026-06-30 13:00", status: "closed", verifier: "user_guyao", evidence: "邮件要求", createdAt: "2026-06-29 11:03", updatedAt: "2026-06-29 12:10" },
   ],
 };
 
 window.sampleOSData.sampleWorkers = window.sampleOSData.workers;
-Object.assign(window.sampleOSData, {
-  currentStyleId: null,
-  currentReviewId: null,
-  styleList: [],
-  samples: [],
-  reviews: [],
-  issues: [],
-});

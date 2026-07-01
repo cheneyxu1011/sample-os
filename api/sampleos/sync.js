@@ -414,6 +414,7 @@ async function deleteMedia(supabase, orgId, body) {
   const mediaId = String(body.mediaId || "").trim();
   if (!mediaId) throw new Error("mediaId is required");
 
+  // Internal-test behavior: remove the Supabase metadata row only. The S3 object is left in place until hard-delete is added.
   const { error } = await supabase
     .from("sample_media")
     .delete()
