@@ -23,6 +23,10 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
+function profileIdOrNull(value) {
+  return isUuid(value) ? String(value) : null;
+}
+
 function supabaseDetail(error) {
   return {
     message: error?.message || String(error),
@@ -121,7 +125,7 @@ async function updateDepartmentReview(supabase, orgId, body) {
     org_id: orgId,
     review_id: body.reviewId,
     department_id: departmentId,
-    reviewer_id: /^[0-9a-f-]{36}$/i.test(String(body.reviewerId || "")) ? body.reviewerId : null,
+    reviewer_id: profileIdOrNull(body.reviewerId),
     role_name: body.role || "评审员",
     status: body.status || "pending",
     opinion: body.opinion || "",
@@ -211,8 +215,8 @@ async function createIssue(supabase, orgId, body) {
   const reviewId = await resolveEntityId(supabase, orgId, "reviews", body.reviewId);
   if (!styleId) throw new Error(`createIssue: could not resolve styleId ${body.styleId}`);
   if (!reviewId) throw new Error(`createIssue: could not resolve reviewId ${body.reviewId}`);
-  const ownerId = isUuid(body.ownerId) ? body.ownerId : null;
-  const verifierId = isUuid(body.verifierId) ? body.verifierId : null;
+  const ownerId = profileIdOrNull(body.ownerId);
+  const verifierId = profileIdOrNull(body.verifierId);
   const level = normalizeIssueLevel(body.level);
   const shipmentBlocking = ["major", "critical"].includes(level) || Boolean(body.shipmentBlocking);
   const { data, error } = await supabase
@@ -258,8 +262,8 @@ async function createStyle(supabase, orgId, body) {
     : [];
   const quantity = sampleVariants.reduce((sum, item) => sum + item.quantity, 0) || Math.max(1, Number(body.quantity || 1));
 
-  const gateOwnerId = isUuid(body.reviewOwnerId) ? body.reviewOwnerId : null;
-  const finalApproverId = isUuid(body.finalApproverId) ? body.finalApproverId : null;
+  const gateOwnerId = profileIdOrNull(body.reviewOwnerId);
+  const finalApproverId = profileIdOrNull(body.finalApproverId);
   const stylePayload = {
     org_id: orgId,
     external_ref: `style_${styleNo}_${Date.now()}`,
