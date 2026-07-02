@@ -77,6 +77,13 @@ async function resolvePersonId(supabase, orgId, value) {
   return isUuid(raw) ? raw : null;
 }
 
+function issueEvidenceNote(body) {
+  const evidence = String(body.evidence || "手动新增").replace(/\|\|/g, " ");
+  const ownerRef = String(body.ownerId || "").replace(/\|\|/g, "");
+  const verifierRef = String(body.verifierId || "").replace(/\|\|/g, "");
+  return `${evidence}||owner:${ownerRef}||verifier:${verifierRef}`;
+}
+
 async function firstOrg(supabase) {
   const { data, error } = await supabase
     .from("organizations")
@@ -204,8 +211,8 @@ async function createIssue(supabase, orgId, body) {
   const reviewId = await resolveEntityId(supabase, orgId, "reviews", body.reviewId);
   if (!styleId) throw new Error(`createIssue: could not resolve styleId ${body.styleId}`);
   if (!reviewId) throw new Error(`createIssue: could not resolve reviewId ${body.reviewId}`);
-  const ownerId = await resolvePersonId(supabase, orgId, body.ownerId);
-  const verifierId = await resolvePersonId(supabase, orgId, body.verifierId);
+  const ownerId = isUuid(body.ownerId) ? body.ownerId : null;
+  const verifierId = isUuid(body.verifierId) ? body.verifierId : null;
   const level = normalizeIssueLevel(body.level);
   const shipmentBlocking = ["major", "critical"].includes(level) || Boolean(body.shipmentBlocking);
   const { data, error } = await supabase
@@ -226,7 +233,7 @@ async function createIssue(supabase, orgId, body) {
       owner_id: ownerId,
       due_at: body.dueDate || null,
       verifier_id: verifierId,
-      evidence_note: body.evidence || "手动新增",
+      evidence_note: issueEvidenceNote(body),
     })
     .select("id")
     .single();

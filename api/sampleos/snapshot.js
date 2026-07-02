@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createClient } from "@supabase/supabase-js";
 
 const SAMPLE_OS_TEST_STYLE_ID = "style_212";
-const SAMPLE_OS_SINGLE_STYLE_MODE = false;
+const SAMPLE_OS_SINGLE_STYLE_MODE = true;
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -24,6 +24,17 @@ function cleanDateTime(value) {
 
 function profileName(profileMap, id) {
   return id ? profileMap.get(id)?.display_name || null : null;
+}
+
+function parseIssueEvidenceNote(note) {
+  const parts = String(note || "").split("||");
+  const meta = { evidence: parts.shift() || "" };
+  parts.forEach((part) => {
+    const index = part.indexOf(":");
+    if (index <= 0) return;
+    meta[part.slice(0, index)] = part.slice(index + 1) || null;
+  });
+  return meta;
 }
 
 function matchesTestStyle(style) {
@@ -245,27 +256,30 @@ export default async function handler(req, res) {
           reviewedAt: cleanDateTime(item.reviewed_at || item.created_at),
         })),
       })),
-      issues: issues.map((issue) => ({
-        id: issue.id,
-        externalRef: issue.external_ref,
-        styleId: issue.style_id,
-        sampleId: issue.sample_id,
-        reviewId: issue.review_id,
-        title: issue.title,
-        description: issue.description || "",
-        sourceDepartment: departmentMap.get(issue.source_department_id)?.name || "未指定",
-        relatedArea: issue.related_area || "",
-        level: issue.level,
-        shipmentBlocking: Boolean(issue.shipment_blocking),
-        canShipWithNote: Boolean(issue.can_ship_with_note),
-        owner: issue.owner_id || null,
-        dueDate: cleanDateTime(issue.due_at),
-        status: issue.status,
-        verifier: issue.verifier_id || null,
-        evidence: issue.evidence_note || "",
-        createdAt: cleanDateTime(issue.created_at),
-        updatedAt: cleanDateTime(issue.updated_at),
-      })),
+      issues: issues.map((issue) => {
+        const issueMeta = parseIssueEvidenceNote(issue.evidence_note);
+        return {
+          id: issue.id,
+          externalRef: issue.external_ref,
+          styleId: issue.style_id,
+          sampleId: issue.sample_id,
+          reviewId: issue.review_id,
+          title: issue.title,
+          description: issue.description || "",
+          sourceDepartment: departmentMap.get(issue.source_department_id)?.name || "未指定",
+          relatedArea: issue.related_area || "",
+          level: issue.level,
+          shipmentBlocking: Boolean(issue.shipment_blocking),
+          canShipWithNote: Boolean(issue.can_ship_with_note),
+          owner: issue.owner_id || issueMeta.owner || null,
+          dueDate: cleanDateTime(issue.due_at),
+          status: issue.status,
+          verifier: issue.verifier_id || issueMeta.verifier || null,
+          evidence: issueMeta.evidence || "",
+          createdAt: cleanDateTime(issue.created_at),
+          updatedAt: cleanDateTime(issue.updated_at),
+        };
+      }),
       users: people.map((person) => ({
         id: person.id,
         name: person.name,
