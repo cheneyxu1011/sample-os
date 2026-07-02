@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createClient } from "@supabase/supabase-js";
 
 const SAMPLE_OS_TEST_STYLE_ID = "style_212";
-const SAMPLE_OS_SINGLE_STYLE_MODE = true;
+const SAMPLE_OS_SINGLE_STYLE_MODE = false;
 
 function json(res, status, body) {
   res.statusCode = status;

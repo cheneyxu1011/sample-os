@@ -3,6 +3,7 @@
   let runtimeConfigPromise = null;
 
   async function requestJson(path, options = {}) {
+    const requestPayload = typeof options.body === "string" ? options.body : null;
     const response = await fetch(path, {
       ...options,
       headers: {
@@ -13,7 +14,23 @@
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(payload.error || `Request failed with ${response.status}`);
+      const message = [
+        payload.error || `Request failed with ${response.status}`,
+        payload.detail,
+        payload.code ? `code=${payload.code}` : "",
+        payload.hint ? `hint=${payload.hint}` : "",
+      ].filter(Boolean).join("；");
+      const error = new Error(message);
+      error.status = response.status;
+      error.response = payload;
+      error.request = { path, payload: requestPayload };
+      console.error("Sample OS API request failed", {
+        path,
+        status: response.status,
+        response: payload,
+        requestPayload,
+      });
+      throw error;
     }
     return payload;
   }

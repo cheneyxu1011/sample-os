@@ -19,6 +19,30 @@ function requireEnv(name) {
   return value;
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
+function supabaseDetail(error) {
+  return {
+    message: error?.message || String(error),
+    code: error?.code || null,
+    hint: error?.hint || null,
+    details: error?.details || null,
+  };
+}
+
+function syncError(stage, error, payload = {}) {
+  const detail = supabaseDetail(error);
+  const next = new Error(`${stage}: ${detail.message}`);
+  next.stage = stage;
+  next.code = detail.code;
+  next.hint = detail.hint;
+  next.details = detail.details;
+  next.payload = payload;
+  return next;
+}
+
 async function firstOrg(supabase) {
   const { data, error } = await supabase
     .from("organizations")
@@ -186,6 +210,8 @@ async function createStyle(supabase, orgId, body) {
     : [];
   const quantity = sampleVariants.reduce((sum, item) => sum + item.quantity, 0) || Math.max(1, Number(body.quantity || 1));
 
+  const gateOwnerId = isUuid(body.reviewOwnerId) ? body.reviewOwnerId : null;
+  const finalApproverId = isUuid(body.finalApproverId) ? body.finalApproverId : null;
   const stylePayload = {
     org_id: orgId,
     external_ref: `style_${styleNo}_${Date.now()}`,
@@ -199,8 +225,8 @@ async function createStyle(supabase, orgId, body) {
     sample_phase: samplePhase,
     risk_status: body.highRisk ? "approaching_due" : "normal",
     planned_ship_date: plannedShipDate,
-    gate_owner_id: body.reviewOwnerId || null,
-    final_approver_id: body.finalApproverId || null,
+    gate_owner_id: gateOwnerId,
+    final_approver_id: finalApproverId,
     sample_variants: sampleVariants,
     quantity,
     next_action: "准备材料齐套后由负责人确认",
@@ -224,7 +250,7 @@ async function createStyle(supabase, orgId, body) {
     style = legacyResult.data;
     styleError = legacyResult.error;
   }
-  if (styleError) throw styleError;
+  if (styleError) throw syncError("insert styles", styleError, stylePayload);
 
   const { data: sample, error: sampleError } = await supabase
     .from("samples")
@@ -242,7 +268,7 @@ async function createStyle(supabase, orgId, body) {
     })
     .select("id")
     .single();
-  if (sampleError) throw sampleError;
+  if (sampleError) throw syncError("insert samples", sampleError, { styleId: style.id, styleNo, samplePhase });
 
   const { data: review, error: reviewError } = await supabase
     .from("reviews")
@@ -253,15 +279,15 @@ async function createStyle(supabase, orgId, body) {
       sample_id: sample.id,
       review_no: `SR-${styleNo}`,
       status: "not_started",
-      gate_owner_id: body.reviewOwnerId || null,
-      final_approver_id: body.finalApproverId || null,
+      gate_owner_id: gateOwnerId,
+      final_approver_id: finalApproverId,
       final_decision: "none",
       created_at: now,
       updated_at: now,
     })
     .select("id")
     .single();
-  if (reviewError) throw reviewError;
+  if (reviewError) throw syncError("insert reviews", reviewError, { styleId: style.id, sampleId: sample.id, reviewNo: `SR-${styleNo}` });
 
   return { styleId: style.id, sampleId: sample.id, reviewId: review.id };
 }
@@ -452,12 +478,13 @@ export default async function handler(req, res) {
     return json(res, 405, { error: "Method not allowed" });
   }
 
+  let body = {};
   try {
     const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
       auth: { persistSession: false },
     });
     const orgId = await firstOrg(supabase);
-    const body = await readJson(req);
+    body = await readJson(req);
 
     const handlers = {
       departmentReview: updateDepartmentReview,
@@ -482,6 +509,25 @@ export default async function handler(req, res) {
     const result = await action(supabase, orgId, body);
     return json(res, 200, { ok: true, action: body.action, result });
   } catch (error) {
-    return json(res, 500, { error: "Could not sync Sample OS data", detail: error.message });
+    console.error("Sample OS sync failed", {
+      action: body.action,
+      stage: error.stage,
+      message: error.message,
+      code: error.code,
+      hint: error.hint,
+      details: error.details,
+      payload: error.payload,
+      request: body,
+    });
+    return json(res, 500, {
+      error: "Could not sync Sample OS data",
+      detail: error.message,
+      stage: error.stage || null,
+      code: error.code || null,
+      hint: error.hint || null,
+      details: error.details || null,
+      payload: error.payload || null,
+      request: body,
+    });
   }
 }

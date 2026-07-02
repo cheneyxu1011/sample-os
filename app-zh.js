@@ -32,7 +32,7 @@ const navLabelMap = {
 let currentLang = "zh";
 let settingsRoleTab = "templates";
 const SAMPLE_OS_TEST_STYLE_ID = "style_212";
-const SAMPLE_OS_SINGLE_STYLE_MODE = true;
+const SAMPLE_OS_SINGLE_STYLE_MODE = false;
 
 const views = document.querySelectorAll(".view");
 const title = document.querySelector("#view-title");
@@ -1431,6 +1431,76 @@ async function handleWorkerSubmit(form) {
   showToast("打样工人已同步到 Supabase");
 }
 
+function createLocalStyleFromPayload(payload, reason = "") {
+  const timestamp = Date.now();
+  const styleId = `local_style_${timestamp}`;
+  const sampleId = `local_sample_${timestamp}`;
+  const reviewId = `local_review_${timestamp}`;
+  const now = new Date().toLocaleString("zh-CN", { hour12: false }).replace(/\//g, "-");
+  const style = {
+    id: styleId,
+    externalRef: styleId,
+    styleNo: payload.styleNo,
+    brand: payload.brand || "未指定品牌",
+    season: payload.season || "",
+    styleName: payload.styleName,
+    category: payload.category || "",
+    route: payload.route || "normal",
+    currentGate: "preparation_gate",
+    samplePhase: payload.samplePhase || "first_sample",
+    sampleLocation: payload.sampleLocation || "未设置",
+    currentOwner: [],
+    gateOwner: payload.reviewOwnerId || null,
+    finalApprover: payload.finalApproverId || null,
+    plannedShipDate: payload.plannedShipDate || "",
+    riskStatus: payload.highRisk ? "approaching_due" : "normal",
+    nextAction: "准备材料齐套后由负责人确认",
+    blockerSummary: reason ? `本地保存，待同步：${reason}` : "本地保存，待同步",
+    sampleVariants: payload.sampleVariants || [],
+    quantity: payload.quantity || 1,
+    localOnly: true,
+  };
+  const sample = {
+    id: sampleId,
+    externalRef: sampleId,
+    styleId,
+    samplePhase: style.samplePhase,
+    versionName: payload.versionName || os.phaseLabels[style.samplePhase] || "一次样",
+    status: "preparation_blocked",
+    location: style.sampleLocation,
+    holder: "未指定",
+    createdAt: now,
+    updatedAt: now,
+    imageList: [],
+    videoList: [],
+    mediaList: [],
+    reviewId,
+    plannedShipDate: style.plannedShipDate,
+  };
+  const review = {
+    id: reviewId,
+    externalRef: reviewId,
+    styleId,
+    sampleId,
+    reviewNo: `LOCAL-${payload.styleNo || timestamp}`,
+    status: "not_started",
+    gateOwner: style.gateOwner,
+    finalApprover: style.finalApprover,
+    issueIds: [],
+    finalDecision: "none",
+    exceptionRequest: null,
+    timeline: [{ time: now, type: "amber", text: `本地保存成功，Supabase 同步失败：${reason || "未知错误"}` }],
+    departmentReviews: [],
+  };
+  os.data.styleList = [style, ...os.data.styleList.filter((item) => item.id !== styleId)];
+  os.data.samples = [sample, ...os.data.samples];
+  os.data.reviews = [review, ...os.data.reviews];
+  os.data.currentStyleId = styleId;
+  os.data.currentReviewId = reviewId;
+  os.data.source = { kind: "local-fallback", loadedAt: new Date().toISOString(), reason };
+  return { styleId, sampleId, reviewId };
+}
+
 async function handleStyleSubmit(form) {
   const fields = form.elements;
   const locationOption = os.data.sampleLocationOptions.find((item) => item.id === fields.sampleLocation.value);
@@ -1468,14 +1538,34 @@ async function handleStyleSubmit(form) {
     bondingOwnerId: route === "bonding_xinchangjiang" ? userIdByName("张部长") : null,
     xcjDispatcherId: route === "bonding_xinchangjiang" || route === "xinchangjiang" ? userIdByName("夏红霞") : null,
   };
-  if (!window.SampleOSBackend?.syncData) throw new Error("后端同步接口未加载");
-  const response = await window.SampleOSBackend.syncData("createStyle", payload);
-  await loadBackendSnapshot();
-  os.data.currentStyleId = response.result.styleId;
-  os.data.currentReviewId = response.result.reviewId;
-  renderAll();
-  openStyleDrawer(response.result.styleId, "prep");
-  showToast("款式已创建，进入详情页继续补资料");
+  if (!window.SampleOSBackend?.syncData) {
+    const local = createLocalStyleFromPayload(payload, "后端同步接口未加载");
+    renderAll();
+    openStyleDrawer(local.styleId, "prep");
+    showToast("本地保存成功，同步失败：后端同步接口未加载");
+    return;
+  }
+  try {
+    const response = await window.SampleOSBackend.syncData("createStyle", payload);
+    await loadBackendSnapshot();
+    os.data.currentStyleId = response.result.styleId;
+    os.data.currentReviewId = response.result.reviewId;
+    renderAll();
+    openStyleDrawer(response.result.styleId, "prep");
+    showToast("款式已创建并同步到 Supabase，进入详情页继续补资料");
+  } catch (error) {
+    console.error("Create style sync failed", {
+      message: error.message,
+      status: error.status,
+      response: error.response,
+      request: error.request,
+      payload,
+    });
+    const local = createLocalStyleFromPayload(payload, error.message);
+    renderAll();
+    openStyleDrawer(local.styleId, "prep");
+    showToast(`本地保存成功，同步失败：${error.message}`);
+  }
 }
 
 async function handleIssueSubmit(form) {
