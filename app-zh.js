@@ -55,6 +55,7 @@ const calendarFilters = new Set();
 const calendarState = { monthOffset: 0, brand: "" };
 const mediaUploadState = { active: false, status: "idle", fileName: "", progress: 0, message: "", error: "", kind: "" };
 let mediaViewerState = { mediaId: null, index: 0, items: [], touchStartX: 0, touchStartY: 0 };
+let reviewMediaCache = [];
 const issueAreas = ["正面", "背面", "领口 / 帽口", "袖口", "下摆", "口袋", "前中拉链", "压胶缝", "面料", "辅料", "包装 / 吊牌 / 洗标", "其他"];
 const evidenceTypes = ["图片", "视频", "测量数据", "客户 Comment", "TP / BOM 对比", "页面新增", "无证据"];
 const issueLevelHelp = {
@@ -703,6 +704,7 @@ function renderMedia(sample, issues) {
   const grid = document.querySelector("#review .review-media-grid");
   if (!grid) return;
   const mediaItems = getReviewMediaItems(sample);
+  reviewMediaCache = mediaItems;
   const uploadDisabled = mediaUploadState.active ? "disabled" : "";
   const statusHtml = renderMediaUploadStatus();
   const cards = mediaItems.map(({ media, isVideo, isImage }) => {
@@ -789,7 +791,9 @@ function openMediaViewer(mediaId) {
   if (!modalRoot) return;
   const review = os.getReviewById(os.data.currentReviewId);
   const sample = os.getSampleById(review?.sampleId);
-  const items = getReviewMediaItems(sample).filter((item) => item.media.url);
+  const freshItems = getReviewMediaItems(sample);
+  const sourceItems = freshItems.length ? freshItems : reviewMediaCache;
+  const items = sourceItems.filter((item) => item.media.url);
   const index = Math.max(0, items.findIndex((item) => item.media.id === mediaId));
   const media = items[index]?.media || getCurrentMedia(mediaId);
   if (!media?.url) {
