@@ -53,6 +53,8 @@ const editingReviewRows = new Set();
 const pipelineFilters = new Set();
 const calendarFilters = new Set();
 const calendarState = { monthOffset: 0, brand: "" };
+const mediaUploadState = { active: false, status: "idle", fileName: "", progress: 0, message: "", error: "", kind: "" };
+let mediaViewerState = { mediaId: null, index: 0, items: [], touchStartX: 0, touchStartY: 0 };
 const issueAreas = ["正面", "背面", "领口 / 帽口", "袖口", "下摆", "口袋", "前中拉链", "压胶缝", "面料", "辅料", "包装 / 吊牌 / 洗标", "其他"];
 const evidenceTypes = ["图片", "视频", "测量数据", "客户 Comment", "TP / BOM 对比", "页面新增", "无证据"];
 const issueLevelHelp = {
@@ -700,25 +702,41 @@ function renderReview() {
 function renderMedia(sample, issues) {
   const grid = document.querySelector("#review .review-media-grid");
   if (!grid) return;
-  const issueByArea = (area) => issues.filter((issue) => issue.relatedArea.includes(area) || area.includes(issue.relatedArea));
-  const cards = sample.imageList.map((name, index) => {
-    const related = issueByArea(name);
-    const main = index === 0 ? " main" : "";
-    const shape = index < 2 ? `<div class="garment ${index === 0 ? "front" : "back"} jacket-render"><i></i></div>` : "";
-    const issueClass = related.length ? ` has-issue ${related.some((issue) => issue.level === "critical" || issue.level === "major") ? "critical" : "minor"}` : "";
-    return `<div class="review-photo${main}${index > 1 ? " part-photo" : ""}${issueClass}">${shape}<span>${esc(name)}</span>${related.length ? `<em>${related.length} 个${os.data.issueLevelRules[related[0].level].label}问题</em>` : ""}</div>`;
-  });
-  sample.videoList.forEach((video) => cards.push(`<div class="review-photo video-thumb"><div class="play">▶</div><span>${esc(video)}</span></div>`));
-  (sample.mediaList || []).forEach((media) => {
-    const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
-    const isImage = media.mimeType?.startsWith("image/");
-    const preview = isImage && media.url ? `<img class="media-preview" src="${esc(media.url)}" alt="${esc(media.label || media.fileName || "样衣照片")}" loading="lazy">` : "";
+  const mediaItems = getReviewMediaItems(sample);
+  const uploadDisabled = mediaUploadState.active ? "disabled" : "";
+  const statusHtml = renderMediaUploadStatus();
+  const cards = mediaItems.map(({ media, isVideo, isImage }) => {
+    const label = media.label || media.fileName || (isVideo ? "样衣视频" : "样衣照片");
+    const uploadedAt = media.uploadedAt || "刚刚";
+    const preview = isImage && media.url ? `<img class="media-preview" src="${esc(media.url)}" alt="${esc(label)}" loading="lazy">` : "";
+    const videoPreview = isVideo && media.url ? `<video class="media-preview" src="${esc(media.url)}" muted playsinline preload="metadata"></video>` : "";
     const canOpen = Boolean(media.url);
-    cards.push(`<div class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}" ${canOpen ? `data-open-media="${esc(media.id)}" role="button" tabindex="0"` : ""}>${preview}${isVideo ? `<div class="play">▶</div>` : ""}<button class="media-delete-button" type="button" data-delete-media="${esc(media.id)}" aria-label="删除${isVideo ? "视频" : "图片"}">删除</button><input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(media.label || media.fileName || "已上传文件")}" aria-label="媒体标签，例如正面、反面、拉链"><small class="media-meta">${isVideo ? "视频" : "照片"} · ${esc(media.uploadedAt || "")}</small></div>`);
-  });
-  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="image/*" data-media-upload="photo" /><strong>+ 上传照片</strong><span>拍照或从相册选择</span><em data-upload-status>等待选择照片</em></label>`);
-  cards.push(`<label class="review-photo upload-tile" data-upload-tile><input type="file" accept="video/*" data-media-upload="video" /><strong>+ 上传视频</strong><span>录制或从相册选择</span><em data-upload-status>等待选择视频</em></label>`);
-  grid.innerHTML = cards.join("");
+    return `
+      <article class="review-photo uploaded-media ${isVideo ? "video-thumb" : ""}" data-uploaded-media-id="${esc(media.id)}" ${canOpen ? `data-open-media="${esc(media.id)}" role="button" tabindex="0"` : ""}>
+        <div class="media-card-visual">${preview}${videoPreview}${isVideo ? `<div class="play">▶</div>` : ""}${!media.url ? `<span class="media-no-preview">暂无预览</span>` : ""}</div>
+        <button class="media-delete-button" type="button" data-delete-media="${esc(media.id)}" aria-label="删除${isVideo ? "视频" : "图片"}">删除</button>
+        <div class="media-card-body">
+          <input class="media-label-input" data-media-label="${esc(media.id)}" value="${esc(label)}" aria-label="媒体标签，例如正面、反面、拉链">
+          <small class="media-meta">${isVideo ? "视频" : "照片"} · ${esc(uploadedAt)}</small>
+          <small class="media-issue-chip">暂无关联问题</small>
+        </div>
+      </article>`;
+  }).join("");
+  grid.innerHTML = `
+    <div class="media-upload-toolbar">
+      <label class="media-upload-button primary ${mediaUploadState.active ? "is-disabled" : ""}">
+        <input type="file" accept="image/*" data-media-upload="photo" ${uploadDisabled}>
+        <strong>上传照片</strong>
+        <span>拍照或从相册选择</span>
+      </label>
+      <label class="media-upload-button ${mediaUploadState.active ? "is-disabled" : ""}">
+        <input type="file" accept="video/*" data-media-upload="video" ${uploadDisabled}>
+        <strong>上传视频</strong>
+        <span>从相册选择视频</span>
+      </label>
+    </div>
+    ${statusHtml}
+    <div class="media-card-list">${cards || `<div class="empty-state"><strong>暂无样衣媒体</strong><span>上传照片或视频后会显示在这里。</span></div>`}</div>`;
 }
 
 function getCurrentMedia(mediaId) {
@@ -727,21 +745,99 @@ function getCurrentMedia(mediaId) {
   return sample?.mediaList?.find((media) => media.id === mediaId);
 }
 
+function getReviewMediaItems(sample) {
+  return (sample?.mediaList || [])
+    .map((media, index) => ({ media, index }))
+    .sort((a, b) => {
+      const aTime = Date.parse(a.media.uploadedAt || "") || 0;
+      const bTime = Date.parse(b.media.uploadedAt || "") || 0;
+      if (aTime !== bTime) return bTime - aTime;
+      return a.index - b.index;
+    })
+    .map(({ media }) => {
+      const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
+      const isImage = media.mimeType?.startsWith("image/");
+      return { media, isVideo, isImage };
+    });
+}
+
+function renderMediaUploadStatus() {
+  if (mediaUploadState.status === "idle") return "";
+  const percent = Math.max(0, Math.min(100, Math.round(mediaUploadState.progress || 0)));
+  const canRetry = mediaUploadState.status === "error";
+  const title = mediaUploadState.status === "success" ? "上传成功" : mediaUploadState.status === "error" ? "上传失败" : "正在上传";
+  const message = mediaUploadState.status === "uploading"
+    ? "正在上传，请勿关闭页面"
+    : mediaUploadState.message || mediaUploadState.error || "";
+  return `
+    <div class="media-upload-status ${esc(mediaUploadState.status)}" data-media-upload-status>
+      <div class="upload-status-head"><strong>${esc(title)}</strong><span>${esc(mediaUploadState.fileName || "")}</span><b>${percent}%</b></div>
+      <div class="upload-progress"><i style="width:${percent}%"></i></div>
+      <small>${esc(message)}</small>
+      ${canRetry ? `<button type="button" data-retry-media-upload="${esc(mediaUploadState.kind || "photo")}">重新上传</button>` : ""}
+    </div>`;
+}
+
+function setMediaUploadState(next) {
+  Object.assign(mediaUploadState, next);
+  const review = os.getReviewById(os.data.currentReviewId);
+  const sample = os.getSampleById(review?.sampleId);
+  if (sample) renderMedia(sample, os.getOpenIssues(review?.id));
+}
+
 function openMediaViewer(mediaId) {
   if (!modalRoot) return;
-  const media = getCurrentMedia(mediaId);
+  const review = os.getReviewById(os.data.currentReviewId);
+  const sample = os.getSampleById(review?.sampleId);
+  const items = getReviewMediaItems(sample).filter((item) => item.media.url);
+  const index = Math.max(0, items.findIndex((item) => item.media.id === mediaId));
+  const media = items[index]?.media || getCurrentMedia(mediaId);
   if (!media?.url) {
     showToast("这个文件还没有可预览链接，请稍后刷新");
     return;
   }
-  const isVideo = media.mediaKind === "video" || media.mimeType?.startsWith("video/");
+  mediaViewerState = { ...mediaViewerState, mediaId: media.id, index, items };
+  renderMediaViewer();
+}
+
+function renderMediaViewer() {
+  if (!modalRoot) return;
+  const item = mediaViewerState.items[mediaViewerState.index];
+  const media = item?.media;
+  if (!media?.url) return;
+  const isVideo = item.isVideo;
   const label = media.label || media.fileName || (isVideo ? "样衣视频" : "样衣照片");
+  const count = mediaViewerState.items.length;
+  const prevDisabled = mediaViewerState.index <= 0 ? "disabled" : "";
+  const nextDisabled = mediaViewerState.index >= count - 1 ? "disabled" : "";
   const content = isVideo
     ? `<video class="media-viewer-content" src="${esc(media.url)}" controls autoplay playsinline></video>`
     : `<img class="media-viewer-content" src="${esc(media.url)}" alt="${esc(label)}">`;
-  modalRoot.innerHTML = `<div class="modal-backdrop" data-close-modal></div><section class="media-viewer" role="dialog" aria-modal="true" aria-label="${esc(label)}"><button class="media-viewer-close" type="button" data-close-modal aria-label="关闭预览">×</button>${content}<div class="media-viewer-caption"><strong>${esc(label)}</strong><span>${esc(media.uploadedAt || "")}</span></div></section>`;
+  modalRoot.innerHTML = `
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="media-viewer" role="dialog" aria-modal="true" aria-label="${esc(label)}">
+      <button class="media-viewer-close" type="button" data-close-modal aria-label="关闭预览">×</button>
+      <button class="media-viewer-nav prev" type="button" data-media-viewer-prev ${prevDisabled} aria-label="上一张">‹</button>
+      <button class="media-viewer-nav next" type="button" data-media-viewer-next ${nextDisabled} aria-label="下一张">›</button>
+      <div class="media-viewer-count">${mediaViewerState.index + 1} / ${count}</div>
+      ${content}
+      <div class="media-viewer-caption">
+        <strong>${esc(label)}</strong>
+        <span>${esc(media.uploadedAt || "")}</span>
+        <span>${isVideo ? "视频" : "照片"}</span>
+        <span>${esc(media.uploadedBy || os.userName(os.data.currentUserId) || "上传人未记录")}</span>
+      </div>
+    </section>`;
   modalRoot.classList.add("open", "media-viewer-open");
   modalRoot.setAttribute("aria-hidden", "false");
+}
+
+function moveMediaViewer(delta) {
+  const nextIndex = mediaViewerState.index + delta;
+  if (nextIndex < 0 || nextIndex >= mediaViewerState.items.length) return;
+  mediaViewerState.index = nextIndex;
+  mediaViewerState.mediaId = mediaViewerState.items[nextIndex]?.media?.id || null;
+  renderMediaViewer();
 }
 
 function getStyleCoverMedia(sample) {
@@ -1747,11 +1843,9 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  const uploadTile = event.target.closest("[data-upload-tile]");
-  if (uploadTile && !event.target.closest("[data-media-upload]")) {
-    event.preventDefault();
-    event.stopPropagation();
-    uploadTile.querySelector("[data-media-upload]")?.click();
+  const retryUpload = event.target.closest("[data-retry-media-upload]");
+  if (retryUpload) {
+    triggerMediaUpload(retryUpload.dataset.retryMediaUpload || "photo");
     return;
   }
 
@@ -1766,6 +1860,16 @@ document.addEventListener("click", (event) => {
   const mediaCard = event.target.closest("[data-open-media]");
   if (mediaCard && !event.target.closest("[data-media-label]")) {
     openMediaViewer(mediaCard.dataset.openMedia);
+    return;
+  }
+
+  if (event.target.closest("[data-media-viewer-prev]")) {
+    moveMediaViewer(-1);
+    return;
+  }
+
+  if (event.target.closest("[data-media-viewer-next]")) {
+    moveMediaViewer(1);
     return;
   }
 
@@ -2126,6 +2230,18 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (modalRoot?.classList.contains("media-viewer-open") && event.key === "ArrowLeft") {
+    event.preventDefault();
+    moveMediaViewer(-1);
+    return;
+  }
+
+  if (modalRoot?.classList.contains("media-viewer-open") && event.key === "ArrowRight") {
+    event.preventDefault();
+    moveMediaViewer(1);
+    return;
+  }
+
   if (event.key === "Escape") {
     drawer?.classList.remove("open");
     drawer?.setAttribute("aria-hidden", "true");
@@ -2135,6 +2251,24 @@ document.addEventListener("keydown", (event) => {
     closeModal();
   }
 });
+
+document.addEventListener("touchstart", (event) => {
+  if (!modalRoot?.classList.contains("media-viewer-open")) return;
+  const touch = event.touches?.[0];
+  if (!touch) return;
+  mediaViewerState.touchStartX = touch.clientX;
+  mediaViewerState.touchStartY = touch.clientY;
+}, { passive: true });
+
+document.addEventListener("touchend", (event) => {
+  if (!modalRoot?.classList.contains("media-viewer-open")) return;
+  const touch = event.changedTouches?.[0];
+  if (!touch) return;
+  const dx = touch.clientX - mediaViewerState.touchStartX;
+  const dy = touch.clientY - mediaViewerState.touchStartY;
+  if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+  moveMediaViewer(dx < 0 ? 1 : -1);
+}, { passive: true });
 
 document.addEventListener("pointermove", updatePointerGlow, { passive: true });
 
@@ -2156,7 +2290,11 @@ document.addEventListener("change", async (event) => {
 
   const input = event.target.closest("[data-media-upload]");
   if (!input?.files?.length) return;
-  const status = input.closest("[data-upload-tile]")?.querySelector("[data-upload-status]");
+  if (mediaUploadState.active) {
+    showToast("正在上传，请勿重复选择文件");
+    input.value = "";
+    return;
+  }
   const file = input.files[0];
   const review = os.getReviewById(os.data.currentReviewId);
   const sample = os.getSampleById(review.sampleId);
@@ -2172,14 +2310,30 @@ document.addEventListener("change", async (event) => {
   };
 
   try {
-    if (status) status.textContent = "准备上传...";
+    setMediaUploadState({
+      active: true,
+      status: "uploading",
+      fileName: file.name,
+      progress: 1,
+      message: "正在上传，请勿关闭页面",
+      error: "",
+      kind: uploadTarget,
+    });
     await window.SampleOSBackend.seedDemoData();
     const result = await window.SampleOSBackend.uploadFile(file, context, ({ ratio }) => {
-      if (status) status.textContent = `上传中 ${Math.round(ratio * 100)}%`;
+      setMediaUploadState({
+        active: true,
+        status: "uploading",
+        fileName: file.name,
+        progress: Math.max(1, Math.round(ratio * 100)),
+        message: "正在上传，请勿关闭页面",
+        error: "",
+        kind: uploadTarget,
+      });
     });
     const uploadedAt = new Date().toLocaleString("zh-CN", { hour12: false });
     sample.mediaList ||= [];
-    sample.mediaList.push({
+    sample.mediaList.unshift({
       id: result.media.id,
       label,
       fileName: file.name,
@@ -2187,19 +2341,42 @@ document.addEventListener("change", async (event) => {
       mimeType: file.type,
       byteSize: file.size,
       uploadedAt,
-      url: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+      url: file.type.startsWith("image/") || file.type.startsWith("video/") ? URL.createObjectURL(file) : null,
+      uploadedBy: os.userName(os.data.currentUserId),
     });
     review.timeline.unshift({
       time: uploadedAt,
       type: "blue",
       text: `${os.userName(os.data.currentUserId)} · 上传${uploadTarget === "style-cover" ? "款式图" : mediaKind === "video" ? "视频" : "照片"}：${label}`,
     });
-    if (status) status.textContent = `已上传：${result.media.id.slice(0, 8)}`;
+    setMediaUploadState({
+      active: false,
+      status: "success",
+      fileName: file.name,
+      progress: 100,
+      message: "上传成功",
+      error: "",
+      kind: uploadTarget,
+    });
     renderReview();
     showToast(`已上传并保存标签：${label}`);
+    window.setTimeout(() => {
+      if (mediaUploadState.status !== "success" || mediaUploadState.fileName !== file.name) return;
+      setMediaUploadState({ active: false, status: "idle", fileName: "", progress: 0, message: "", error: "", kind: "" });
+    }, 3000);
   } catch (error) {
-    if (status) status.textContent = error.message.includes("S3 upload failed") ? "S3 上传失败，请检查 bucket CORS" : error.message;
-    else showToast(error.message.includes("S3 upload failed") ? "S3 上传失败，请检查 bucket CORS" : error.message);
+    const rawMessage = String(error?.message || error || "网络错误");
+    const message = rawMessage.includes("S3 upload failed") ? "S3 上传失败，请检查 bucket CORS" : rawMessage;
+    setMediaUploadState({
+      active: false,
+      status: "error",
+      fileName: file.name,
+      progress: 0,
+      message: "",
+      error: message,
+      kind: uploadTarget,
+    });
+    showToast(`上传失败：${message}`);
   } finally {
     input.value = "";
   }
