@@ -289,6 +289,19 @@ async function createStyle(supabase, orgId, body) {
     .single();
   if (reviewError) throw syncError("insert reviews", reviewError, { styleId: style.id, sampleId: sample.id, reviewNo: `SR-${styleNo}` });
 
+  if (sampleVariants.length) {
+    const { error: auditError } = await supabase
+      .from("audit_events")
+      .insert({
+        org_id: orgId,
+        entity_type: "style",
+        entity_id: style.id,
+        action: "sample_variants",
+        detail: { sampleVariants, quantity },
+      });
+    if (auditError) throw syncError("insert audit_events sample_variants", auditError, { styleId: style.id, sampleVariants, quantity });
+  }
+
   return { styleId: style.id, sampleId: sample.id, reviewId: review.id };
 }
 

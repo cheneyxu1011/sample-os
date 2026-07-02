@@ -82,6 +82,7 @@ export default async function handler(req, res) {
       peopleResult,
       workersResult,
       settingsResult,
+      auditEventsResult,
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("org_id", org.id),
       supabase.from("departments").select("*").eq("org_id", org.id),
@@ -94,9 +95,10 @@ export default async function handler(req, res) {
       supabase.from("sample_people").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_workers").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_settings").select("*").eq("org_id", org.id),
+      supabase.from("audit_events").select("*").eq("org_id", org.id).eq("entity_type", "style").eq("action", "sample_variants").order("created_at", { ascending: true }),
     ]);
 
-    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult];
+    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult, auditEventsResult];
     const firstError = results.find((result) => result.error)?.error;
     if (firstError) throw firstError;
 
@@ -121,6 +123,7 @@ export default async function handler(req, res) {
     const people = peopleResult.data || [];
     const workers = workersResult.data || [];
     const settings = settingsResult.data || [];
+    const auditEvents = auditEventsResult.data || [];
     const settingsMap = Object.fromEntries(settings.map((item) => [item.key, item.value]));
     const s3 = process.env.AWS_REGION ? new S3Client({ region: process.env.AWS_REGION }) : null;
 
@@ -129,6 +132,11 @@ export default async function handler(req, res) {
     const sampleReviewMap = new Map(reviews.map((review) => [review.sample_id, review]));
     const sampleByStyleMap = new Map(samples.map((sample) => [sample.style_id, sample]));
     const reviewIssueMap = new Map();
+    const variantAuditMap = new Map();
+    auditEvents.forEach((event) => {
+      if (!event.entity_id) return;
+      variantAuditMap.set(event.entity_id, event.detail || {});
+    });
     issues.forEach((issue) => {
       if (!issue.review_id) return;
       reviewIssueMap.set(issue.review_id, [...(reviewIssueMap.get(issue.review_id) || []), issue.id]);
@@ -197,8 +205,8 @@ export default async function handler(req, res) {
         riskStatus: style.risk_status || "normal",
         nextAction: style.next_action || "",
         blockerSummary: style.blocker_summary || "",
-        sampleVariants: Array.isArray(style.sample_variants) ? style.sample_variants : [],
-        quantity: Number(style.quantity || 1),
+        sampleVariants: Array.isArray(style.sample_variants) && style.sample_variants.length ? style.sample_variants : (variantAuditMap.get(style.id)?.sampleVariants || []),
+        quantity: Number(style.quantity || variantAuditMap.get(style.id)?.quantity || 1),
       })),
       samples: samplePayload,
       reviews: reviews.map((review) => ({
