@@ -6497,6 +6497,129 @@ body.apple-ui {
   }
 }
 
+/* P0 desktop review safety: keep department review controls fully reachable. */
+@media (min-width: 769px) and (max-width: 1540px) {
+  body.apple-ui #review .review-dashboard {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  body.apple-ui #review .review-hero,
+  body.apple-ui #review .review-control-strip,
+  body.apple-ui #review .strip-main,
+  body.apple-ui #review .quality-gate-panel.compact,
+  body.apple-ui #review .review-board,
+  body.apple-ui #review .section-block {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body.apple-ui #review .review-hero {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  body.apple-ui #review .review-process,
+  body.apple-ui #review .location-card {
+    grid-column: 1 / -1;
+  }
+
+  body.apple-ui #review .review-control-strip,
+  body.apple-ui #review .strip-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.apple-ui #review .quality-gate-panel.compact {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  body.apple-ui #review .review-board {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body.apple-ui #review .media-panel,
+  body.apple-ui #review .department-panel,
+  body.apple-ui #review .issue-panel,
+  body.apple-ui #review .decision-panel,
+  body.apple-ui #review .timeline-panel,
+  body.apple-ui #review .version-panel {
+    grid-column: 1 / -1 !important;
+  }
+
+  body.apple-ui #review .department-panel,
+  body.apple-ui #review .issue-panel {
+    overflow: visible;
+  }
+
+  body.apple-ui #review .review-table-row {
+    min-width: 0;
+    column-gap: 8px;
+    grid-template-columns: 74px 90px 110px 132px minmax(180px, 1fr) 72px 76px 96px;
+  }
+
+  body.apple-ui #review .issue-table-row {
+    min-width: 0;
+    column-gap: 8px;
+    grid-template-columns: minmax(140px, 1.2fr) 96px 82px 72px 82px 112px 78px 86px 58px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  body.apple-ui .topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  body.apple-ui .top-actions {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  body.apple-ui .search {
+    min-width: 0;
+    flex: 1 1 220px;
+  }
+
+  body.apple-ui #review .review-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.apple-ui #review .quality-gate-panel.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.apple-ui #review .review-table-row,
+  body.apple-ui #review .issue-table-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  body.apple-ui #review .review-table-row.head,
+  body.apple-ui #review .issue-table-row.head {
+    display: none;
+  }
+
+  body.apple-ui #review .review-table-row > *,
+  body.apple-ui #review .issue-table-row > * {
+    min-width: 0;
+  }
+}
+
+body.apple-ui .issue-drawer:not(.open),
+body.apple-ui .person-drawer:not(.open),
+body.apple-ui .style-drawer:not(.open) {
+  display: none;
+}
+
+body.apple-ui .issue-drawer.open,
+body.apple-ui .person-drawer.open,
+body.apple-ui .style-drawer.open {
+  display: grid;
+}
+
 /* P0 mobile overrides: keep primary navigation reachable on narrow devices. */
 @media (max-width: 768px) {
   body.apple-ui .sidebar {

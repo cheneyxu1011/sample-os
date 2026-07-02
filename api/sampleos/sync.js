@@ -43,6 +43,40 @@ function syncError(stage, error, payload = {}) {
   return next;
 }
 
+function normalizeIssueLevel(level) {
+  const value = String(level || "normal").trim();
+  const map = { "轻微": "minor", "一般": "normal", "重大": "major", "严重": "critical" };
+  return map[value] || value;
+}
+
+async function resolveEntityId(supabase, orgId, table, value) {
+  if (!value) return null;
+  const raw = String(value);
+  if (isUuid(raw)) return raw;
+  const { data, error } = await supabase
+    .from(table)
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("external_ref", raw)
+    .maybeSingle();
+  if (error) throw syncError(`resolve ${table}`, error, { value });
+  return data?.id || null;
+}
+
+async function resolvePersonId(supabase, orgId, value) {
+  if (!value) return null;
+  const raw = String(value);
+  const { data, error } = await supabase
+    .from("sample_people")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("id", raw)
+    .maybeSingle();
+  if (error) throw syncError("resolve sample_people", error, { value });
+  if (data?.id) return data.id;
+  return isUuid(raw) ? raw : null;
+}
+
 async function firstOrg(supabase) {
   const { data, error } = await supabase
     .from("organizations")
@@ -165,15 +199,22 @@ async function updateIssueStatus(supabase, orgId, body) {
 
 async function createIssue(supabase, orgId, body) {
   const sourceDepartmentId = body.sourceDepartment ? await ensureDepartment(supabase, orgId, body.sourceDepartment) : null;
-  const level = body.level || "normal";
-  const shipmentBlocking = body.shipmentBlocking ?? ["major", "critical"].includes(level);
+  const styleId = await resolveEntityId(supabase, orgId, "styles", body.styleId);
+  const sampleId = await resolveEntityId(supabase, orgId, "samples", body.sampleId);
+  const reviewId = await resolveEntityId(supabase, orgId, "reviews", body.reviewId);
+  if (!styleId) throw new Error(`createIssue: could not resolve styleId ${body.styleId}`);
+  if (!reviewId) throw new Error(`createIssue: could not resolve reviewId ${body.reviewId}`);
+  const ownerId = await resolvePersonId(supabase, orgId, body.ownerId);
+  const verifierId = await resolvePersonId(supabase, orgId, body.verifierId);
+  const level = normalizeIssueLevel(body.level);
+  const shipmentBlocking = ["major", "critical"].includes(level) || Boolean(body.shipmentBlocking);
   const { data, error } = await supabase
     .from("issues")
     .insert({
       org_id: orgId,
-      style_id: body.styleId,
-      sample_id: body.sampleId || null,
-      review_id: body.reviewId || null,
+      style_id: styleId,
+      sample_id: sampleId,
+      review_id: reviewId,
       title: body.title || "新增问题",
       description: body.description || "",
       source_department_id: sourceDepartmentId,
@@ -182,9 +223,9 @@ async function createIssue(supabase, orgId, body) {
       shipment_blocking: Boolean(shipmentBlocking),
       can_ship_with_note: Boolean(body.canShipWithNote),
       status: body.status || "not_started",
-      owner_id: body.ownerId || null,
+      owner_id: ownerId,
       due_at: body.dueDate || null,
-      verifier_id: body.verifierId || null,
+      verifier_id: verifierId,
       evidence_note: body.evidence || "手动新增",
     })
     .select("id")

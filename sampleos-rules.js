@@ -224,6 +224,49 @@
     review.timeline.push({ time: "现在", type: "red", text: "系统 · 新增重大问题，重新计算寄样状态" });
   }
 
+  function addIssue(issuePayload) {
+    const review = getReviewById(issuePayload.reviewId);
+    const sample = getSampleById(issuePayload.sampleId || review?.sampleId);
+    if (!review || !sample) return null;
+    const level = issuePayload.level || "normal";
+    const shipmentBlocking = ["major", "critical"].includes(level) || Boolean(issuePayload.shipmentBlocking);
+    const id = issuePayload.id || issuePayload.issueId || `issue_local_${Date.now()}`;
+    const now = new Date().toLocaleString("zh-CN", { hour12: false }).replace(/\//g, "-");
+    const issue = {
+      id,
+      styleId: issuePayload.styleId || review.styleId,
+      sampleId: sample.id,
+      reviewId: review.id,
+      title: issuePayload.title || "新增问题",
+      description: issuePayload.description || "",
+      sourceDepartment: issuePayload.sourceDepartment || "未指定",
+      relatedArea: issuePayload.relatedArea || "",
+      level,
+      shipmentBlocking,
+      canShipWithNote: ["minor", "normal"].includes(level) && !shipmentBlocking,
+      owner: issuePayload.owner || issuePayload.ownerId || null,
+      dueDate: issuePayload.dueDate || "",
+      status: issuePayload.status || "not_started",
+      verifier: issuePayload.verifier || issuePayload.verifierId || null,
+      evidence: issuePayload.evidence || "页面新增",
+      createdAt: issuePayload.createdAt || now,
+      updatedAt: issuePayload.updatedAt || now,
+    };
+    const existingIndex = data.issues.findIndex((item) => item.id === id);
+    if (existingIndex >= 0) data.issues.splice(existingIndex, 1, issue);
+    else data.issues.unshift(issue);
+    review.issueIds ||= [];
+    if (!review.issueIds.includes(id)) review.issueIds.push(id);
+    review.timeline ||= [];
+    review.timeline.unshift({
+      time: now,
+      type: shipmentBlocking ? "red" : "amber",
+      text: `${issue.sourceDepartment}评审意见转为 Issue：${issue.title}`,
+    });
+    review.status = shipmentBlocking ? "issue_assignment" : review.status || "reviewing";
+    return issue;
+  }
+
   function updateSampleLocation(styleId, location) {
     const style = getStyleById(styleId);
     const sample = getSampleByStyle(styleId);
@@ -299,6 +342,7 @@
     getStyleSummary,
     getStats,
     closeIssue,
+    addIssue,
     addDemoIssue,
     updateSampleLocation,
     updateSampleReviewGateOwner,

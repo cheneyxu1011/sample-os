@@ -32,7 +32,7 @@ const navLabelMap = {
 let currentLang = "zh";
 let settingsRoleTab = "templates";
 const SAMPLE_OS_TEST_STYLE_ID = "style_212";
-const SAMPLE_OS_SINGLE_STYLE_MODE = false;
+const SAMPLE_OS_SINGLE_STYLE_MODE = true;
 
 const views = document.querySelectorAll(".view");
 const title = document.querySelector("#view-title");
@@ -70,6 +70,195 @@ const departmentStatusHelp = {
   fail: "存在重大风险，必须转为 Issue，并由评审负责人判断是否阻止寄样。",
   pending: "等待该部门提交专业意见。",
 };
+const reviewI18n = {
+  zh: {
+    departmentReview: "部门评审",
+    departmentReviewDesc: "各部门先独立提交专业意见。部门评审不等于最终放行。",
+    departmentReviewTip: "评审意见如果需要别人处理、需要复验、影响寄样，就必须转为 Issue。",
+    department: "部门",
+    role: "角色",
+    reviewer: "负责人",
+    status: "状态",
+    opinionFocus: "评审意见 / 关注点",
+    issueResult: "产生问题",
+    time: "时间",
+    action: "操作",
+    edit: "编辑",
+    saveDraft: "保存草稿",
+    submitReview: "提交评审",
+    save: "保存",
+    convertToIssue: "转为 Issue",
+    qualityGateIssues: "质量闸口问题",
+    qualityGateDesc: "需要整改、复验、归属责任或影响寄样的问题，会在这里形成 Issue，并进入闭环。",
+    qualityGateTip: "Issue 必须有负责人、等级、是否阻塞寄样和关闭状态。",
+    addIssue: "新增问题",
+    issueTitle: "问题名称",
+    issueDescription: "问题描述",
+    sourceDepartment: "来源部门",
+    evidence: "证据",
+    level: "等级",
+    shipmentBlocking: "是否阻塞寄样",
+    owner: "负责人",
+    verifier: "复验人",
+    canShip: "可以寄样",
+    shipAfterRework: "修改后寄样",
+    holdShipment: "暂停寄样",
+    exceptionRelease: "例外放行",
+    currentCannotShip: "当前不可寄样",
+    blockShipment: "阻止寄样",
+    minor: "轻微",
+    normal: "一般",
+    major: "重大",
+    critical: "严重",
+    noEvidence: "无证据",
+    yes: "是",
+    no: "否",
+    noVerifier: "无需复验",
+    emptyIssuesTitle: "暂无真实质量问题",
+    emptyIssuesBody: "当前 Supabase 没有这次评审的问题记录；新增后这里会同步显示。",
+    ordinaryOpinion: "普通意见",
+    issueUnit: "个 Issue",
+    notSaved: "未保存",
+    focus: "关注点",
+    focusFallback: "可直接填写真实评审意见",
+    failNeedIssue: "请将该评审意见转为质量闸口 Issue，否则无法完成部门评审。",
+    issueModalTitle: "质量闸口 Issue",
+    issueFromReview: "评审意见转为 Issue",
+    basicInfo: "问题基础信息",
+    relatedArea: "问题位置 / 部位",
+    sourceEvidence: "来源与证据",
+    evidenceType: "证据类型",
+    linkedMedia: "关联图片 / 视频",
+    issueLevel: "问题等级",
+    responsibilityVerification: "责任与复验",
+    dueDate: "截止时间",
+    needsVerification: "需要复验",
+    cancel: "取消",
+    saveIssue: "保存为 Issue",
+    statusPending: "待评审",
+    statusPass: "通过",
+    statusNeeds: "需要改进",
+    statusFail: "不通过",
+  },
+  ja: {
+    departmentReview: "部門レビュー",
+    departmentReviewDesc: "各部門が先に専門意見を個別に提出します。部門レビューは最終出荷許可ではありません。",
+    departmentReviewTip: "他部門の対応、再検証、出荷判断に影響する意見は Issue 化してください。",
+    department: "部門",
+    role: "役割",
+    reviewer: "担当者",
+    status: "状態",
+    opinionFocus: "レビュー意見 / 確認点",
+    issueResult: "Issue",
+    time: "時間",
+    action: "操作",
+    edit: "編集",
+    saveDraft: "下書き保存",
+    submitReview: "レビュー提出",
+    save: "保存",
+    convertToIssue: "Issue 化",
+    qualityGateIssues: "品質ゲート Issue",
+    qualityGateDesc: "修正、再検証、責任帰属、出荷判断に関わる問題を Issue として登録し、クローズまで追跡します。",
+    qualityGateTip: "Issue には担当者、レベル、出荷ブロック有無、クローズ状態が必要です。",
+    addIssue: "問題を追加",
+    issueTitle: "問題名",
+    issueDescription: "問題説明",
+    sourceDepartment: "発生部門",
+    evidence: "証拠",
+    level: "レベル",
+    shipmentBlocking: "出荷ブロック",
+    owner: "担当者",
+    verifier: "再検証者",
+    canShip: "出荷可",
+    shipAfterRework: "修正後出荷",
+    holdShipment: "出荷停止",
+    exceptionRelease: "例外承認",
+    currentCannotShip: "現在出荷不可",
+    blockShipment: "出荷ブロック",
+    minor: "軽微",
+    normal: "一般",
+    major: "重大",
+    critical: "深刻",
+    noEvidence: "証拠なし",
+    yes: "はい",
+    no: "いいえ",
+    noVerifier: "再検証不要",
+    emptyIssuesTitle: "品質 Issue はまだありません",
+    emptyIssuesBody: "このレビューの Issue はまだ Supabase にありません。追加後ここに表示されます。",
+    ordinaryOpinion: "通常意見",
+    issueUnit: "件 Issue",
+    notSaved: "未保存",
+    focus: "確認点",
+    focusFallback: "実際のレビュー意見を入力できます",
+    failNeedIssue: "このレビュー意見を品質ゲート Issue にしてください。Issue がないと部門レビューを完了できません。",
+    issueModalTitle: "品質ゲート Issue",
+    issueFromReview: "レビュー意見を Issue 化",
+    basicInfo: "基本情報",
+    relatedArea: "問題箇所",
+    sourceEvidence: "発生元と証拠",
+    evidenceType: "証拠タイプ",
+    linkedMedia: "関連画像 / 動画",
+    issueLevel: "問題レベル",
+    responsibilityVerification: "担当と再検証",
+    dueDate: "期限",
+    needsVerification: "再検証が必要",
+    cancel: "キャンセル",
+    saveIssue: "Issue として保存",
+    statusPending: "レビュー待ち",
+    statusPass: "合格",
+    statusNeeds: "改善要",
+    statusFail: "不合格",
+  },
+};
+const departmentStatusHelpJa = {
+  pass: "この部門では追跡が必要な問題は見つかっていません。",
+  needs_improvement: "問題がありますが、必ずしも出荷を止めるとは限りません。修正や再検証が必要なら Issue 化してください。",
+  fail: "重大なリスクがあります。必ず Issue 化し、レビュー責任者が出荷ブロックを判断します。",
+  pending: "この部門の専門意見を待っています。",
+};
+const issueLevelHelpJa = {
+  minor: "軽微：顧客判断、着用、構造に影響しません。出荷可能ですが記録が必要です。",
+  normal: "一般：外観や完成度に影響しますが、短期修正または説明で対応可能です。Gate Owner が判断します。",
+  major: "重大：顧客判断、寸法、機能、工程、量産性に影響します。原則出荷ブロックです。",
+  critical: "深刻：方向、素材、色、機能、重大品質リスクです。出荷停止し、再検証後に再レビューします。",
+};
+
+function tr(key) {
+  const lang = currentLang === "ja" ? "ja" : "zh";
+  return reviewI18n[lang]?.[key] || reviewI18n.zh[key] || key;
+}
+
+function issueLevelLabel(level) {
+  return tr(level || "normal");
+}
+
+function departmentStatusLabel(status) {
+  return tr(status === "pass" ? "statusPass" : status === "needs_improvement" ? "statusNeeds" : status === "fail" ? "statusFail" : "statusPending");
+}
+
+function departmentHelp(status) {
+  return currentLang === "ja" ? (departmentStatusHelpJa[status] || departmentStatusHelpJa.pending) : (departmentStatusHelp[status] || departmentStatusHelp.pending);
+}
+
+function issueHelp(level) {
+  return currentLang === "ja" ? (issueLevelHelpJa[level] || "") : (issueLevelHelp[level] || "");
+}
+
+function shipmentStatusLabel(status) {
+  const key = typeof status === "string" ? status : status?.key;
+  const label = typeof status === "string" ? status : status?.label;
+  if (currentLang !== "ja") return label || key || "";
+  const map = {
+    can_ship: tr("canShip"),
+    can_ship_with_record: "記録付き出荷可",
+    gate_owner_decision: "Gate Owner 判断待ち",
+    blocked: tr("blockShipment"),
+    hold_shipment: tr("holdShipment"),
+    waiting_exception: "例外承認待ち",
+    exception_released: "例外承認済み",
+  };
+  return map[key] || label || key || "";
+}
 const roleTemplates = [
   { id: "business_pm", name: "Business PM / 业务负责人", type: "评审角色", stages: ["开发准备", "样衣评审"], responsibility: "确认客户邮件、TP、BOM、Comment、颜色、辅料、交期、寄样目的是否一致", permissions: ["发起开发", "补充资料", "提交意见", "创建 Issue", "申请寄样"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["顾瑶", "顾永宏"], reviewRole: "业务负责人", focusTags: ["客户邮件", "TP", "BOM", "Comment", "颜色", "辅料", "交期", "寄样目的"] },
   { id: "pattern_reviewer", name: "Pattern Reviewer / 版型评审员", type: "评审角色", stages: ["样衣评审"], responsibility: "评审版型、关键尺寸、公差、结构、左右对称、纸样与实物一致性", permissions: ["提交意见", "创建尺寸/版型 Issue", "复验版型问题"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["徐海燕"], reviewRole: "版型评审员", focusTags: ["版型", "关键尺寸", "公差", "结构", "左右对称", "纸样一致性"] },
@@ -685,13 +874,13 @@ function renderReview() {
     const firstBlocking = blockingIssues[0];
     const blockingOwner = blockingIssues.map((issue) => os.userName(issue.owner)).filter(Boolean).join(" / ") || summary.ownerNames;
     const shipmentLabel = blockingIssues.length
-      ? shipmentStatus.key === "hold_shipment" ? "暂停寄样" : "当前不可寄样"
-      : shipmentStatus.label;
-    const reasonLabel = blockingIssues.length ? `${blockingIssues.length} 个 Blocking Issue` : "无阻塞问题";
+      ? shipmentStatus.key === "hold_shipment" ? tr("holdShipment") : tr("currentCannotShip")
+      : shipmentStatusLabel(shipmentStatus);
+    const reasonLabel = blockingIssues.length ? `${blockingIssues.length} 个 Blocking Issue` : (currentLang === "ja" ? "ブロックなし" : "无阻塞问题");
     const nextStep = blockingIssues.length
       ? firstBlocking?.level === "critical" ? "整改 / 复验 / 重新评审" : "整改 / 复验 / Gate Owner 确认"
       : summary.nextAction;
-    strip.innerHTML = `<div><span>当前是否可寄样</span><strong>${esc(shipmentLabel)}</strong></div><div><span>原因</span><strong>${esc(reasonLabel)}</strong></div><div class="blocking-alert"><span>当前责任人 / 下一步</span><strong>${esc(blockingOwner)} · ${esc(nextStep)}</strong></div>`;
+    strip.innerHTML = `<div><span>${currentLang === "ja" ? "現在出荷可能か" : "当前是否可寄样"}</span><strong>${esc(shipmentLabel)}</strong></div><div><span>${currentLang === "ja" ? "理由" : "原因"}</span><strong>${esc(reasonLabel)}</strong></div><div class="blocking-alert"><span>${currentLang === "ja" ? "現在担当 / 次の対応" : "当前责任人 / 下一步"}</span><strong>${esc(blockingOwner)} · ${esc(nextStep)}</strong></div>`;
   }
   renderMedia(sample, openIssues);
   renderDepartmentReviews(review);
@@ -897,11 +1086,11 @@ function renderDepartmentReviews(review) {
   const table = document.querySelector("#review .review-table");
   if (!table) return;
   if (titleBlock) {
-    titleBlock.innerHTML = `<div><h2>部门评审</h2><span>各部门先独立提交专业意见。部门评审不等于最终放行。</span><small class="panel-training-tip">评审意见如果需要别人处理、需要复验、影响寄样，就必须转为 Issue。</small></div>`;
+    titleBlock.innerHTML = `<div><h2>${tr("departmentReview")}</h2><span>${tr("departmentReviewDesc")}</span><small class="panel-training-tip">${tr("departmentReviewTip")}</small></div>`;
   }
   const rows = mergeReviewRowsWithRoleTemplates(review);
   const reviewIssues = os.getIssuesByReview(review.id);
-  table.innerHTML = `<div class="review-table-row head"><span>部门</span><span>角色</span><span>负责人</span><span>状态</span><span>评审意见 / 关注点</span><span>产生问题</span><span>时间</span><span>操作</span></div>` + rows.map((item, index) => {
+  table.innerHTML = `<div class="review-table-row head"><span>${tr("department")}</span><span>${tr("role")}</span><span>${tr("reviewer")}</span><span>${tr("status")}</span><span>${tr("opinionFocus")}</span><span>${tr("issueResult")}</span><span>${tr("time")}</span><span>${tr("action")}</span></div>` + rows.map((item, index) => {
     const issueIds = Array.isArray(item.issueIds) ? item.issueIds : [];
     const linkedIssues = reviewIssues.filter((issue) => issueIds.includes(issue.id) || issue.sourceDepartment === item.department);
     const issueCount = linkedIssues.filter((issue) => issue.status !== "closed").length;
@@ -909,12 +1098,12 @@ function renderDepartmentReviews(review) {
     const rowKey = item.id || `${review.id}:${item.department}`;
     const isLocked = Boolean((item.opinion || "").trim() || item.reviewedAt) && !editingReviewRows.has(rowKey);
     const saveOrEdit = isLocked
-      ? `<button class="row-action" type="button" data-edit-department-review="${index}">编辑</button>`
-      : `<button class="row-action ${pill}" type="button" data-save-department-review="${index}">保存</button>`;
-    const statusNote = departmentStatusHelp[item.status] || departmentStatusHelp.pending;
-    const failWarning = item.status === "fail" && !issueCount ? `<small class="review-warning">请将该评审意见转为质量闸口 Issue，否则无法完成部门评审。</small>` : "";
+      ? `<button class="row-action" type="button" data-edit-department-review="${index}">${tr("edit")}</button>`
+      : `<button class="row-action ${pill}" type="button" data-save-department-review="${index}">${tr("saveDraft")}</button>`;
+    const statusNote = departmentHelp(item.status);
+    const failWarning = item.status === "fail" && !issueCount ? `<small class="review-warning">${tr("failNeedIssue")}</small>` : "";
     const reviewerLabel = item.reviewer ? avatar(item.reviewer) : `<i class="avatar avatar-zhao"></i>${esc(item.reviewerName || "待分配")}`;
-    return `<div class="review-table-row editable-review-row ${isLocked ? "is-locked" : ""}" data-review-row="${index}" data-review-row-key="${esc(rowKey)}" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${reviewerLabel}</span><label class="review-status-cell"><select data-review-status ${isLocked ? "disabled" : ""}><option value="pending" ${item.status === "pending" ? "selected" : ""}>待评审</option><option value="pass" ${item.status === "pass" ? "selected" : ""}>通过</option><option value="needs_improvement" ${item.status === "needs_improvement" ? "selected" : ""}>需要改进</option><option value="fail" ${item.status === "fail" ? "selected" : ""}>不通过</option></select><small data-review-status-help>${esc(statusNote)}</small></label><label><textarea data-review-opinion ${isLocked ? "readonly" : ""} placeholder="在这里输入评审意见">${esc(item.opinion)}</textarea><small>关注点：${esc(item.focusTags.join(" · ") || "可直接填写真实评审意见")}</small>${failWarning}</label><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} 个 Issue` : "普通意见"}</em><time>${esc(item.reviewedAt || "未保存")}</time><div class="row-actions-inline">${saveOrEdit}<button class="row-action primary" type="button" data-issue-from-review="${index}">转为 Issue</button></div></div>`;
+    return `<div class="review-table-row editable-review-row ${isLocked ? "is-locked" : ""}" data-review-row="${index}" data-review-row-key="${esc(rowKey)}" data-focus="${esc(item.focusTags.join("、"))}"><strong>${esc(item.department)}</strong><em>${esc(item.role)}</em><span>${reviewerLabel}</span><label class="review-status-cell"><select data-review-status ${isLocked ? "disabled" : ""}><option value="pending" ${item.status === "pending" ? "selected" : ""}>${departmentStatusLabel("pending")}</option><option value="pass" ${item.status === "pass" ? "selected" : ""}>${departmentStatusLabel("pass")}</option><option value="needs_improvement" ${item.status === "needs_improvement" ? "selected" : ""}>${departmentStatusLabel("needs_improvement")}</option><option value="fail" ${item.status === "fail" ? "selected" : ""}>${departmentStatusLabel("fail")}</option></select><small data-review-status-help>${esc(statusNote)}</small></label><label><textarea data-review-opinion ${isLocked ? "readonly" : ""} placeholder="${esc(currentLang === "ja" ? "レビュー意見を入力" : "在这里输入评审意见")}">${esc(item.opinion)}</textarea><small>${tr("focus")}：${esc(item.focusTags.join(" · ") || tr("focusFallback"))}</small>${failWarning}</label><em class="issue-created ${issueCount ? "major" : "none"}">${issueCount ? `${issueCount} ${tr("issueUnit")}` : tr("ordinaryOpinion")}</em><time>${esc(item.reviewedAt || tr("notSaved"))}</time><div class="row-actions-inline">${saveOrEdit}<button class="row-action primary" type="button" data-issue-from-review="${index}">${tr("convertToIssue")}</button></div></div>`;
   }).join("");
   review.departmentReviews = rows;
 }
@@ -924,19 +1113,18 @@ function renderIssueList(review) {
   const table = document.querySelector("#review .issue-table");
   const issues = os.getIssuesByReview(review.id);
   const openIssues = os.getOpenIssues(review.id);
-  if (titleBlock) titleBlock.innerHTML = `<div><h2>质量闸口问题 <span class="badge-count">${openIssues.length}</span></h2><span>需要整改、复验、归属责任或影响寄样的问题，会在这里形成 Issue，并进入闭环。</span><small class="panel-training-tip">Issue 必须有负责人、等级、是否阻塞寄样和关闭状态。</small></div><button class="row-action primary" type="button" data-open-issue-modal>新增问题</button>`;
+  if (titleBlock) titleBlock.innerHTML = `<div><h2>${tr("qualityGateIssues")} <span class="badge-count">${openIssues.length}</span></h2><span>${tr("qualityGateDesc")}</span><small class="panel-training-tip">${tr("qualityGateTip")}</small></div><button class="row-action primary" type="button" data-open-issue-modal>${tr("addIssue")}</button>`;
   if (!table) return;
   if (!issues.length) {
-    table.innerHTML = `<div class="empty-state"><strong>暂无真实质量问题</strong><span>当前 Supabase 没有这次评审的问题记录；新增后这里会同步显示。</span></div>`;
+    table.innerHTML = `<div class="empty-state"><strong>${tr("emptyIssuesTitle")}</strong><span>${tr("emptyIssuesBody")}</span></div>`;
     return;
   }
-  table.innerHTML = `<div class="issue-table-row head"><span>问题名称</span><span>来源部门</span><span>证据</span><span>等级</span><span>是否阻塞寄样</span><span>负责人姓名</span><span>状态</span><span>复验人</span><span></span></div>` + issues.map((issue) => {
-    const level = os.data.issueLevelRules[issue.level] || os.data.issueLevelRules.normal;
+  table.innerHTML = `<div class="issue-table-row head"><span>${tr("issueTitle")}</span><span>${tr("sourceDepartment")}</span><span>${tr("evidence")}</span><span>${tr("level")}</span><span>${tr("shipmentBlocking")}</span><span>${tr("owner")}</span><span>${tr("status")}</span><span>${tr("verifier")}</span><span></span></div>` + issues.map((issue) => {
     const blocking = os.getBlockingIssues(review.id).some((item) => item.id === issue.id);
-    const evidence = evidenceTypes.find((type) => String(issue.evidence || "").includes(type)) || issue.evidence || "无证据";
+    const evidence = evidenceTypes.find((type) => String(issue.evidence || "").includes(type)) || issue.evidence || tr("noEvidence");
     const ownerName = os.userName(issue.owner);
-    const verifierName = issue.verifier ? os.userName(issue.verifier) : "无需复验";
-    return `<div class="issue-table-row ${blocking ? "issue-blocking" : ""}" data-issue-id="${issue.id}"><strong>${esc(issue.title)}<small>${esc(issue.relatedArea || "未标注部位")}</small></strong><span>${esc(issue.sourceDepartment || "未指定")}</span><span>${esc(evidence)}</span><b class="priority ${esc(issue.level || "normal")}">${esc(level.label)}</b><span class="shipment ${blocking ? "no" : "yes"}">${blocking ? "是" : "否"}</span><span class="named-person">${avatar(issue.owner)}<small>${esc(ownerName)}</small></span><em>${esc(os.issueStatusLabels[issue.status] || issue.status || "未处理")}</em><time>${esc(verifierName)}</time>${issue.status !== "closed" ? `<button class="row-action" type="button" data-close-issue="${issue.id}">关闭</button>` : ""}</div>`;
+    const verifierName = issue.verifier ? os.userName(issue.verifier) : tr("noVerifier");
+    return `<div class="issue-table-row ${blocking ? "issue-blocking" : ""}" data-issue-id="${issue.id}"><strong>${esc(issue.title)}<small>${esc(issue.relatedArea || "未标注部位")}</small></strong><span>${esc(issue.sourceDepartment || "未指定")}</span><span>${esc(evidence)}</span><b class="priority ${esc(issue.level || "normal")}">${esc(issueLevelLabel(issue.level))}</b><span class="shipment ${blocking ? "no" : "yes"}">${blocking ? tr("yes") : tr("no")}</span><span class="named-person">${avatar(issue.owner)}<small>${esc(ownerName)}</small></span><em>${esc(os.issueStatusLabels[issue.status] || issue.status || "未处理")}</em><time>${esc(verifierName)}</time>${issue.status !== "closed" ? `<button class="row-action" type="button" data-close-issue="${issue.id}">关闭</button>` : ""}</div>`;
   }).join("");
 }
 
@@ -947,8 +1135,9 @@ function renderDecision(review, summary) {
   const canGate = currentUser?.id === summary.gateOwner.id;
   const canException = currentUser?.id === summary.finalApprover.id;
   const hasCriticalBlocking = summary.blockingIssues.some((issue) => issue.level === "critical");
-  const approveDisabled = !canGate || hasCriticalBlocking;
-  panel.innerHTML = `<div class="decision-compact-head"><div><h3>寄样结论</h3><span>由评审负责人判断，例外放行由 ${esc(summary.finalApprover.name)} 审批。</span></div><span class="status ${summary.blockingIssues.length ? "red" : "green"}">${esc(summary.shipmentStatus.label)}</span></div><div class="gate-owner-card"><div><i class="avatar avatar-${esc(summary.gateOwner.avatarColor)}"></i><strong>${esc(summary.gateOwner.name)}</strong><small>评审负责人</small></div><span class="status ${canGate ? "green" : "red"}">${canGate ? "当前用户可最终放行" : "当前用户无最终放行权限"}</span></div><div class="decision-stack" data-decision-stack><button class="approve ${approveDisabled ? "disabled" : ""}" type="button" data-decision="can_ship">可以寄样</button><button class="revise ${canGate ? "" : "disabled"}" type="button" data-decision="ship_after_rework">修改后寄样</button><button class="hold ${canGate ? "" : "disabled"}" type="button" data-decision="hold_shipment">暂停寄样</button><button class="exception ${canException ? "" : "disabled"}" type="button" data-decision="exception_release">例外放行</button><button class="primary-button" type="button" data-submit-decision>提交结论</button><small>当前寄样状态：${esc(summary.shipmentStatus.label)}。${hasCriticalBlocking ? "存在严重 Blocking Issue，必须复验后重新评审。" : `例外放行仅 ${esc(summary.finalApprover.name)} 可批准。`}</small></div><details class="exception-box exception-form"><summary>例外放行申请</summary><label>例外原因 <input data-exception-reason value="${esc(review.exceptionRequest?.reason || "")}" placeholder="客户会议 / 交期风险 / 样衣用途"></label><label>风险说明 <textarea data-exception-risk-note placeholder="说明客户已知风险、需要同步的质量/交期影响">${esc(review.exceptionRequest?.riskNote || "")}</textarea></label><label>申请人 <span>${esc(os.userName(review.exceptionRequest?.applicant) || os.userName(os.data.currentUserId))}</span></label><label>审批人 <span>${esc(summary.finalApprover.name)} · 例外放行人</span></label><label>是否通知客户 <input type="checkbox" data-customer-notified ${review.exceptionRequest?.customerNotified ? "checked" : ""}></label><label>审批结论 <span>${esc(review.exceptionRequest?.approvalStatus || "未申请")}</span></label></details>`;
+  const approveDisabled = !canGate || summary.blockingIssues.length > 0;
+  const shipmentLabel = shipmentStatusLabel(summary.shipmentStatus);
+  panel.innerHTML = `<div class="decision-compact-head"><div><h3>寄样结论</h3><span>由评审负责人判断，例外放行由 ${esc(summary.finalApprover.name)} 审批。</span></div><span class="status ${summary.blockingIssues.length ? "red" : "green"}">${esc(shipmentLabel)}</span></div><div class="gate-owner-card"><div><i class="avatar avatar-${esc(summary.gateOwner.avatarColor)}"></i><strong>${esc(summary.gateOwner.name)}</strong><small>评审负责人</small></div><span class="status ${canGate ? "green" : "red"}">${canGate ? "当前用户可最终放行" : "当前用户无最终放行权限"}</span></div><div class="decision-stack" data-decision-stack><button class="approve ${approveDisabled ? "disabled" : ""}" type="button" data-decision="can_ship">${tr("canShip")}</button><button class="revise ${canGate ? "" : "disabled"}" type="button" data-decision="ship_after_rework">${tr("shipAfterRework")}</button><button class="hold ${canGate ? "" : "disabled"}" type="button" data-decision="hold_shipment">${tr("holdShipment")}</button><button class="exception ${canException ? "" : "disabled"}" type="button" data-decision="exception_release">${tr("exceptionRelease")}</button><button class="primary-button" type="button" data-submit-decision>提交结论</button><small>当前寄样状态：${esc(shipmentLabel)}。${hasCriticalBlocking ? "存在严重 Blocking Issue，必须复验后重新评审。" : `例外放行仅 ${esc(summary.finalApprover.name)} 可批准。`}</small></div><details class="exception-box exception-form"><summary>例外放行申请</summary><label>例外原因 <input data-exception-reason value="${esc(review.exceptionRequest?.reason || "")}" placeholder="客户会议 / 交期风险 / 样衣用途"></label><label>风险说明 <textarea data-exception-risk-note placeholder="说明客户已知风险、需要同步的质量/交期影响">${esc(review.exceptionRequest?.riskNote || "")}</textarea></label><label>申请人 <span>${esc(os.userName(review.exceptionRequest?.applicant) || os.userName(os.data.currentUserId))}</span></label><label>审批人 <span>${esc(summary.finalApprover.name)} · 例外放行人</span></label><label>是否通知客户 <input type="checkbox" data-customer-notified ${review.exceptionRequest?.customerNotified ? "checked" : ""}></label><label>审批结论 <span>${esc(review.exceptionRequest?.approvalStatus || "未申请")}</span></label></details>`;
 }
 
 function renderVersions(styleId, activeSampleId) {
@@ -1428,15 +1617,16 @@ function renderIssueModal(prefill = {}) {
   const sourceDepartment = prefill.sourceDepartment || currentUser?.department || "品质部";
   const needsVerification = prefill.needsVerification ?? ["major", "critical"].includes(level);
   const shipmentBlocking = prefill.shipmentBlocking ?? ["major", "critical"].includes(level);
+  const levelOptions = [{ value: "minor", label: tr("minor") }, { value: "normal", label: tr("normal") }, { value: "major", label: tr("major") }, { value: "critical", label: tr("critical") }];
   return `
     <form class="modal-card wide issue-modal-card" data-modal-form="issue" data-source-review-index="${esc(prefill.departmentReviewIndex ?? "")}">
-      <div class="modal-header"><div><span>质量闸口 Issue</span><h2>${prefill.fromDepartmentReview ? "评审意见转为 Issue" : "新增问题"}</h2></div><button type="button" data-close-modal>×</button></div>
-      <section><h3>问题基础信息</h3><div class="form-grid"><label>问题名称<input name="title" required value="${esc(prefill.title || "")}" placeholder="例如：领口起皱 / 拉链色差"></label><label>问题位置 / 部位<select name="relatedArea" required>${optionList(issueAreas, prefill.relatedArea || issueAreas[0])}</select></label><label class="full-label">问题描述<textarea name="description" required placeholder="描述问题现象、判断依据和期望处理方式">${esc(prefill.description || "")}</textarea></label></div></section>
-      <section><h3>来源与证据</h3><div class="form-grid"><label>来源部门<select name="sourceDepartment" required>${optionList(os.data.departments.length ? os.data.departments : [sourceDepartment], sourceDepartment)}</select></label><label>评审人<select name="reviewer" required>${optionList(os.data.users.map((user) => ({ value: user.id, label: `${user.name} · ${user.department}` })), reviewerId)}</select></label><label>证据类型<select name="evidenceType" required>${optionList(evidenceTypes, prefill.evidenceType || "页面新增")}</select></label><label>关联图片 / 视频<select name="mediaId">${mediaOptionList(sample, prefill.mediaId || "")}</select></label><label class="full-label">关注点<input name="focusPoint" value="${esc(prefill.focusPoint || "")}" placeholder="例如：外观 / 历史问题 / 复验"></label></div></section>
-      <section><h3>问题等级</h3><div class="form-grid"><label>等级<select name="level" required data-issue-level>${optionList([{ value: "minor", label: "轻微" }, { value: "normal", label: "一般" }, { value: "major", label: "重大" }, { value: "critical", label: "严重" }], level)}</select></label><div class="issue-level-help" data-issue-level-help>${esc(issueLevelHelp[level])}</div></div></section>
-      <section><h3>是否阻塞寄样</h3><div class="form-grid"><label class="inline-check"><input name="shipmentBlocking" type="checkbox" ${shipmentBlocking ? "checked" : ""} ${level === "critical" ? "disabled" : ""}>阻塞寄样</label><small class="muted-note">轻微默认否；一般默认否但可切换；重大默认是；严重必须是。</small></div></section>
-      <section><h3>责任与复验</h3><div class="form-grid"><label>负责人<select name="owner" required>${optionList(os.data.users.map((user) => ({ value: user.id, label: `${user.name} · ${user.department}` })), prefill.owner || reviewerId || os.data.gateRules.sampleReviewGateOwner)}</select></label><label>截止时间<input name="dueDate" type="date" required value="${esc(prefill.dueDate || nextDateValue(1))}"></label><label class="inline-check"><input name="needsVerification" type="checkbox" ${needsVerification ? "checked" : ""}>需要复验</label><label>复验人<select name="verifier" ${["major", "critical"].includes(level) ? "required" : ""}>${optionList([{ value: "", label: "无需复验" }, ...os.data.users.map((user) => ({ value: user.id, label: `${user.name} · ${user.department}` }))], prefill.verifier || reviewerId || "")}</select></label><label>状态<select name="status"><option value="not_started" selected>未处理</option><option value="in_progress">处理中</option><option value="pending_verification">待验证</option></select></label></div></section>
-      <div class="modal-actions"><button type="button" data-close-modal>取消</button><button class="primary-button" type="submit">保存为 Issue</button></div>
+      <div class="modal-header"><div><span>${tr("issueModalTitle")}</span><h2>${prefill.fromDepartmentReview ? tr("issueFromReview") : tr("addIssue")}</h2></div><button type="button" data-close-modal>×</button></div>
+      <section><h3>${tr("basicInfo")}</h3><div class="form-grid"><label>${tr("issueTitle")}<input name="title" required value="${esc(prefill.title || "")}" placeholder="例如：领口起皱 / 拉链色差"></label><label>${tr("relatedArea")}<select name="relatedArea" required>${optionList(issueAreas, prefill.relatedArea || issueAreas[0])}</select></label><label class="full-label">${tr("issueDescription")}<textarea name="description" required placeholder="描述问题现象、判断依据和期望处理方式">${esc(prefill.description || "")}</textarea></label></div></section>
+      <section><h3>${tr("sourceEvidence")}</h3><div class="form-grid"><label>${tr("sourceDepartment")}<select name="sourceDepartment" required>${optionList(os.data.departments.length ? os.data.departments : [sourceDepartment], sourceDepartment)}</select></label><label>${tr("reviewer")}<select name="reviewer" required>${optionList(os.data.users.map((user) => ({ value: user.id, label: `${user.name} · ${user.department}` })), reviewerId)}</select></label><label>${tr("evidenceType")}<select name="evidenceType" required>${optionList(evidenceTypes, prefill.evidenceType || "页面新增")}</select></label><label>${tr("linkedMedia")}<select name="mediaId">${mediaOptionList(sample, prefill.mediaId || "")}</select></label><label class="full-label">${tr("focus")}<input name="focusPoint" value="${esc(prefill.focusPoint || "")}" placeholder="例如：外观 / 历史问题 / 复验"></label></div></section>
+      <section><h3>${tr("issueLevel")}</h3><div class="form-grid"><label>${tr("level")}<select name="level" required data-issue-level>${optionList(levelOptions, level)}</select></label><div class="issue-level-help" data-issue-level-help>${esc(issueHelp(level))}</div></div></section>
+      <section><h3>${tr("shipmentBlocking")}</h3><div class="form-grid"><label class="inline-check"><input name="shipmentBlocking" type="checkbox" ${shipmentBlocking ? "checked" : ""} ${level === "critical" ? "disabled" : ""}>${tr("blockShipment")}</label><small class="muted-note">轻微默认否；一般默认否但可切换；重大默认是；严重必须是。</small></div></section>
+      <section><h3>${tr("responsibilityVerification")}</h3><div class="form-grid"><label>${tr("owner")}<select name="owner" required>${optionList(os.data.users.map((user) => ({ value: user.id, label: `${user.name} · ${user.department}` })), prefill.owner || reviewerId || os.data.gateRules.sampleReviewGateOwner)}</select></label><label>${tr("dueDate")}<input name="dueDate" type="date" required value="${esc(prefill.dueDate || nextDateValue(1))}"></label><label class="inline-check"><input name="needsVerification" type="checkbox" ${needsVerification ? "checked" : ""}>${tr("needsVerification")}</label><label>${tr("verifier")}<select name="verifier" ${["major", "critical"].includes(level) ? "required" : ""}>${optionList([{ value: "", label: tr("noVerifier") }, ...os.data.users.map((user) => ({ value: user.id, label: `${user.name} · ${user.department}` }))], prefill.verifier || reviewerId || "")}</select></label><label>${tr("status")}<select name="status"><option value="not_started" selected>未处理</option><option value="in_progress">处理中</option><option value="pending_verification">待验证</option></select></label></div></section>
+      <div class="modal-actions"><button type="button" data-close-modal>${tr("cancel")}</button><button class="primary-button" type="submit">${tr("saveIssue")}</button></div>
     </form>`;
 }
 
@@ -1674,9 +1864,9 @@ async function handleIssueSubmit(form) {
   if (!review || !sample) throw new Error("缺少当前评审或样衣");
   const fields = form.elements;
   const level = fields.level.value;
-  const shipmentBlocking = level === "critical" || Boolean(fields.shipmentBlocking.checked);
+  const shipmentBlocking = ["major", "critical"].includes(level) || Boolean(fields.shipmentBlocking.checked);
   const needsVerification = Boolean(fields.needsVerification.checked) || ["major", "critical"].includes(level);
-  if (level === "critical" && !shipmentBlocking) throw new Error("严重问题必须阻塞寄样");
+  if (["major", "critical"].includes(level) && !shipmentBlocking) throw new Error("重大 / 严重问题必须阻塞寄样");
   if (["major", "critical"].includes(level) && !fields.verifier.value) throw new Error("重大 / 严重问题必须填写复验人");
   const evidenceType = fields.evidenceType.value;
   const mediaLabel = fields.mediaId.value
@@ -1708,8 +1898,10 @@ async function handleIssueSubmit(form) {
   if (!payload.title || !payload.description || !payload.relatedArea || !payload.ownerId || !payload.dueDate) {
     throw new Error("请完整填写问题名称、描述、部位、负责人和截止时间");
   }
+  if (!window.SampleOSBackend?.syncData) throw new Error("后端同步接口未加载，Issue 未写入 Supabase");
   const response = await window.SampleOSBackend.syncData("createIssue", payload);
   const localIssueId = response?.result?.issueId || `issue_local_${Date.now()}`;
+  const localIssue = os.addIssue?.({ ...payload, id: localIssueId, owner: payload.ownerId, verifier: payload.verifierId });
   const rowIndex = form.dataset.sourceReviewIndex;
   if (rowIndex !== "") {
     const item = review.departmentReviews[Number(rowIndex)];
@@ -1718,8 +1910,14 @@ async function handleIssueSubmit(form) {
       if (!item.issueIds.includes(localIssueId)) item.issueIds.push(localIssueId);
     }
   }
-  await loadBackendSnapshot();
+  renderAll();
+  try {
+    await loadBackendSnapshot();
+  } catch (error) {
+    showToast(`Issue 已保存，本地已刷新；重新拉取失败：${error.message}`);
+  }
   showToast(level === "minor" ? "轻微 Issue 已记录，不阻止寄样" : level === "normal" ? "一般 Issue 已记录，等待 Gate Owner 判断" : level === "major" ? "重大 Issue 已记录，已同步阻塞状态" : "严重 Issue 已记录，已暂停寄样");
+  return localIssue;
 }
 
 function updateIssueLevelFields(form) {
@@ -1728,7 +1926,7 @@ function updateIssueLevelFields(form) {
   const needsVerification = form.elements.needsVerification;
   const verifier = form.elements.verifier;
   const help = form.querySelector("[data-issue-level-help]");
-  if (help) help.textContent = issueLevelHelp[level] || "";
+  if (help) help.textContent = issueHelp(level);
   if (blocking) {
     blocking.checked = ["major", "critical"].includes(level);
     blocking.disabled = level === "critical";
@@ -1800,6 +1998,7 @@ document.addEventListener("click", (event) => {
   if (langButton) {
     currentLang = langButton.textContent.includes("日本") ? "ja" : "zh";
     document.querySelectorAll(".language-switch button").forEach((button) => button.classList.toggle("active", button === langButton));
+    renderAll();
     showView(document.querySelector(".view.active")?.id || "pipeline");
     showToast(currentLang === "ja" ? "日本語表示に切り替えました（一部項目は中国語データのままです）" : "已切换回中文");
     return;
@@ -2150,7 +2349,7 @@ document.addEventListener("change", (event) => {
   if (event.target.matches("[data-review-status]")) {
     const row = event.target.closest("[data-review-row]");
     const help = row?.querySelector("[data-review-status-help]");
-    if (help) help.textContent = departmentStatusHelp[event.target.value] || "";
+    if (help) help.textContent = departmentHelp(event.target.value);
   }
 });
 
