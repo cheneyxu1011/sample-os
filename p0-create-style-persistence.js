@@ -107,7 +107,7 @@
       };
 
       try {
-        const response = await requestJson("/api/sampleos/create-style-p0", { method: "POST", body: JSON.stringify(payload) });
+        const response = await requestJson("/api/sampleos/create-style-fast", { method: "POST", body: JSON.stringify(payload) });
         const result = response.result || {};
         await window.loadBackendSnapshot();
         os.data.currentStyleId = result.styleId;
