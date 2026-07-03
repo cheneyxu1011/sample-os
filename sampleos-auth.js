@@ -1,6 +1,13 @@
 (() => {
   const IDENTITY_KEY = "sampleos.testIdentity";
   const os = window.SampleOS;
+  if (!window.__sampleOsP0CreateStylePatchLoaded) {
+    window.__sampleOsP0CreateStylePatchLoaded = true;
+    const script = document.createElement("script");
+    script.src = "p0-create-style-persistence.js?v=20260703-p0";
+    script.async = false;
+    document.head.appendChild(script);
+  }
   if (!os) return;
 
   const topActions = document.querySelector(".top-actions");
