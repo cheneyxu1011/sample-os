@@ -101,14 +101,22 @@
           text-overflow: ellipsis !important;
           white-space: nowrap !important;
         }
-        body.apple-ui #pipeline .p0-route-pill {
+        body.apple-ui #pipeline .p0-route-badges {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          justify-content: flex-end !important;
+          gap: 4px !important;
+          max-width: 150px !important;
+        }
+        body.apple-ui #pipeline .p0-route-pill,
+        body.apple-ui #pipeline .p0-status-pill {
           border: 1px solid rgba(0,0,0,0.1) !important;
           border-radius: 999px !important;
           padding: 4px 8px !important;
           font-size: 11px !important;
           color: #1d1d1f !important;
           background: rgba(248,248,248,0.9) !important;
-          max-width: 92px !important;
+          max-width: 72px !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
           white-space: nowrap !important;
@@ -129,6 +137,26 @@
           font-size: 12px !important;
           line-height: 1 !important;
           white-space: nowrap !important;
+        }
+        body.apple-ui #pipeline .p0-status-pill {
+          background: rgba(0,122,255,0.08) !important;
+          color: #0b5cad !important;
+          border-color: rgba(0,122,255,0.18) !important;
+        }
+        body.apple-ui #pipeline .p0-status-pill.red {
+          background: rgba(255,59,48,0.08) !important;
+          color: #b42318 !important;
+          border-color: rgba(255,59,48,0.2) !important;
+        }
+        body.apple-ui #pipeline .p0-status-pill.green {
+          background: rgba(52,199,89,0.1) !important;
+          color: #117a37 !important;
+          border-color: rgba(52,199,89,0.22) !important;
+        }
+        body.apple-ui #pipeline .p0-status-pill.amber {
+          background: rgba(255,149,0,0.11) !important;
+          color: #9a5a00 !important;
+          border-color: rgba(255,149,0,0.22) !important;
         }
         body.apple-ui #pipeline .p0-style-delete {
           width: auto !important;
@@ -165,6 +193,18 @@
     return os.data.routeRules?.[style.route]?.label || os.data.sampleRoutes?.[style.route] || style.route || "路线未设";
   }
 
+  function routeStatus(style) {
+    const summary = os.getStyleSummary?.(style.id);
+    return {
+      label: summary?.shipmentStatus?.label || os.gateLabels?.[style.currentGate] || style.blockerSummary || "状态未设",
+      key: summary?.shipmentStatus?.key || style.riskStatus || style.currentGate || "neutral",
+    };
+  }
+
+  function routeStatusClass(key) {
+    return typeof statusClass === "function" ? statusClass(key) : "blue";
+  }
+
   function enhancePipelineRows() {
     document.querySelectorAll("#pipeline .pipeline-row[data-style-id]").forEach((row) => {
       const styleId = row.dataset.styleId;
@@ -172,7 +212,8 @@
       if (style && !row.querySelector(".p0-compact-style")) {
         const compact = document.createElement("div");
         compact.className = "p0-compact-style";
-        compact.innerHTML = `<div><strong>${esc(style.styleNo || "未填款号")}</strong><span>${esc(style.brand || "未填品牌")}</span></div><i class="p0-route-pill">${esc(routeLabel(style))}</i>`;
+        const routeState = routeStatus(style);
+        compact.innerHTML = `<div><strong>${esc(style.styleNo || "未填款号")}</strong><span>${esc(style.brand || "未填品牌")}</span></div><div class="p0-route-badges"><i class="p0-route-pill">${esc(routeLabel(style))}</i><i class="p0-status-pill ${esc(routeStatusClass(routeState.key))}">${esc(routeState.label)}</i></div>`;
         row.insertBefore(compact, row.firstChild);
       }
       const actions = row.querySelector(".pipeline-actions") || row;
