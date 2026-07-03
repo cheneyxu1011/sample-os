@@ -9,11 +9,7 @@
   async function requestJson(path, options = {}) {
     const response = await fetch(path, {
       ...options,
-      headers: {
-        "content-type": "application/json",
-        ...authHeaders(),
-        ...(options.headers || {}),
-      },
+      headers: { "content-type": "application/json", ...authHeaders(), ...(options.headers || {}) },
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -26,17 +22,9 @@
     return payload;
   }
 
-  function showCreateStyleError(error) {
-    const message = `${error?.message || ""} ${error?.response?.error || ""} ${error?.response?.detail || ""}`;
-    if (/insert samples|insert reviews|default department review|review_department_reviews/i.test(message)) {
-      showToast("款式已创建，但样衣评审任务创建失败，请联系管理员。");
-      return;
-    }
-    showToast("款式保存失败，请稍后重试或联系管理员。");
-  }
-
   function installMobilePipelineCss() {
-    if (document.querySelector("#sampleos-p0-mobile-pipeline-css")) return;
+    const previous = document.querySelector("#sampleos-p0-mobile-pipeline-css");
+    if (previous) previous.remove();
     const style = document.createElement("style");
     style.id = "sampleos-p0-mobile-pipeline-css";
     style.textContent = `
@@ -47,60 +35,110 @@
           grid-template-columns: none !important;
           gap: 8px !important;
           overflow-x: auto !important;
-          padding: 0 4px 4px !important;
-          margin: 10px 0 12px !important;
-          scroll-snap-type: x proximity;
+          padding: 0 4px 2px !important;
+          margin: 6px 0 8px !important;
           -webkit-overflow-scrolling: touch;
         }
         body.apple-ui #pipeline .summary-grid::-webkit-scrollbar { display: none; }
         body.apple-ui #pipeline .summary-card {
-          flex: 0 0 112px !important;
-          min-height: 68px !important;
-          padding: 10px 12px !important;
-          border-radius: 14px !important;
-          scroll-snap-align: start;
+          flex: 0 0 92px !important;
+          min-height: 54px !important;
+          padding: 8px 10px !important;
+          border-radius: 12px !important;
         }
         body.apple-ui #pipeline .summary-card::before { display: none !important; }
-        body.apple-ui #pipeline .summary-card span {
-          display: block !important;
-          font-size: 12px !important;
-          line-height: 1.2 !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          margin: 0 0 4px !important;
-        }
-        body.apple-ui #pipeline .summary-card strong {
-          display: block !important;
-          font-size: 28px !important;
-          line-height: 1 !important;
-          margin: 0 !important;
-        }
+        body.apple-ui #pipeline .summary-card span,
         body.apple-ui #pipeline .summary-card small {
           display: block !important;
           font-size: 10px !important;
-          line-height: 1.2 !important;
+          line-height: 1.1 !important;
           white-space: nowrap !important;
           overflow: hidden !important;
           text-overflow: ellipsis !important;
-          margin-top: 4px !important;
+          margin: 0 !important;
         }
-        body.apple-ui #pipeline .pipeline-row { position: relative !important; }
+        body.apple-ui #pipeline .summary-card strong {
+          display: block !important;
+          font-size: 22px !important;
+          line-height: 1 !important;
+          margin: 2px 0 !important;
+        }
+        body.apple-ui #pipeline .pipeline-table { gap: 0 !important; }
+        body.apple-ui #pipeline .pipeline-row {
+          display: block !important;
+          min-height: 0 !important;
+          padding: 9px 10px !important;
+          margin: 0 !important;
+          border-radius: 0 !important;
+          border-left: 0 !important;
+          border-right: 0 !important;
+          box-shadow: none !important;
+          background: rgba(255,255,255,0.82) !important;
+        }
+        body.apple-ui #pipeline .pipeline-row > :not(.p0-compact-style):not(.block-summary) { display: none !important; }
+        body.apple-ui #pipeline .pipeline-row .block-summary > :not(.pipeline-actions) { display: none !important; }
+        body.apple-ui #pipeline .p0-compact-style {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) auto !important;
+          gap: 8px !important;
+          align-items: center !important;
+          margin: 0 0 7px !important;
+        }
+        body.apple-ui #pipeline .p0-compact-style strong {
+          display: block !important;
+          font-size: 17px !important;
+          line-height: 1.15 !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+        body.apple-ui #pipeline .p0-compact-style span {
+          display: block !important;
+          color: #6e6e73 !important;
+          font-size: 12px !important;
+          line-height: 1.2 !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+        body.apple-ui #pipeline .p0-route-pill {
+          border: 1px solid rgba(0,0,0,0.1) !important;
+          border-radius: 999px !important;
+          padding: 4px 8px !important;
+          font-size: 11px !important;
+          color: #1d1d1f !important;
+          background: rgba(248,248,248,0.9) !important;
+          max-width: 92px !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+        body.apple-ui #pipeline .block-summary { display: block !important; }
+        body.apple-ui #pipeline .pipeline-actions {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 6px !important;
+          margin: 0 !important;
+        }
+        body.apple-ui #pipeline .pipeline-actions [data-style-drawer="details"] { display: none !important; }
+        body.apple-ui #pipeline .pipeline-actions button {
+          min-height: 32px !important;
+          height: 32px !important;
+          padding: 0 6px !important;
+          border-radius: 10px !important;
+          font-size: 12px !important;
+          line-height: 1 !important;
+          white-space: nowrap !important;
+        }
         body.apple-ui #pipeline .p0-style-delete {
-          width: 100% !important;
-          min-height: 40px !important;
-          border: 1px solid rgba(255, 59, 48, 0.28) !important;
+          width: auto !important;
+          border: 1px solid rgba(255,59,48,0.28) !important;
           color: #b42318 !important;
-          background: rgba(255, 59, 48, 0.07) !important;
-          border-radius: 12px !important;
+          background: rgba(255,59,48,0.07) !important;
           font-weight: 700 !important;
         }
       }
-      body.apple-ui #pipeline .p0-style-delete {
-        border: 1px solid rgba(255, 59, 48, 0.28);
-        color: #b42318;
-        background: rgba(255, 59, 48, 0.06);
-      }
+      body.apple-ui #pipeline .p0-style-delete { border: 1px solid rgba(255,59,48,0.28); color: #b42318; background: rgba(255,59,48,0.06); }
     `;
     document.head.appendChild(style);
   }
@@ -111,9 +149,7 @@
       if (Array.isArray(snapshot[key])) os.data[key] = snapshot[key];
     });
     const settingKeys = ["issueLevelRules", "sampleLocations", "sampleLocationOptions", "sampleRoutes", "samplePhases", "routeRules", "ruleVersion", "locationTransitions", "trainingCards"];
-    settingKeys.forEach((key) => {
-      if (snapshot.settings?.[key]) os.data[key] = snapshot.settings[key];
-    });
+    settingKeys.forEach((key) => { if (snapshot.settings?.[key]) os.data[key] = snapshot.settings[key]; });
     if (snapshot.gateRules) os.data.gateRules = { ...os.data.gateRules, ...snapshot.gateRules };
     if (Array.isArray(snapshot.users)) {
       os.data.departments = Array.from(new Set(snapshot.users.map((user) => user.department).filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));
@@ -125,17 +161,35 @@
     os.data.currentReviewId = snapshot.currentReviewId || os.data.reviews.find((review) => review.styleId === os.data.currentStyleId)?.id || os.data.reviews[0]?.id || null;
   }
 
+  function routeLabel(style) {
+    return os.data.routeRules?.[style.route]?.label || os.data.sampleRoutes?.[style.route] || style.route || "路线未设";
+  }
+
   function enhancePipelineRows() {
     document.querySelectorAll("#pipeline .pipeline-row[data-style-id]").forEach((row) => {
-      if (row.querySelector("[data-p0-delete-style]")) return;
       const styleId = row.dataset.styleId;
+      const style = os.getStyleById(styleId);
+      if (style && !row.querySelector(".p0-compact-style")) {
+        const compact = document.createElement("div");
+        compact.className = "p0-compact-style";
+        compact.innerHTML = `<div><strong>${esc(style.styleNo || "未填款号")}</strong><span>${esc(style.brand || "未填品牌")}</span></div><i class="p0-route-pill">${esc(routeLabel(style))}</i>`;
+        row.insertBefore(compact, row.firstChild);
+      }
       const actions = row.querySelector(".pipeline-actions") || row;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "p0-style-delete";
-      button.dataset.p0DeleteStyle = styleId;
-      button.textContent = "删除";
-      actions.appendChild(button);
+      const details = actions.querySelector('[data-style-drawer="details"]');
+      if (details) details.remove();
+      const prep = actions.querySelector('[data-style-drawer="prep"]');
+      if (prep) prep.textContent = "准备材料";
+      const review = actions.querySelector('[data-open-review]');
+      if (review) review.textContent = "打开评审";
+      if (!row.querySelector("[data-p0-delete-style]")) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "p0-style-delete";
+        button.dataset.p0DeleteStyle = styleId;
+        button.textContent = "删除";
+        actions.appendChild(button);
+      }
     });
   }
 
@@ -174,10 +228,7 @@
       deleteStyleFromPipeline(button.dataset.p0DeleteStyle);
     }, true);
     const pipeline = document.querySelector("#pipeline");
-    if (pipeline) {
-      const observer = new MutationObserver(() => enhancePipelineRows());
-      observer.observe(pipeline, { childList: true, subtree: true });
-    }
+    if (pipeline) new MutationObserver(() => enhancePipelineRows()).observe(pipeline, { childList: true, subtree: true });
   }
 
   function installPatch() {
@@ -202,34 +253,13 @@
       const sampleVariants = collectSampleVariants(form);
       const quantity = sampleVariants.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 1;
       const payload = {
-        styleNo: fields.styleNo.value.trim(),
-        brand: fields.brand.value,
-        season: fields.season.value,
-        styleName: fields.styleName.value.trim(),
-        category: fields.category.value,
-        color: sampleVariants.map((item) => item.color).filter(Boolean).join(" / "),
-        size: sampleVariants.map((item) => item.size).filter(Boolean).join(" / "),
-        sampleVariants,
-        route,
-        samplePhase: phase,
-        sampleLocation: locationOption?.label || "样衣间",
-        sampleDoneDate: fields.sampleDoneDate.value,
-        plannedShipDate: fields.plannedShipDate.value,
-        customerDueDate: fields.customerDueDate.value,
-        versionName: os.phaseLabels[phase],
-        highRisk: fields.highRisk.checked,
-        syncCalendar: fields.syncCalendar.checked,
-        quantity,
-        businessOwnerId: fields.businessOwner.value,
-        patternOwnerId: userIdByName("徐海燕"),
-        fabricOwnerId: userIdByName("李卫红"),
-        trimOwnerId: userIdByName("大红"),
-        prepOwnerId: userIdByName("王部长"),
-        reviewOwnerId: os.data.gateRules.sampleReviewGateOwner,
-        finalApproverId: os.data.gateRules.finalApprover,
-        normalDispatcherId: route === "normal" ? userIdByName("大戴") : null,
-        bondingOwnerId: route === "bonding_xinchangjiang" ? userIdByName("张部长") : null,
-        xcjDispatcherId: route === "bonding_xinchangjiang" || route === "xinchangjiang" ? userIdByName("夏红霞") : null,
+        styleNo: fields.styleNo.value.trim(), brand: fields.brand.value, season: fields.season.value, styleName: fields.styleName.value.trim(), category: fields.category.value,
+        color: sampleVariants.map((item) => item.color).filter(Boolean).join(" / "), size: sampleVariants.map((item) => item.size).filter(Boolean).join(" / "), sampleVariants,
+        route, samplePhase: phase, sampleLocation: locationOption?.label || "样衣间", sampleDoneDate: fields.sampleDoneDate.value, plannedShipDate: fields.plannedShipDate.value,
+        customerDueDate: fields.customerDueDate.value, versionName: os.phaseLabels[phase], highRisk: fields.highRisk.checked, syncCalendar: fields.syncCalendar.checked, quantity,
+        businessOwnerId: fields.businessOwner.value, patternOwnerId: userIdByName("徐海燕"), fabricOwnerId: userIdByName("李卫红"), trimOwnerId: userIdByName("大红"), prepOwnerId: userIdByName("王部长"),
+        reviewOwnerId: os.data.gateRules.sampleReviewGateOwner, finalApproverId: os.data.gateRules.finalApprover, normalDispatcherId: route === "normal" ? userIdByName("大戴") : null,
+        bondingOwnerId: route === "bonding_xinchangjiang" ? userIdByName("张部长") : null, xcjDispatcherId: route === "bonding_xinchangjiang" || route === "xinchangjiang" ? userIdByName("夏红霞") : null,
       };
 
       try {
@@ -259,12 +289,7 @@
         event.preventDefault();
         event.stopImmediatePropagation();
         const saved = await window.handleStyleSubmit(form);
-        if (saved) {
-          renderAll();
-          installPipelineEnhancements();
-          closeModal();
-          showView("pipeline");
-        }
+        if (saved) { renderAll(); installPipelineEnhancements(); closeModal(); showView("pipeline"); }
       }, true);
     }
 
