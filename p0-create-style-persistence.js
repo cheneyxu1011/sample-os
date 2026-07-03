@@ -35,6 +35,76 @@
     showToast("款式保存失败，请稍后重试或联系管理员。");
   }
 
+  function installMobilePipelineCss() {
+    if (document.querySelector("#sampleos-p0-mobile-pipeline-css")) return;
+    const style = document.createElement("style");
+    style.id = "sampleos-p0-mobile-pipeline-css";
+    style.textContent = `
+      @media (max-width: 768px) {
+        body.apple-ui #pipeline .filter-row { display: none !important; }
+        body.apple-ui #pipeline .summary-grid {
+          display: flex !important;
+          grid-template-columns: none !important;
+          gap: 8px !important;
+          overflow-x: auto !important;
+          padding: 0 4px 4px !important;
+          margin: 10px 0 12px !important;
+          scroll-snap-type: x proximity;
+          -webkit-overflow-scrolling: touch;
+        }
+        body.apple-ui #pipeline .summary-grid::-webkit-scrollbar { display: none; }
+        body.apple-ui #pipeline .summary-card {
+          flex: 0 0 112px !important;
+          min-height: 68px !important;
+          padding: 10px 12px !important;
+          border-radius: 14px !important;
+          scroll-snap-align: start;
+        }
+        body.apple-ui #pipeline .summary-card::before { display: none !important; }
+        body.apple-ui #pipeline .summary-card span {
+          display: block !important;
+          font-size: 12px !important;
+          line-height: 1.2 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          margin: 0 0 4px !important;
+        }
+        body.apple-ui #pipeline .summary-card strong {
+          display: block !important;
+          font-size: 28px !important;
+          line-height: 1 !important;
+          margin: 0 !important;
+        }
+        body.apple-ui #pipeline .summary-card small {
+          display: block !important;
+          font-size: 10px !important;
+          line-height: 1.2 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          margin-top: 4px !important;
+        }
+        body.apple-ui #pipeline .pipeline-row { position: relative !important; }
+        body.apple-ui #pipeline .p0-style-delete {
+          width: 100% !important;
+          min-height: 40px !important;
+          border: 1px solid rgba(255, 59, 48, 0.28) !important;
+          color: #b42318 !important;
+          background: rgba(255, 59, 48, 0.07) !important;
+          border-radius: 12px !important;
+          font-weight: 700 !important;
+        }
+      }
+      body.apple-ui #pipeline .p0-style-delete {
+        border: 1px solid rgba(255, 59, 48, 0.28);
+        color: #b42318;
+        background: rgba(255, 59, 48, 0.06);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function applyP0Snapshot(snapshot) {
     if (!snapshot || snapshot.source?.kind !== "supabase") return;
     ["styleList", "samples", "reviews", "issues", "users", "workers"].forEach((key) => {
@@ -55,6 +125,61 @@
     os.data.currentReviewId = snapshot.currentReviewId || os.data.reviews.find((review) => review.styleId === os.data.currentStyleId)?.id || os.data.reviews[0]?.id || null;
   }
 
+  function enhancePipelineRows() {
+    document.querySelectorAll("#pipeline .pipeline-row[data-style-id]").forEach((row) => {
+      if (row.querySelector("[data-p0-delete-style]")) return;
+      const styleId = row.dataset.styleId;
+      const actions = row.querySelector(".pipeline-actions") || row;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "p0-style-delete";
+      button.dataset.p0DeleteStyle = styleId;
+      button.textContent = "删除";
+      actions.appendChild(button);
+    });
+  }
+
+  async function deleteStyleFromPipeline(styleId) {
+    const style = os.getStyleById(styleId);
+    const label = style?.styleNo || "该款式";
+    if (!window.confirm(`确认删除 ${label}？删除后列表、评审和已上传记录会一起移除。`)) return;
+    try {
+      await requestJson("/api/sampleos/delete-style-fast", { method: "POST", body: JSON.stringify({ styleId }) });
+      os.data.styleList = os.data.styleList.filter((item) => item.id !== styleId);
+      const removedSampleIds = os.data.samples.filter((sample) => sample.styleId === styleId).map((sample) => sample.id);
+      const removedReviewIds = os.data.reviews.filter((review) => review.styleId === styleId).map((review) => review.id);
+      os.data.samples = os.data.samples.filter((sample) => sample.styleId !== styleId);
+      os.data.reviews = os.data.reviews.filter((review) => review.styleId !== styleId);
+      os.data.issues = os.data.issues.filter((issue) => issue.styleId !== styleId && !removedSampleIds.includes(issue.sampleId) && !removedReviewIds.includes(issue.reviewId));
+      await window.loadBackendSnapshot();
+      renderAll();
+      enhancePipelineRows();
+      showToast("已删除款式");
+    } catch (error) {
+      console.error("Delete style failed", error);
+      showToast(`删除失败：${error.message || "请稍后重试"}`);
+    }
+  }
+
+  function installPipelineEnhancements() {
+    installMobilePipelineCss();
+    enhancePipelineRows();
+    if (window.__sampleOsP0PipelineEnhancementsInstalled) return;
+    window.__sampleOsP0PipelineEnhancementsInstalled = true;
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest?.("[data-p0-delete-style]");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      deleteStyleFromPipeline(button.dataset.p0DeleteStyle);
+    }, true);
+    const pipeline = document.querySelector("#pipeline");
+    if (pipeline) {
+      const observer = new MutationObserver(() => enhancePipelineRows());
+      observer.observe(pipeline, { childList: true, subtree: true });
+    }
+  }
+
   function installPatch() {
     if (!window.SampleOSBackend || typeof os === "undefined" || typeof renderAll !== "function" || typeof collectSampleVariants !== "function") {
       window.setTimeout(installPatch, 50);
@@ -65,6 +190,7 @@
       const snapshot = await requestJson("/api/sampleos/snapshot-p0", { method: "GET" });
       applyP0Snapshot(snapshot);
       renderAll();
+      installPipelineEnhancements();
       return true;
     };
 
@@ -113,13 +239,14 @@
         os.data.currentStyleId = result.styleId;
         os.data.currentReviewId = result.reviewId;
         renderAll();
+        installPipelineEnhancements();
         showView("pipeline");
         openStyleDrawer(result.styleId, "prep");
         showToast(result.message || (result.existing ? "该款号已存在，已打开现有款式。" : "款式已创建并同步到 Supabase，进入详情页继续补资料"));
         return true;
       } catch (error) {
         console.error("Create style sync failed", { message: error.message, status: error.status, response: error.response, request: error.request, payload });
-        showCreateStyleError(error);
+        showToast("款式保存失败，请稍后重试或联系管理员。");
         return false;
       }
     };
@@ -134,6 +261,7 @@
         const saved = await window.handleStyleSubmit(form);
         if (saved) {
           renderAll();
+          installPipelineEnhancements();
           closeModal();
           showView("pipeline");
         }
@@ -155,6 +283,7 @@
       }, true);
     }
 
+    installPipelineEnhancements();
     window.loadBackendSnapshot?.().catch((error) => console.error("P0 snapshot reload failed", error));
   }
 
