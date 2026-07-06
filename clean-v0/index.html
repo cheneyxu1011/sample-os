@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sample OS Clean V0</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <div class="brand-mark">SO</div>
+          <div>
+            <strong>Sample OS</strong>
+            <span>Clean V0</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" type="button" data-view="pipeline">开发流水线</button>
+          <button class="nav-item" type="button" data-view="review">样衣评审</button>
+          <button class="nav-item" type="button" data-view="calendar">样衣日历</button>
+          <button class="nav-item" type="button" data-view="settings">设置</button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">旁路恢复版本 / 不连接旧系统</p>
+            <h1 id="view-title">开发流水线</h1>
+          </div>
+          <div class="status-pill" id="blocking-pill">寄样状态检查中</div>
+        </header>
+
+        <section class="view active" id="pipeline-view" data-title="开发流水线">
+          <div class="section-head">
+            <div>
+              <h2>开发流水线</h2>
+              <p>当前只展示唯一测试款式 style_212。</p>
+            </div>
+          </div>
+          <div id="pipeline-list" class="pipeline-list"></div>
+        </section>
+
+        <section class="view" id="review-view" data-title="样衣评审">
+          <div class="style-summary" id="review-summary"></div>
+
+          <div class="grid two">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>部门评审</h2>
+                <button class="secondary-button" type="button" id="save-draft">保存草稿</button>
+              </div>
+              <div id="department-cards" class="department-grid"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>本地上传</h2>
+              </div>
+              <label class="upload-box">
+                <input id="media-upload" type="file" accept="image/*,video/*" multiple />
+                <span>选择图片或视频</span>
+                <small>仅本地预览，不上传到 S3 或 Supabase</small>
+              </label>
+              <div id="media-preview" class="media-preview"></div>
+            </section>
+          </div>
+
+          <section class="panel issue-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Issue</h2>
+                <p id="issue-warning">重大 / 严重 Issue 会阻止寄样。</p>
+              </div>
+              <button class="secondary-button" type="button" id="add-issue">新增 Issue</button>
+            </div>
+            <div id="issue-list" class="issue-list"></div>
+          </section>
+
+          <div class="action-bar">
+            <button class="secondary-button" type="button" id="comment-to-issue">评审意见转为 Issue</button>
+            <button class="primary-button" type="button" id="submit-review">提交评审</button>
+            <span id="save-state" role="status"></span>
+          </div>
+        </section>
+
+        <section class="view" id="calendar-view" data-title="样衣日历">
+          <div class="section-head">
+            <div>
+              <h2>样衣日历</h2>
+              <p>预计寄样日期：2026-06-30。</p>
+            </div>
+          </div>
+          <div class="calendar-card">
+            <div class="date-block">
+              <span>2026</span>
+              <strong>6/30</strong>
+            </div>
+            <div>
+              <h3>style_212 / 萨洛蒙 212</h3>
+              <p>户外冲锋衣，二次样，样衣位置：样衣间。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="settings-view" data-title="设置">
+          <div class="grid two">
+            <section class="panel">
+              <h2>Gate 负责人</h2>
+              <dl id="owner-list" class="setting-list"></dl>
+            </section>
+            <section class="panel">
+              <h2>问题等级规则</h2>
+              <ul id="rule-list" class="rule-list"></ul>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
