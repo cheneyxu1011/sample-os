@@ -163,12 +163,49 @@
         </section>
 
         <section class="view" id="settings-view" data-title="设置">
+          <section class="settings-hero">
+            <div>
+              <h2>系统配置中心</h2>
+              <p>角色模板、人员职责、Gate、打样路线、样衣位置和 Issue 规则统一在这里维护。</p>
+            </div>
+            <div class="settings-actions">
+              <button class="primary-button" type="button" id="add-person">新增人员</button>
+              <button class="secondary-button" type="button" disabled title="角色模板由系统预设">新增角色模板</button>
+              <button class="secondary-button" type="button" id="assign-role-top">分配角色</button>
+              <button class="secondary-button" type="button">批量导入</button>
+            </div>
+          </section>
+          <div class="settings-stats" id="settings-stats"></div>
+
+          <section class="panel wide">
+            <div class="panel-head">
+              <div>
+                <h2>角色模板与人员分配</h2>
+                <p>先定义固定评审角色，再将现有人员分配到对应职责。</p>
+              </div>
+            </div>
+            <div class="settings-role-tabs">
+              <button class="active" type="button" data-settings-tab="templates">角色模板</button>
+              <button type="button" data-settings-tab="assignments">人员分配</button>
+            </div>
+            <div id="role-template-view" class="role-template-grid"></div>
+            <div id="person-assignment-view" class="person-assignment-table" hidden></div>
+          </section>
+
           <div class="grid settings-grid">
-            <section class="panel">
+            <section class="panel gate-panel">
               <h2>Gate 负责人</h2>
               <dl id="owner-list" class="setting-list"></dl>
             </section>
-            <section class="panel">
+            <section class="panel route-panel">
+              <h2>打样路线设置</h2>
+              <div id="route-list" class="config-card-list"></div>
+            </section>
+            <section class="panel location-panel">
+              <h2>样衣位置设置</h2>
+              <div id="location-list" class="chip-list"></div>
+            </section>
+            <section class="panel issue-rule-panel">
               <h2>问题等级规则</h2>
               <ul id="rule-list" class="rule-list"></ul>
             </section>
@@ -278,6 +315,38 @@
         <div class="modal-actions">
           <button class="secondary-button" type="button" id="style-modal-cancel">取消</button>
           <button class="primary-button" type="submit" id="style-create-submit">创建款式</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="assignment-modal" hidden>
+      <form class="modal-card assignment-modal-card" id="assignment-form">
+        <div class="modal-head">
+          <div>
+            <span>人员分配</span>
+            <h2>分配固定角色</h2>
+            <p>角色模板由系统预设，人员只继承所分配角色的职责和权限。</p>
+          </div>
+          <button class="modal-close" type="button" id="assignment-modal-close" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-section">
+          <div class="modal-grid">
+            <label>选择人员<select name="person" id="assignment-person"></select></label>
+            <label>是否作为默认负责人<select name="defaultOwner"><option>否</option><option>是</option></select></label>
+            <label>是否参与样衣评审页<select name="reviewParticipant"><option>是</option><option>否</option></select></label>
+          </div>
+        </div>
+        <div class="modal-section">
+          <h3>选择一个或多个固定角色</h3>
+          <div id="assignment-role-list" class="assignment-role-list"></div>
+        </div>
+        <div class="modal-section">
+          <h3>选择适用范围</h3>
+          <div class="scope-checks" id="assignment-scope-list"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" id="assignment-modal-cancel">取消</button>
+          <button class="primary-button" type="submit">保存</button>
         </div>
       </form>
     </div>

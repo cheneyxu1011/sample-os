@@ -268,6 +268,56 @@ h3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.settings-hero {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.settings-hero p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.settings-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-stats article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-stats strong,
+.settings-stats span {
+  display: block;
+}
+
+.settings-stats strong {
+  font-size: 26px;
+}
+
+.settings-stats span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
 .wide {
   grid-column: 1 / -1;
 }
@@ -1221,6 +1271,23 @@ textarea:focus {
   color: var(--muted);
 }
 
+.setting-list dd strong,
+.setting-list dd small {
+  display: block;
+  text-align: right;
+}
+
+.setting-list dd strong {
+  color: var(--ink);
+}
+
+.setting-list dd small {
+  max-width: 360px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .rule-list,
 .sync-rules {
   margin: 0;
@@ -1238,6 +1305,209 @@ textarea:focus {
   border-radius: 8px;
   padding: 18px;
   background: rgba(255, 255, 255, 0.62);
+}
+
+.settings-role-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(242, 242, 247, 0.78);
+  margin-bottom: 14px;
+}
+
+.settings-role-tabs button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.settings-role-tabs button.active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.role-template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.role-template-card,
+.config-card-list article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.role-template-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.role-template-card strong,
+.role-template-card small {
+  display: block;
+}
+
+.role-template-card small,
+.role-template-card p,
+.config-card-list p {
+  color: var(--muted);
+}
+
+.role-template-card p,
+.config-card-list p {
+  margin-bottom: 10px;
+}
+
+.role-template-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.role-template-card dl div {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.role-template-card dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.role-template-card dd {
+  margin: 0;
+}
+
+.role-template-card i,
+.permission-tags i,
+.chip-list span {
+  display: inline-block;
+  margin: 0 5px 5px 0;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--accent);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.role-template-card em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.person-assignment-table {
+  display: grid;
+  gap: 8px;
+}
+
+.people-row {
+  display: grid;
+  grid-template-columns: 120px 110px minmax(160px, 1.2fr) minmax(140px, 1fr) minmax(160px, 1fr) 72px 210px;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.people-head {
+  color: var(--muted);
+  background: rgba(242, 242, 247, 0.78);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.people-row em,
+.people-row small {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.row-actions-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.row-actions-inline button {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.config-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.assignment-role-list,
+.scope-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.assignment-role-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 320px;
+  overflow: auto;
+}
+
+.assignment-role-list label,
+.scope-checks label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.assignment-role-list input,
+.scope-checks input {
+  width: auto;
+  min-height: 0;
+  margin-top: 3px;
+}
+
+.assignment-role-list strong,
+.assignment-role-list small {
+  display: block;
+}
+
+.assignment-role-list small {
+  color: var(--muted);
 }
 
 @media (max-width: 920px) {
@@ -1299,6 +1569,9 @@ textarea:focus {
 
   .review-grid,
   .settings-grid,
+  .settings-stats,
+  .role-template-grid,
+  .assignment-role-list,
   .department-grid,
   .media-preview,
   .uploaded-media,
@@ -1306,6 +1579,54 @@ textarea:focus {
   .material-grid,
   .month-weekdays,
   .month-calendar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-actions {
+    justify-content: stretch;
+  }
+
+  .settings-actions button {
+    flex: 1 1 46%;
+  }
+
+  .settings-role-tabs {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .people-head {
+    display: none;
+  }
+
+  .people-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .people-row strong,
+  .people-row span,
+  .people-row em,
+  .people-row small,
+  .people-row div {
+    min-width: 0;
+  }
+
+  .row-actions-inline {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .row-actions-inline button {
+    padding: 9px 6px;
+    font-size: 12px;
+  }
+
+  .config-card-list {
     grid-template-columns: 1fr;
   }
 

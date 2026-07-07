@@ -7,7 +7,8 @@
     lightboxIndex: -1,
     uploading: false,
     touchStartX: null,
-    loading: false
+    loading: false,
+    settingsTab: "templates"
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -80,6 +81,29 @@
     blocked_by_preparation: "禁止寄样：评审资料未齐全",
     overdue_pending_confirm: "寄样日期已逾期，需重新确认"
   };
+
+  const roleTemplates = [
+    { id: "business_pm", name: "Business PM / 业务负责人", type: "评审角色", stages: ["开发准备", "样衣评审"], responsibility: "确认客户邮件、TP、BOM、Comment、颜色、辅料、交期、寄样目的是否一致", permissions: ["发起开发", "补充资料", "提交意见", "创建 Issue", "申请寄样"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["顾瑶", "顾永宏"] },
+    { id: "pattern_reviewer", name: "Pattern Reviewer / 版型评审员", type: "评审角色", stages: ["样衣评审"], responsibility: "评审版型、关键尺寸、公差、结构、左右对称、纸样与实物一致性", permissions: ["提交意见", "创建尺寸/版型 Issue", "复验版型问题"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["徐海燕"] },
+    { id: "quality_reviewer", name: "Quality Reviewer / 品质评审员", type: "评审角色", stages: ["样衣评审", "整改复验"], responsibility: "确认外观、尺寸、历史问题、测试需求，判断是否存在质量阻断风险", permissions: ["提交意见", "创建质量 Issue", "复验 Issue", "提出质量判断建议"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["大前"] },
+    { id: "process_reviewer", name: "Process Reviewer / 工艺评审员", type: "评审角色", stages: ["样衣评审", "工艺验证"], responsibility: "确认缝制、压胶、无缝工艺是否可执行，是否存在量产难点或工艺风险", permissions: ["提交意见", "创建工艺 Issue", "要求工艺小样验证"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["陈工艺"] },
+    { id: "ie_reviewer", name: "IE Reviewer / IE 评审员", type: "评审角色", stages: ["样衣评审", "量产可行性评估"], responsibility: "确认工时、瓶颈、设备需求、人员配置、产能和大货节拍风险", permissions: ["提交意见", "创建 IE Issue", "提出量产可行性建议"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["麦克"] },
+    { id: "sample_feedback_owner", name: "Sample Feedback Owner / 打样反馈人", type: "流程角色", stages: ["打样完成", "样衣评审"], responsibility: "反馈实际打样过程中的资料不清、材料不齐、返工、临时改法和制作难点", permissions: ["提交意见", "创建打样异常 Issue"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["李师傅"] },
+    { id: "material_owner", name: "Material Owner / 面料负责人", type: "流程角色", stages: ["开发准备", "资料确认"], responsibility: "确认面料是否齐套、颜色/批次/缩率/预缩是否存在风险", permissions: ["面料确认", "创建面料 Issue", "更新面料状态"], reviewDefault: "否，必要时参与", finalRelease: "否", exceptionRelease: "否", people: ["李卫红"] },
+    { id: "trim_owner", name: "Trim Owner / 辅料负责人", type: "流程角色", stages: ["开发准备", "资料确认"], responsibility: "确认拉链、扣具、织带、洗标、吊牌等辅料是否齐套并符合要求", permissions: ["辅料确认", "创建辅料 Issue", "更新辅料状态"], reviewDefault: "否，必要时参与", finalRelease: "否", exceptionRelease: "否", people: ["大红"] },
+    { id: "preparation_gate_owner", name: "Preparation Gate Owner / 资料确认人", type: "Gate 角色", stages: ["准备闸口"], responsibility: "资料确认、推进到派发打样", permissions: ["资料确认", "推进到派发打样", "组织资料补齐"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: ["王部长"] },
+    { id: "sample_dispatcher", name: "Sample Dispatcher / 普通打样派发人", type: "流程角色", stages: ["打样派发"], responsibility: "根据资料确认结果分配普通打样人员", permissions: ["派发打样", "普通打样", "提交异常"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: ["大戴"] },
+    { id: "bonding_owner", name: "Bonding Development Owner / 压胶开发负责人", type: "路线角色", stages: ["压胶开发确认"], responsibility: "确认压胶款式是否进入新长江流程，判断压胶工艺开发风险", permissions: ["压胶开发", "创建压胶 Issue", "要求工艺验证"], reviewDefault: "压胶款默认参与", finalRelease: "否", exceptionRelease: "否", people: ["张部长"] },
+    { id: "xinchangjiang_dispatcher", name: "Xinchangjiang Dispatcher / 新长江派发人", type: "路线角色", stages: ["新长江派发"], responsibility: "负责新长江打样人员分配和现场执行状态更新", permissions: ["新长江派发", "派发打样", "提交异常"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: ["夏红霞"] },
+    { id: "sample_review_gate_owner", name: "Sample Review Gate Owner / 样衣评审负责人", type: "Gate 角色", stages: ["样衣评审", "寄样决策"], responsibility: "组织样衣评审、确认 Issue 等级、判断是否阻止寄样、做最终寄样结论", permissions: ["确认问题等级", "复验问题", "最终放行", "阻止寄样"], reviewDefault: "是", finalRelease: "是", exceptionRelease: "否", people: ["大前"] },
+    { id: "final_approver", name: "Final Approver / 例外放行审批人", type: "审批角色", stages: ["例外放行", "重大争议"], responsibility: "例外放行、重大争议裁决", permissions: ["例外放行", "争议裁决"], reviewDefault: "否，仅例外时出现", finalRelease: "仅例外放行", exceptionRelease: "是", people: ["杨总"] },
+    { id: "production_reviewer", name: "Production Reviewer / 生产评审员", type: "可选评审角色", stages: ["量产可行性评估"], responsibility: "从大货现场角度确认样衣工艺是否能稳定复制", permissions: ["提交意见", "创建量产风险 Issue"], reviewDefault: "可选，压胶/复杂款建议参与", finalRelease: "否", exceptionRelease: "否", people: [] },
+    { id: "measurement_reviewer", name: "Measurement Reviewer / 尺寸测量员", type: "可选评审角色", stages: ["样衣评审", "复验"], responsibility: "按统一量法测量关键尺寸，记录实测数据，标记超公差部位", permissions: ["提交尺寸复核", "创建尺寸 Issue", "上传测量表", "复验尺寸整改"], reviewDefault: "可选，尺寸风险款建议参与", finalRelease: "否", exceptionRelease: "否", people: [] },
+    { id: "lab_testing_owner", name: "Lab & Testing Owner / 测试负责人", type: "可选评审角色", stages: ["测试确认", "压胶/功能样评审"], responsibility: "判断是否需要洗后、拉力、剥离、防水、色牢度等测试", permissions: ["创建测试 Issue", "上传测试报告", "确认测试结果", "要求复验"], reviewDefault: "可选，压胶/功能款建议参与", finalRelease: "否", exceptionRelease: "否", people: [] },
+    { id: "sample_keeper", name: "Sample Keeper / 样衣管理员", type: "流程角色", stages: ["样衣位置管理"], responsibility: "维护样衣位置，确认当前持有人，记录样衣流转", permissions: ["更新样衣位置", "上传位置记录", "确认已寄出"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [] },
+    { id: "shipment_owner", name: "Sample Shipment Owner / 寄样负责人", type: "流程角色", stages: ["寄样执行"], responsibility: "执行寄样，填写快递单号，更新样衣状态", permissions: ["执行寄样", "填写快递单号", "更新样衣位置", "上传寄样凭证"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [] },
+    { id: "document_controller", name: "Document Controller / 资料版本管理员", type: "流程角色", stages: ["资料管理"], responsibility: "维护 TP、BOM、纸样、客户 Comment 资料版本", permissions: ["上传资料", "标记资料版本", "作废旧版本", "创建资料不一致 Issue"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [] }
+  ];
 
   function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
@@ -597,24 +621,102 @@
 
   function renderSettings() {
     const data = state.data || {};
-    const style = currentStyle();
-    const review = currentReview();
+    const users = data.users || [];
+    const gateRules = data.gateRules || {};
+    const ownerOrDefault = (userId, fallback) => {
+      if (!userId) return fallback;
+      const name = userName(userId);
+      return name && name !== "未指定" ? name : fallback;
+    };
     const owners = [
-      ["Gate Owner", textOwner(style, review, "gateOwner", "未指定")],
-      ["Preparation Gate Owner", userName(data.gateRules?.preparationGateOwner)],
-      ["Final Approver", textOwner(style, review, "finalApprover", "杨总")]
+      ["Preparation Gate Owner", ownerOrDefault(gateRules.preparationGateOwner, "王部长"), "资料确认、推进到派发打样"],
+      ["Sample Review Gate Owner", ownerOrDefault(gateRules.sampleReviewGateOwner, "大前"), "组织样衣评审、确认 Issue 等级、判断是否阻止寄样、做最终寄样结论"],
+      ["Final Approver", ownerOrDefault(gateRules.finalApprover, "杨总"), "例外放行、重大争议裁决"]
     ];
-    $("#owner-list").innerHTML = owners.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("");
+    $("#settings-stats").innerHTML = [
+      ["系统角色", roleTemplates.length],
+      ["Gate 负责人", 5],
+      ["例外审批人", 1],
+      ["打样路线", 2]
+    ].map(([label, value]) => `<article><strong>${esc(value)}</strong><span>${esc(label)}</span></article>`).join("");
+
+    $("#owner-list").innerHTML = owners.map(([label, value, duty]) => `
+      <div>
+        <dt>${esc(label)}</dt>
+        <dd><strong>${esc(value)}</strong><small>${esc(duty)}</small></dd>
+      </div>
+    `).join("");
+
+    $("#role-template-view").hidden = state.settingsTab !== "templates";
+    $("#person-assignment-view").hidden = state.settingsTab !== "assignments";
+    $$(".settings-role-tabs button").forEach((button) => button.classList.toggle("active", button.dataset.settingsTab === state.settingsTab));
+    $("#role-template-view").innerHTML = roleTemplates.map((role) => `
+      <article class="role-template-card">
+        <header>
+          <div>
+            <strong>${esc(role.name)}</strong>
+            <small>${esc(role.type)} · ${esc(role.stages.join(" / "))}</small>
+          </div>
+          <span class="badge ${role.reviewDefault === "是" ? "ok" : "pending"}">${esc(role.reviewDefault === "是" ? "默认评审" : "按需参与")}</span>
+        </header>
+        <p>${esc(role.responsibility)}</p>
+        <dl>
+          <div><dt>关键权限</dt><dd>${role.permissions.map((item) => `<i>${esc(item)}</i>`).join("")}</dd></div>
+          <div><dt>最终放行</dt><dd>${esc(role.finalRelease)}</dd></div>
+          <div><dt>例外放行</dt><dd>${esc(role.exceptionRelease)}</dd></div>
+          <div><dt>当前分配人员</dt><dd>${role.people.length ? role.people.map((person) => `<i>${esc(person)}</i>`).join("") : "<em>未分配</em>"}</dd></div>
+        </dl>
+      </article>
+    `).join("");
+
+    $("#person-assignment-view").innerHTML = `
+      <div class="people-row people-head"><strong>人员姓名</strong><span>所属部门</span><em>已分配角色</em><small>适用品牌 / 路线</small><div>关键权限</div><span>状态</span><div>操作</div></div>
+      ${users.map((user) => {
+        const assigned = roleTemplates.filter((role) => role.people.includes(user.name));
+        const permissions = Array.from(new Set(assigned.flatMap((role) => role.permissions))).slice(0, 4);
+        const scopes = user.scope?.length ? user.scope : ["萨洛蒙", user.isFinalApprover ? "例外放行" : "样衣评审"];
+        return `<div class="people-row">
+          <strong>${esc(user.name)}</strong>
+          <span>${esc(user.department || "未设置")}</span>
+          <em>${esc(assigned.map((role) => role.name.split(" / ").pop()).join(" / ") || "未分配固定角色")}</em>
+          <small>${esc(scopes.join(" / "))}</small>
+          <div class="permission-tags">${permissions.length ? permissions.map((item) => `<i>${esc(item)}</i>`).join("") : "<i>待分配</i>"}</div>
+          <span class="badge ${user.enabled ? "ok" : "pending"}">${user.enabled ? "启用" : "停用"}</span>
+          <div class="row-actions-inline">
+            <button type="button" data-open-assignment="${esc(user.id)}">分配角色</button>
+            <button type="button">编辑人员</button>
+            <button type="button">停用</button>
+          </div>
+        </div>`;
+      }).join("")}
+    `;
 
     const rules = data.settings?.issueLevelRules || data.issueLevelRules || {
-      minor: { label: "轻微", shipmentRule: "可寄样，但必须记录" },
-      normal: { label: "一般", shipmentRule: "提示风险，可继续寄样" },
+      minor: { label: "轻微", shipmentRule: "不阻止寄样，只记录" },
+      normal: { label: "一般", shipmentRule: "默认不阻止寄样，由 Gate Owner 判断" },
       major: { label: "重大", shipmentRule: "默认阻止寄样，除非例外放行" },
       critical: { label: "严重", shipmentRule: "必须暂停寄样，整改复验后重新评审" }
     };
     $("#rule-list").innerHTML = Object.entries(rules).map(([, rule]) => (
       `<li><strong>${esc(rule.label)}</strong>：${esc(rule.shipmentRule || rule.systemAction || "")}</li>`
     )).join("");
+    $("#route-list").innerHTML = [
+      ["普通打样", "不需要张部长 / 夏红霞作为必要节点。"],
+      ["压胶 / 新长江", "需要经过张部长和夏红霞。"]
+    ].map(([title, text]) => `<article><strong>${esc(title)}</strong><p>${esc(text)}</p></article>`).join("");
+    const locations = data.settings?.sampleLocations || ["开发车间", "样衣间", "新长江", "已寄出", "待返修"];
+    $("#location-list").innerHTML = locations.map((item) => `<span>${esc(item)}</span>`).join("");
+    renderAssignmentModalOptions();
+  }
+
+  function renderAssignmentModalOptions(personId) {
+    const users = state.data?.users || [];
+    $("#assignment-person").innerHTML = users.map((user) => `<option value="${esc(user.id)}" ${personId === user.id ? "selected" : ""}>${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("");
+    $("#assignment-role-list").innerHTML = roleTemplates.map((role) => `
+      <label><input type="checkbox" name="roleIds" value="${esc(role.id)}"><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
+    `).join("");
+    const scopes = ["萨洛蒙", "SUPREME", "迪桑特", "普通打样", "压胶 / 新长江", "样衣评审", "例外放行"];
+    $("#assignment-scope-list").innerHTML = scopes.map((scope) => `<label><input type="checkbox" name="scope" value="${esc(scope)}"><span>${esc(scope)}</span></label>`).join("");
   }
 
   function renderAll() {
@@ -1096,6 +1198,18 @@
     document.body.style.overflow = "";
   }
 
+  function openAssignmentModal(personId) {
+    renderAssignmentModalOptions(personId);
+    $("#assignment-modal").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeAssignmentModal() {
+    $("#assignment-modal").hidden = true;
+    $("#assignment-form").reset();
+    document.body.style.overflow = "";
+  }
+
   function bindEvents() {
     document.addEventListener("click", (event) => {
       const nav = event.target.closest("[data-view]");
@@ -1119,6 +1233,15 @@
       const deleteStyleButton = event.target.closest("[data-delete-style]");
       if (deleteStyleButton) deleteStyle(deleteStyleButton.dataset.deleteStyle);
 
+      const settingsTab = event.target.closest("[data-settings-tab]");
+      if (settingsTab) {
+        state.settingsTab = settingsTab.dataset.settingsTab;
+        renderSettings();
+      }
+
+      const assignmentButton = event.target.closest("[data-open-assignment]");
+      if (assignmentButton) openAssignmentModal(assignmentButton.dataset.openAssignment);
+
       const saveDepartmentButton = event.target.closest("[data-save-department]");
       if (saveDepartmentButton) saveDepartment(Number(saveDepartmentButton.dataset.saveDepartment));
 
@@ -1136,6 +1259,8 @@
     });
 
     $("#new-style-button").addEventListener("click", openStyleModal);
+    $("#add-person").addEventListener("click", () => showMessage("新增人员入口已保留；当前版本先聚焦固定角色分配。", "ok"));
+    $("#assign-role-top").addEventListener("click", () => openAssignmentModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
     $("#style-modal-cancel").addEventListener("click", closeStyleModal);
     $("#style-modal").addEventListener("click", (event) => {
@@ -1144,6 +1269,16 @@
     $("#style-form").addEventListener("submit", (event) => {
       event.preventDefault();
       createStyleFromForm(event.currentTarget);
+    });
+    $("#assignment-modal-close").addEventListener("click", closeAssignmentModal);
+    $("#assignment-modal-cancel").addEventListener("click", closeAssignmentModal);
+    $("#assignment-modal").addEventListener("click", (event) => {
+      if (event.target.id === "assignment-modal") closeAssignmentModal();
+    });
+    $("#assignment-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      closeAssignmentModal();
+      showMessage("角色分配已在前端确认；后续接入人员配置写入接口。", "ok");
     });
 
     $("#reload-data").addEventListener("click", loadSnapshot);
