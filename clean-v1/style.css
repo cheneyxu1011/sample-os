@@ -967,12 +967,13 @@ textarea:focus {
   max-height: 84vh;
   transition: transform 160ms ease;
   transform-origin: center center;
+  --lightbox-zoom: 1;
 }
 
 .lightbox-annotator.zoomed {
   max-width: none;
   max-height: none;
-  transform: scale(1.65);
+  transform: scale(var(--lightbox-zoom));
 }
 
 .lightbox-stage img,
@@ -995,26 +996,37 @@ textarea:focus {
   pointer-events: none;
 }
 
-.annotation-layer path {
+.annotation-layer polyline {
   fill: none;
   stroke: #ff453a;
-  stroke-width: 0.008;
+  stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.annotation-text-layer span {
+.annotation-text-layer {
+  pointer-events: auto;
+}
+
+.annotation-text-layer button {
   position: absolute;
   max-width: 220px;
   padding: 5px 8px;
+  border: 2px solid transparent;
   border-radius: 8px;
   color: #1d1d1f;
   background: rgba(255, 214, 10, 0.9);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.35;
+  cursor: move;
   transform: translate(-2px, -100%);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.annotation-text-layer button.selected {
+  border-color: #0a84ff;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.28), 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
 .lightbox-annotator[data-tool="draw"],
@@ -1035,6 +1047,8 @@ textarea:focus {
   left: 50%;
   z-index: 2;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
   padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.24);
@@ -1043,6 +1057,7 @@ textarea:focus {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transform: translateX(-50%);
+  max-width: min(720px, calc(100vw - 72px));
 }
 
 .lightbox-tools[hidden] {

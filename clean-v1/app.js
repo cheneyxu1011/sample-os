@@ -8,9 +8,11 @@
     editingBrandId: null,
     lightboxIndex: -1,
     lightboxTool: "",
-    lightboxZoomed: false,
+    lightboxZoomIndex: 0,
     lightboxDraftAnnotations: [],
     drawingAnnotation: null,
+    selectedAnnotationId: null,
+    draggingTextAnnotation: null,
     uploading: false,
     touchStartX: null,
     loading: false,
@@ -182,6 +184,16 @@
     process_reviewer: "processOwner",
     quality_reviewer: "qcOwner",
     bonding_owner: "bondingOwner"
+  };
+
+  const departmentRoleOwnerMap = {
+    "业务部": "business_pm",
+    "打版组": "pattern_reviewer",
+    "品质部": "quality_reviewer",
+    "工艺部": "process_reviewer",
+    "IE 部": "ie_reviewer",
+    "IE部": "ie_reviewer",
+    "打样部": "sample_feedback_owner"
   };
 
 
@@ -476,6 +488,18 @@
     const dbValue = field === "gateOwner" ? (style?.gateOwner || review?.gateOwner) : (style?.finalApprover || review?.finalApprover);
     const textValue = owners[field] || profile[field] || "";
     return dbValue ? userName(dbValue) : (textValue || fallback);
+  }
+
+  function roleOwnerText(style, roleId) {
+    const owners = style?.owners || style?.profile?.owners || {};
+    const roleOwners = owners.roleOwners || {};
+    const legacyName = legacyOwnerFieldByRole[roleId];
+    return roleOwners[roleId] || owners[legacyName] || "";
+  }
+
+  function departmentReviewerName(row, style) {
+    const roleId = departmentRoleOwnerMap[row.department] || "";
+    return roleOwnerText(style, roleId) || row.reviewerName || userName(row.reviewer);
   }
 
   function plannedDate(style, sample) {
@@ -918,6 +942,7 @@
   }
 
   function renderDepartments() {
+    const style = currentStyle();
     const review = currentReview();
     const rows = review?.departmentReviews || [];
     $("#department-cards").innerHTML = rows.length ? rows.map((row, index) => `
@@ -925,7 +950,7 @@
         <header>
           <div>
             <strong>${esc(row.department)}</strong>
-            <small>${esc(row.role || "评审员")} / ${esc(userName(row.reviewer))}</small>
+            <small>${esc(row.role || "评审员")} / ${esc(departmentReviewerName(row, style))}</small>
           </div>
           <span class="badge ${row.status === "fail" ? "blocked" : "ok"}">${esc(statusLabels[row.status] || row.status)}</span>
         </header>
@@ -1433,6 +1458,7 @@
   }
 
   async function saveDepartment(index) {
+    const style = currentStyle();
     const review = currentReview();
     const row = review?.departmentReviews?.[index];
     const card = $(`[data-department-index="${index}"]`);
@@ -1442,11 +1468,13 @@
     row.status = status;
     row.opinion = opinion;
     renderDepartments();
+    const reviewerName = departmentReviewerName(row, style);
+    const reviewer = allUsers().find((user) => user.name === reviewerName);
     try {
       await syncData("departmentReview", {
         reviewId: review.id,
         department: row.department,
-        reviewerId: row.reviewer,
+        reviewerId: reviewer && !reviewer.isDefaultUser ? reviewer.id : row.reviewer,
         role: row.role,
         status,
         opinion,
@@ -1708,16 +1736,18 @@
     const item = mediaList[state.lightboxIndex];
     if (!item?.url) return;
     const isVideo = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/");
-    state.lightboxDraftAnnotations = JSON.parse(JSON.stringify(item.annotations || []));
+    state.lightboxDraftAnnotations = normalizeAnnotations(item.annotations || []);
     state.drawingAnnotation = null;
     state.lightboxTool = "";
-    state.lightboxZoomed = false;
+    state.lightboxZoomIndex = 0;
+    state.selectedAnnotationId = null;
+    state.draggingTextAnnotation = null;
     $("#lightbox-stage").innerHTML = isVideo
       ? `<video src="${esc(item.url)}" controls autoplay></video>`
       : `
         <div class="lightbox-annotator" id="lightbox-annotator">
           <img src="${esc(item.url)}" alt="${esc(item.label || item.fileName)}" draggable="false" />
-          <svg class="annotation-layer" id="annotation-layer" viewBox="0 0 1 1" preserveAspectRatio="none"></svg>
+          <svg class="annotation-layer" id="annotation-layer" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
           <div class="annotation-text-layer" id="annotation-text-layer"></div>
         </div>
       `;
@@ -1730,14 +1760,26 @@
   }
 
   function updateLightboxToolState() {
+    const zoomLevels = [1, 3, 5, 10];
+    const zoom = zoomLevels[state.lightboxZoomIndex] || 1;
     $$("[data-lightbox-tool]").forEach((button) => {
       button.classList.toggle("active", button.dataset.lightboxTool === state.lightboxTool);
+      if (button.dataset.lightboxTool === "zoom") button.textContent = `放大 ${zoom}x`;
     });
     const annotator = $("#lightbox-annotator");
     if (annotator) {
-      annotator.classList.toggle("zoomed", state.lightboxZoomed);
+      annotator.style.setProperty("--lightbox-zoom", zoom);
+      annotator.classList.toggle("zoomed", zoom > 1);
       annotator.dataset.tool = state.lightboxTool || "";
     }
+  }
+
+  function annotationId() {
+    return `anno_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+
+  function normalizeAnnotations(items) {
+    return (Array.isArray(items) ? items : []).map((item) => ({ ...item, id: item.id || annotationId() }));
   }
 
   function renderAnnotations() {
@@ -1747,13 +1789,12 @@
     svg.innerHTML = state.lightboxDraftAnnotations
       .filter((item) => item.type === "draw" && item.points?.length > 1)
       .map((item) => {
-        const [first, ...rest] = item.points;
-        const d = `M ${first.x} ${first.y} ${rest.map((point) => `L ${point.x} ${point.y}`).join(" ")}`;
-        return `<path d="${esc(d)}" vector-effect="non-scaling-stroke"></path>`;
+        const points = item.points.map((point) => `${Number(point.x) * 100},${Number(point.y) * 100}`).join(" ");
+        return `<polyline points="${esc(points)}" vector-effect="non-scaling-stroke"></polyline>`;
       }).join("");
     textLayer.innerHTML = state.lightboxDraftAnnotations
       .filter((item) => item.type === "text" && item.text)
-      .map((item) => `<span style="left:${Number(item.x) * 100}%;top:${Number(item.y) * 100}%">${esc(item.text)}</span>`)
+      .map((item) => `<button type="button" class="${item.id === state.selectedAnnotationId ? "selected" : ""}" data-annotation-id="${esc(item.id)}" style="left:${Number(item.x) * 100}%;top:${Number(item.y) * 100}%">${esc(item.text)}</button>`)
       .join("");
   }
 
@@ -1769,11 +1810,13 @@
   }
 
   function beginAnnotation(event) {
+    if (event.target.closest("[data-annotation-id]")) return;
     if (state.lightboxTool !== "draw") return;
     const point = lightboxPoint(event);
     if (!point) return;
     event.preventDefault();
-    state.drawingAnnotation = { type: "draw", points: [point] };
+    state.drawingAnnotation = { id: annotationId(), type: "draw", points: [point] };
+    state.selectedAnnotationId = state.drawingAnnotation.id;
     state.lightboxDraftAnnotations.push(state.drawingAnnotation);
     renderAnnotations();
   }
@@ -1792,13 +1835,60 @@
   }
 
   function addTextAnnotation(event) {
+    if (event.target.closest("[data-annotation-id]")) return;
     if (state.lightboxTool !== "text") return;
     const point = lightboxPoint(event);
     if (!point) return;
     const text = window.prompt("输入图片备注");
     if (!text?.trim()) return;
-    state.lightboxDraftAnnotations.push({ type: "text", x: point.x, y: point.y, text: text.trim() });
+    const annotation = { id: annotationId(), type: "text", x: point.x, y: point.y, text: text.trim() };
+    state.lightboxDraftAnnotations.push(annotation);
+    state.selectedAnnotationId = annotation.id;
     renderAnnotations();
+  }
+
+  function beginTextDrag(event) {
+    const target = event.target.closest("[data-annotation-id]");
+    if (!target) return false;
+    const id = target.dataset.annotationId;
+    const item = state.lightboxDraftAnnotations.find((annotation) => annotation.id === id);
+    if (!item) return false;
+    event.preventDefault();
+    state.selectedAnnotationId = id;
+    state.draggingTextAnnotation = { id };
+    renderAnnotations();
+    return true;
+  }
+
+  function moveTextAnnotation(event) {
+    if (!state.draggingTextAnnotation) return false;
+    const point = lightboxPoint(event);
+    if (!point) return false;
+    const item = state.lightboxDraftAnnotations.find((annotation) => annotation.id === state.draggingTextAnnotation.id);
+    if (!item) return false;
+    event.preventDefault();
+    item.x = point.x;
+    item.y = point.y;
+    renderAnnotations();
+    return true;
+  }
+
+  function endTextDrag() {
+    state.draggingTextAnnotation = null;
+  }
+
+  function deleteSelectedAnnotation() {
+    if (!state.selectedAnnotationId) return;
+    state.lightboxDraftAnnotations = state.lightboxDraftAnnotations.filter((item) => item.id !== state.selectedAnnotationId);
+    state.selectedAnnotationId = null;
+    renderAnnotations();
+  }
+
+  function undoLastAnnotation() {
+    state.lightboxDraftAnnotations.pop();
+    state.selectedAnnotationId = null;
+    renderAnnotations();
+    $("#lightbox-caption").textContent = "已撤销最近一条备注，点击保存备注后生效";
   }
 
   async function saveLightboxAnnotations() {
@@ -1831,9 +1921,11 @@
     $("#media-lightbox").hidden = true;
     state.lightboxIndex = -1;
     state.lightboxTool = "";
-    state.lightboxZoomed = false;
+    state.lightboxZoomIndex = 0;
     state.lightboxDraftAnnotations = [];
     state.drawingAnnotation = null;
+    state.selectedAnnotationId = null;
+    state.draggingTextAnnotation = null;
     $("#lightbox-stage").innerHTML = "";
     $("#lightbox-caption").textContent = "";
     document.body.style.overflow = "";
@@ -2341,24 +2433,33 @@
     $("#lightbox-prev").addEventListener("click", () => moveLightbox(-1));
     $("#lightbox-next").addEventListener("click", () => moveLightbox(1));
     $("#lightbox-save-annotations").addEventListener("click", saveLightboxAnnotations);
+    $("#lightbox-delete-annotation").addEventListener("click", deleteSelectedAnnotation);
+    $("#lightbox-undo-annotation").addEventListener("click", undoLastAnnotation);
     $("#lightbox-tools").addEventListener("click", (event) => {
       const button = event.target.closest("[data-lightbox-tool]");
       if (!button) return;
       const tool = button.dataset.lightboxTool;
       if (tool === "zoom") {
-        state.lightboxZoomed = !state.lightboxZoomed;
-        state.lightboxTool = state.lightboxZoomed ? "zoom" : "";
+        state.lightboxZoomIndex = (state.lightboxZoomIndex + 1) % 4;
+        state.lightboxTool = state.lightboxZoomIndex ? "zoom" : "";
       } else {
         state.lightboxTool = state.lightboxTool === tool ? "" : tool;
       }
       updateLightboxToolState();
     });
     $("#lightbox-stage").addEventListener("pointerdown", (event) => {
+      if (beginTextDrag(event)) return;
       beginAnnotation(event);
       addTextAnnotation(event);
     });
-    $("#lightbox-stage").addEventListener("pointermove", moveAnnotation);
-    document.addEventListener("pointerup", endAnnotation);
+    $("#lightbox-stage").addEventListener("pointermove", (event) => {
+      if (moveTextAnnotation(event)) return;
+      moveAnnotation(event);
+    });
+    document.addEventListener("pointerup", () => {
+      endTextDrag();
+      endAnnotation();
+    });
     $("#media-lightbox").addEventListener("click", (event) => {
       if (event.target.id === "media-lightbox") closeMediaLightbox();
     });

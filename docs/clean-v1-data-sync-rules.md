@@ -282,6 +282,7 @@ Style cover uploads must be globally recognizable across the style form, review 
 - Review photo/video uploads should start immediately after file selection. Do not require a second "upload selected files" confirmation.
 - Uploaded media names must be editable from the media card and saved back to Supabase `sample_media.label` while preserving the hidden category prefix.
 - Review image annotations must be saved as shared data, not local-only UI state. Clean V1 stores lightbox draw/text annotations in `audit_events` with `entity_type = media` and `action = media_annotations`, keyed by `sample_media.id`.
+- Image review tools must support practical review actions: zoom levels `1x / 3x / 5x / 10x`, visible pen strokes, draggable text notes, delete selected note, undo latest annotation, and explicit save to shared data.
 
 ## Role Owner Rules
 
@@ -291,6 +292,7 @@ New and edit style forms must read owners from the shared role template configur
 - Optional/on-demand roles stay collapsed until the user expands them.
 - Owner selections are saved as `roleOwners` and mirrored to legacy owner fields such as `businessOwner`, `gateOwner`, `qcOwner`, and `bondingOwner` for compatibility.
 - Any future owner-related feature must verify the pipeline card, review header, department cards, settings role templates, and refresh-after-save path all read the same owner data.
+- Department review cards must resolve reviewer names from the current style `roleOwners` before falling back to `review_department_reviews.reviewer_id`. Creating a style should also seed department review rows with matching reviewer IDs when the selected person exists in `sample_people`.
 
 ## Security Rules
 

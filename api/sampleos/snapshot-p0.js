@@ -39,6 +39,31 @@ function parseMediaCategory(label) {
   return "";
 }
 
+const DEPARTMENT_ROLE_OWNER_MAP = {
+  "业务部": "business_pm",
+  "打版组": "pattern_reviewer",
+  "品质部": "quality_reviewer",
+  "工艺部": "process_reviewer",
+  "IE 部": "ie_reviewer",
+  "IE部": "ie_reviewer",
+  "打样部": "sample_feedback_owner",
+};
+
+const LEGACY_OWNER_FIELD_BY_ROLE = {
+  business_pm: "businessOwner",
+  pattern_reviewer: "patternOwner",
+  quality_reviewer: "qcOwner",
+  process_reviewer: "processOwner",
+  sample_feedback_owner: "sampleOwner",
+};
+
+function ownerForDepartment(styleProfile, departmentName) {
+  const owners = styleProfile?.owners || {};
+  const roleId = DEPARTMENT_ROLE_OWNER_MAP[departmentName] || "";
+  if (!roleId) return "";
+  return owners.roleOwners?.[roleId] || owners[LEGACY_OWNER_FIELD_BY_ROLE[roleId]] || "";
+}
+
 async function mediaAccessUrl(s3, item) {
   if (!s3 || !item.s3_bucket || !item.s3_object_key) return null;
   const command = new GetObjectCommand({
@@ -223,17 +248,22 @@ export default async function handler(req, res) {
           approvalStatus: review.exception_approval_status || "未申请",
         } : null,
         timeline: [{ time: cleanDateTime(review.updated_at) || "现在", type: "black", text: `Supabase · 载入评审 ${review.review_no}` }],
-        departmentReviews: departmentReviews.filter((item) => item.review_id === review.id).map((item) => ({
+        departmentReviews: departmentReviews.filter((item) => item.review_id === review.id).map((item) => {
+          const departmentName = departmentMap.get(item.department_id)?.name || "未指定部门";
+          const styleProfile = styleProfileMap.get(review.style_id) || {};
+          return ({
           id: item.id,
-          department: departmentMap.get(item.department_id)?.name || "未指定部门",
+          department: departmentName,
           role: item.role_name || "评审员",
           reviewer: item.reviewer_id || null,
+          reviewerName: ownerForDepartment(styleProfile, departmentName),
           status: item.status || "pending",
           opinion: item.opinion || "",
           focusTags: item.focus_tags || [],
           issueIds: [],
           reviewedAt: cleanDateTime(item.reviewed_at || item.created_at),
-        })),
+        });
+        }),
       })),
       issues: issues.map((issue) => {
         const meta = parseIssueEvidenceNote(issue.evidence_note);

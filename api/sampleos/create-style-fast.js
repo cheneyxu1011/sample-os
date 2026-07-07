@@ -174,14 +174,28 @@ async function ensureDepartment(supabase, orgId, name) {
   return data.id;
 }
 
-async function ensureDefaultDepartmentReviews(supabase, orgId, review, now) {
+async function profileIdForName(supabase, orgId, name) {
+  const text = String(name || "").trim();
+  if (!text) return null;
+  const { data, error } = await supabase
+    .from("sample_people")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("name", text)
+    .maybeSingle();
+  if (error) throw syncError("find reviewer person", error, { name: text });
+  return data?.id || null;
+}
+
+async function ensureDefaultDepartmentReviews(supabase, orgId, review, now, body = {}) {
+  const roleOwners = body.roleOwners && typeof body.roleOwners === "object" ? body.roleOwners : {};
   const defaults = [
-    { department: "业务部", role: "业务负责人", focusTags: ["客户需求", "技术包/物料清单", "寄样需求"] },
-    { department: "打版组", role: "版型评审员", focusTags: ["版型", "尺寸", "纸样一致"] },
-    { department: "品质部", role: "质量评审员", focusTags: ["外观", "历史问题", "测试/复验"] },
-    { department: "工艺部", role: "工艺评审员", focusTags: ["工艺可行", "压胶稳定", "技术包一致"] },
-    { department: "IE 部", role: "IE 评审员", focusTags: ["工时", "瓶颈", "量产产能"] },
-    { department: "打样部", role: "打样反馈人", focusTags: ["打样异常", "资料清晰", "制作困难"] },
+    { department: "业务部", role: "业务负责人", roleId: "business_pm", owner: body.businessOwner, focusTags: ["客户需求", "技术包/物料清单", "寄样需求"] },
+    { department: "打版组", role: "版型评审员", roleId: "pattern_reviewer", owner: body.patternOwner, focusTags: ["版型", "尺寸", "纸样一致"] },
+    { department: "品质部", role: "质量评审员", roleId: "quality_reviewer", owner: body.qcOwner, focusTags: ["外观", "历史问题", "测试/复验"] },
+    { department: "工艺部", role: "工艺评审员", roleId: "process_reviewer", owner: body.processOwner, focusTags: ["工艺可行", "压胶稳定", "技术包一致"] },
+    { department: "IE 部", role: "IE 评审员", roleId: "ie_reviewer", owner: null, focusTags: ["工时", "瓶颈", "量产产能"] },
+    { department: "打样部", role: "打样反馈人", roleId: "sample_feedback_owner", owner: body.sampleOwner, focusTags: ["打样异常", "资料清晰", "制作困难"] },
   ];
 
   await Promise.all(defaults.map(async (item) => {
@@ -196,10 +210,12 @@ async function ensureDefaultDepartmentReviews(supabase, orgId, review, now) {
     if (existingError) throw syncError("check default department review", existingError, { reviewId: review.id, department: item.department });
     if (existing?.id) return;
 
+    const reviewerId = await profileIdForName(supabase, orgId, roleOwners[item.roleId] || item.owner);
     const { error } = await supabase.from("review_department_reviews").insert({
       org_id: orgId,
       review_id: review.id,
       department_id: departmentId,
+      reviewer_id: reviewerId,
       role_name: item.role,
       status: "pending",
       opinion: "",
@@ -335,7 +351,7 @@ export default async function handler(req, res) {
     const { style, existing } = await getOrCreateStyle(supabase, org.id, body, now);
     const sample = await getOrCreateSample(supabase, org.id, style, body, now);
     const review = await getOrCreateReview(supabase, org.id, style, sample, body, now);
-    await ensureDefaultDepartmentReviews(supabase, org.id, review, now);
+    await ensureDefaultDepartmentReviews(supabase, org.id, review, now, body);
     await ensurePreparationChecklist(supabase, org.id, style, body);
     await ensureSampleVariantsAudit(supabase, org.id, style, body);
     await ensureStyleProfileAudit(supabase, org.id, style, sample, review, body);
