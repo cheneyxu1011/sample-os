@@ -338,6 +338,7 @@ Every new tool or feature added to Clean V1 must be designed as shared, persiste
 - Every new feature must be checked across all affected pages, including pipeline cards, style material modal, review header, department cards, media library, calendar, settings, and mobile layout when relevant.
 - If a feature creates, edits, deletes, annotates, assigns, uploads, or changes status, it must show clear success and failure messages in the UI and log detailed errors with `console.error`.
 - Do not add another shortcut script or one-off patch path when the data belongs in the Clean V1 main flow.
+- Calendar and deadline views must be derived from the same shared style/sample/review/issue snapshot used by the pipeline and review pages. Do not add separate calendar demo data; planned ship date, brand, style number, sample stage, Gate, location, owner, risk state, and next action must all come from shared Clean V1 data.
 
 ## Security Rules
 

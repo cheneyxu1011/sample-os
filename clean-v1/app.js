@@ -28,6 +28,13 @@
     calendarBrandFilter: "",
     calendarSeasonFilter: "",
     calendarStageFilter: "",
+    calendarLocationFilter: "",
+    calendarRouteFilter: "",
+    calendarWeekOnly: false,
+    calendarRiskOnly: false,
+    calendarMineOnly: false,
+    calendarFiltersOpen: true,
+    calendarMonthOpen: false,
     optionalDepartmentRoleIdsByStyle: {}
   };
 
@@ -62,6 +69,22 @@
     outsourced: "外发款式",
     rudong_factory: "如东工厂款式"
   };
+
+  const calendarLocationOptions = [
+    { value: "", label: "全部地点" },
+    { value: "新长江", label: "新长江工厂打样间" },
+    { value: "事务所", label: "事务所打样间" },
+    { value: "外发", label: "外发打样" },
+    { value: "如东", label: "如东工厂打样间" }
+  ];
+
+  const calendarRouteOptions = [
+    { value: "", label: "全部路线" },
+    { value: "normal", label: "普通款式" },
+    { value: "bonding", label: "压胶 / 新长江款式" },
+    { value: "outsourced", label: "外发款式" },
+    { value: "rudong", label: "如东工厂款式" }
+  ];
 
   const gateLabels = {
     preparation_gate: "评审前准备",
@@ -742,6 +765,113 @@
     return `当前风险：${summary.blocked} 个款式不可寄样｜${summary.preparation} 个款式资料未齐｜${summary.overdue} 个款式交期逾期`;
   }
 
+  function calendarRiskSummary(entries = calendarEntries(state.data?.styleList || [])) {
+    const summary = entries.reduce((acc, entry) => {
+      if (entry.shipment.release !== "ready_to_send") acc.blocked += 1;
+      if (entry.shipment.release === "blocked_by_preparation") acc.preparation += 1;
+      if (entry.shipment.release === "overdue_pending_confirm") acc.overdue += 1;
+      if (entry.daysUntil >= 0 && entry.daysUntil <= 7) acc.near += 1;
+      if (entry.shipment.release === "pending_final_approval") acc.exception += 1;
+      return acc;
+    }, { blocked: 0, preparation: 0, overdue: 0, near: 0, exception: 0 });
+    if (summary.blocked || summary.overdue) {
+      return `当前风险：${summary.blocked} 款不可寄样｜${summary.preparation} 款资料未齐｜${summary.overdue} 款交期逾期`;
+    }
+    return `当前风险：${summary.preparation} 款资料未齐｜${summary.near} 款交期临近｜${summary.exception} 款待例外放行`;
+  }
+
+  function daysUntilDate(dateKey) {
+    if (!dateKey) return null;
+    const [year, month, day] = dateKey.split("-").map(Number);
+    const target = new Date(year, month - 1, day);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.floor((target - today) / 86400000);
+  }
+
+  function isThisWeekDate(dateKey) {
+    if (!dateKey) return false;
+    const [year, month, day] = dateKey.split("-").map(Number);
+    const target = new Date(year, month - 1, day);
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return target >= start && target <= end;
+  }
+
+  function calendarRouteMatches(style, routeFilter) {
+    if (!routeFilter) return true;
+    const raw = `${style.route || ""} ${routeLabel(style)}`.toLowerCase();
+    if (routeFilter === "bonding") return /bonding|压胶|新长江/.test(raw);
+    if (routeFilter === "outsourced") return /outsourced|外发/.test(raw);
+    if (routeFilter === "rudong") return /rudong|如东/.test(raw);
+    if (routeFilter === "normal") return /normal|普通/.test(raw);
+    return raw.includes(routeFilter);
+  }
+
+  function calendarLocationMatches(entry, locationFilter) {
+    if (!locationFilter) return true;
+    return String(entry.location || "").includes(locationFilter);
+  }
+
+  function calendarOwnedByMe(entry) {
+    const me = currentReviewerName(entry.style, entry.review);
+    const roleNames = activeRoleTemplates().flatMap((role) => roleOwnerNames(entry.style, role.id));
+    return uniqueNames([entry.owner, textOwner(entry.style, entry.review, "gateOwner", ""), ...roleNames]).includes(me);
+  }
+
+  function calendarTone(entry) {
+    if (entry.counts.critical || entry.shipment.release === "overdue_pending_confirm") return "blocked";
+    if (entry.counts.blocking || entry.shipment.release === "blocked_by_issue") return "blocked";
+    if (entry.shipment.release === "ready_to_send") return "ok";
+    if (entry.style.currentGate === "sample_review_gate" || entry.review?.status === "reviewing") return "review";
+    if (entry.shipment.release === "blocked_by_preparation" || entry.shipment.release === "blocked_by_owner_missing") return "pending";
+    return "neutral";
+  }
+
+  function calendarRiskLabel(entry) {
+    if (entry.counts.critical) return "严重 Issue";
+    if (entry.shipment.release === "overdue_pending_confirm") return "交期逾期";
+    if (entry.counts.blocking) return `${entry.counts.blocking} 个阻塞 Issue`;
+    if (entry.shipment.release === "blocked_by_preparation") return "资料未齐";
+    if (entry.shipment.release === "blocked_by_owner_missing") return "待负责人判断";
+    if (entry.shipment.release === "blocked_by_department_review") return "部门未完成";
+    if (entry.shipment.release === "ready_to_send") return "可寄样";
+    if (entry.style.currentGate === "sample_review_gate" || entry.review?.status === "reviewing") return "评审中";
+    return "未开始";
+  }
+
+  function calendarEntries(styles = state.data?.styleList || []) {
+    return styles.map((style) => {
+      const sample = state.data?.samples?.find((item) => item.styleId === style.id);
+      const review = state.data?.reviews?.find((item) => item.styleId === style.id || item.sampleId === sample?.id);
+      const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
+      const shipment = computeShipmentState(style, sample, review, issues);
+      const pipeline = pipelineStatus(style, sample, review, issues, shipment);
+      const counts = pipelineIssueCounts(issues);
+      const dateKey = dateOnly(plannedDate(style, sample));
+      const entry = {
+        style,
+        sample,
+        review,
+        issues,
+        shipment,
+        pipeline,
+        counts,
+        dateKey,
+        daysUntil: daysUntilDate(dateKey),
+        location: sample?.location || style.sampleLocation || "未设置",
+        owner: pipeline.owner || textOwner(style, review, "gateOwner", "未指定"),
+        nextAction: shipment.nextStep || "确认下一步"
+      };
+      entry.tone = calendarTone(entry);
+      entry.riskLabel = calendarRiskLabel(entry);
+      return entry;
+    }).filter((entry) => entry.dateKey);
+  }
+
   function plannedDate(style, sample) {
     return style?.plannedShipDate || sample?.plannedShipDate || "";
   }
@@ -1100,6 +1230,9 @@
       if ($("#pipeline-view")?.classList.contains("active")) {
         riskPill.className = "status-pill overview";
         riskPill.textContent = pipelineOverview();
+      } else if ($("#calendar-view")?.classList.contains("active")) {
+        riskPill.className = "status-pill overview";
+        riskPill.textContent = calendarRiskSummary(calendarEntries(state.data?.styleList || []));
       } else {
         const copy = releaseStatusCopy(shipment);
         riskPill.className = `status-pill ${copy.tone}`;
@@ -1554,6 +1687,9 @@
     const brandSelect = $("#calendar-brand-filter");
     const seasonSelect = $("#calendar-season-filter");
     const stageSelect = $("#calendar-stage-filter");
+    const locationSelect = $("#calendar-location-filter");
+    const routeSelect = $("#calendar-route-filter");
+    const filterBody = $("#calendar-filter-body");
     if (brandSelect) {
       brandSelect.innerHTML = `<option value="">全部品牌</option>${brandOptions.map((brand) => `<option value="${esc(brand)}" ${state.calendarBrandFilter === brand ? "selected" : ""}>${esc(brand)}</option>`).join("")}`;
     }
@@ -1563,26 +1699,78 @@
     if (stageSelect) {
       stageSelect.innerHTML = `<option value="">全部阶段</option>${stageOptions.map((stage) => `<option value="${esc(stage)}" ${state.calendarStageFilter === stage ? "selected" : ""}>${esc(sampleStageLabel(stage))}</option>`).join("")}`;
     }
-    const styles = allStyles.filter((style) => {
-      const brandOk = !state.calendarBrandFilter || style.brand === state.calendarBrandFilter;
-      const seasonOk = !state.calendarSeasonFilter || style.season === state.calendarSeasonFilter;
-      const stageOk = !state.calendarStageFilter || style.samplePhase === state.calendarStageFilter;
-      return brandOk && seasonOk && stageOk;
-    });
-    $("#calendar-list").innerHTML = styles.length ? styles.map((style) => {
-      const sample = state.data?.samples?.find((item) => item.styleId === style.id);
-      const date = style.plannedShipDate || sample?.plannedShipDate || "";
+    if (locationSelect) {
+      locationSelect.innerHTML = calendarLocationOptions.map((item) => `<option value="${esc(item.value)}" ${state.calendarLocationFilter === item.value ? "selected" : ""}>${esc(item.label)}</option>`).join("");
+    }
+    if (routeSelect) {
+      routeSelect.innerHTML = calendarRouteOptions.map((item) => `<option value="${esc(item.value)}" ${state.calendarRouteFilter === item.value ? "selected" : ""}>${esc(item.label)}</option>`).join("");
+    }
+    if ($("#calendar-week-only")) $("#calendar-week-only").checked = state.calendarWeekOnly;
+    if ($("#calendar-risk-only")) $("#calendar-risk-only").checked = state.calendarRiskOnly;
+    if ($("#calendar-mine-only")) $("#calendar-mine-only").checked = state.calendarMineOnly;
+    if (filterBody) {
+      filterBody.hidden = !state.calendarFiltersOpen;
+      $("#calendar-filter-toggle").textContent = state.calendarFiltersOpen ? "收起筛选" : "展开筛选";
+    }
+
+    const entries = calendarEntries(allStyles)
+      .filter((entry) => !state.calendarBrandFilter || entry.style.brand === state.calendarBrandFilter)
+      .filter((entry) => !state.calendarSeasonFilter || entry.style.season === state.calendarSeasonFilter)
+      .filter((entry) => !state.calendarStageFilter || entry.style.samplePhase === state.calendarStageFilter)
+      .filter((entry) => calendarLocationMatches(entry, state.calendarLocationFilter))
+      .filter((entry) => calendarRouteMatches(entry.style, state.calendarRouteFilter))
+      .filter((entry) => !state.calendarWeekOnly || isThisWeekDate(entry.dateKey))
+      .filter((entry) => !state.calendarRiskOnly || entry.tone === "blocked" || entry.tone === "pending" || entry.shipment.release !== "ready_to_send")
+      .filter((entry) => !state.calendarMineOnly || calendarOwnedByMe(entry))
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+
+    const todayKey = monthDateKey(new Date());
+    const todayDue = entries.filter((entry) => entry.dateKey === todayKey).length;
+    const weekDue = entries.filter((entry) => isThisWeekDate(entry.dateKey)).length;
+    const blocked = entries.filter((entry) => entry.daysUntil < 0 || entry.shipment.release !== "ready_to_send").length;
+    $("#calendar-stats").innerHTML = [
+      ["今日到期", todayDue, "今天预计寄样的款式"],
+      ["本周到期", weekDue, "本周需要跟进的交期"],
+      ["逾期 / 阻塞", blocked, "逾期或当前不可寄样"]
+    ].map(([label, value, help]) => `
+      <article class="calendar-stat-card">
+        <span>${esc(label)}</span>
+        <strong>${esc(value)}</strong>
+        <small>${esc(help)}</small>
+      </article>
+    `).join("");
+
+    const todayActions = entries.filter((entry) => entry.dateKey === todayKey || entry.tone === "blocked" || entry.tone === "pending").slice(0, 5);
+    $("#today-action-list").innerHTML = todayActions.length ? todayActions.map((entry) => `
+      <button class="today-action-item" type="button" data-calendar-open-style="${esc(entry.style.id)}">
+        <strong>${esc(entry.style.brand)} ${esc(entry.style.styleNo)}</strong>
+        <span>${esc(entry.counts.blocking ? `${entry.counts.blocking} 个阻塞 Issue，需${entry.owner}判断` : `${entry.riskLabel}，需${entry.owner}处理`)}</span>
+      </button>
+    `).join("") : '<div class="empty compact-empty">今日暂无必须处理事项。</div>';
+
+    $("#calendar-list").innerHTML = entries.length ? entries.map((entry) => {
       return `
-        <article class="calendar-card">
-          <div class="date-block"><span>${esc(dateText(date).slice(0, 4) || "日期")}</span><strong>${esc(dateText(date).slice(5) || "--")}</strong></div>
-          <div>
-            <h3>${esc(style.brand)} ${esc(style.styleNo)} / ${esc(style.styleName)}</h3>
-            <p>${esc(sampleStageLabel(style.samplePhase))} · ${esc(sample?.location || style.sampleLocation || "未设置")} · ${esc(gateLabel(style.currentGate))}</p>
-          </div>
+        <article class="calendar-card calendar-risk-card ${esc(entry.tone)}">
+          <button class="calendar-card-open" type="button" data-calendar-open-style="${esc(entry.style.id)}">
+            <div class="date-block"><span>${esc(entry.dateKey.slice(0, 4))}</span><strong>${esc(entry.dateKey.slice(5))}</strong></div>
+            <div class="calendar-card-main">
+              <div class="calendar-card-title">
+                <h3>${esc(entry.style.brand)} ${esc(entry.style.styleNo)} / ${esc(entry.style.styleName)}</h3>
+                <span class="calendar-risk-tag ${esc(entry.tone)}">${esc(entry.riskLabel)}</span>
+              </div>
+              <p>${esc(sampleStageLabel(entry.style.samplePhase))}｜${esc(gateLabel(entry.style.currentGate))}｜${esc(entry.location)}</p>
+              <dl class="calendar-card-meta">
+                <div><dt>当前状态</dt><dd>${esc(entry.pipeline.label)}</dd></div>
+                <div><dt>当前责任人</dt><dd>${esc(entry.owner)}</dd></div>
+                <div><dt>下一步</dt><dd>${esc(entry.nextAction)}</dd></div>
+              </dl>
+            </div>
+          </button>
         </article>
       `;
     }).join("") : '<div class="empty">当前筛选下暂无日历数据。</div>';
-    renderMonthCalendar(styles);
+    renderMonthCalendar(entries);
+    updateStatus();
   }
 
   function monthDateKey(date) {
@@ -1600,11 +1788,10 @@
     return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   }
 
-  function renderMonthCalendar(styles) {
-    const events = styles.map((style) => {
-      const sample = state.data?.samples?.find((item) => item.styleId === style.id);
-      const date = parseCalendarDate(style.plannedShipDate || sample?.plannedShipDate);
-      return date ? { style, sample, date, key: monthDateKey(date) } : null;
+  function renderMonthCalendar(entries) {
+    const events = entries.map((entry) => {
+      const date = parseCalendarDate(entry.dateKey);
+      return date ? { ...entry, date, key: monthDateKey(date) } : null;
     }).filter(Boolean);
 
     const anchor = events[0]?.date || new Date();
@@ -1620,6 +1807,8 @@
       eventMap.set(event.key, [...(eventMap.get(event.key) || []), event]);
     });
 
+    $("#month-calendar-section")?.classList.toggle("is-open", state.calendarMonthOpen);
+    $("#calendar-month-toggle").textContent = state.calendarMonthOpen ? "收起月历" : "查看月历";
     $("#calendar-month-title").textContent = `${year} 年 ${month + 1} 月`;
     $("#calendar-month-count").textContent = `${events.length} 个节点`;
 
@@ -1629,20 +1818,22 @@
       day.setDate(gridStart.getDate() + index);
       const key = monthDateKey(day);
       const dayEvents = eventMap.get(key) || [];
+      const isOverdue = dayEvents.some((event) => event.daysUntil < 0 && event.shipment.release !== "ready_to_send");
       const classes = [
         "month-day",
         day.getMonth() !== month ? "is-other-month" : "",
         key === todayKey ? "is-today" : "",
-        dayEvents.length ? "has-events" : ""
+        dayEvents.length ? "has-events" : "",
+        isOverdue ? "is-overdue" : ""
       ].filter(Boolean).join(" ");
       cells.push(`
         <div class="${classes}">
-          <div class="month-day-number">${day.getDate()}</div>
-          ${dayEvents.map(({ style, sample }) => `
-            <div class="calendar-event">
-              <strong>${esc(style.brand)} ${esc(style.styleNo)}</strong>
-              <small>${esc(style.styleName)} · ${esc(sample?.location || style.sampleLocation || "未设置")}</small>
-            </div>
+          <button class="month-day-number" type="button" ${dayEvents[0] ? `data-calendar-open-style="${esc(dayEvents[0].style.id)}"` : ""}>${day.getDate()}</button>
+          ${dayEvents.map((event) => `
+            <button class="calendar-event ${esc(event.tone)}" type="button" data-calendar-open-style="${esc(event.style.id)}">
+              <strong>${esc(event.style.brand)} ${esc(event.style.styleNo)}</strong>
+              <small>${esc(sampleStageLabel(event.style.samplePhase))} · ${esc(event.riskLabel)}</small>
+            </button>
           `).join("")}
         </div>
       `);
@@ -2953,6 +3144,13 @@
         switchView("review");
       }
 
+      const calendarOpen = event.target.closest("[data-calendar-open-style]");
+      if (calendarOpen) {
+        state.selectedStyleId = calendarOpen.dataset.calendarOpenStyle;
+        renderAll();
+        switchView("review");
+      }
+
       const deleteStyleButton = event.target.closest("[data-delete-style]");
       if (deleteStyleButton) deleteStyle(deleteStyleButton.dataset.deleteStyle);
 
@@ -3164,10 +3362,43 @@
       state.calendarStageFilter = event.currentTarget.value;
       renderCalendar();
     });
+    $("#calendar-location-filter").addEventListener("change", (event) => {
+      state.calendarLocationFilter = event.currentTarget.value;
+      renderCalendar();
+    });
+    $("#calendar-route-filter").addEventListener("change", (event) => {
+      state.calendarRouteFilter = event.currentTarget.value;
+      renderCalendar();
+    });
+    $("#calendar-week-only").addEventListener("change", (event) => {
+      state.calendarWeekOnly = event.currentTarget.checked;
+      renderCalendar();
+    });
+    $("#calendar-risk-only").addEventListener("change", (event) => {
+      state.calendarRiskOnly = event.currentTarget.checked;
+      renderCalendar();
+    });
+    $("#calendar-mine-only").addEventListener("change", (event) => {
+      state.calendarMineOnly = event.currentTarget.checked;
+      renderCalendar();
+    });
+    $("#calendar-filter-toggle").addEventListener("click", () => {
+      state.calendarFiltersOpen = !state.calendarFiltersOpen;
+      renderCalendar();
+    });
+    $("#calendar-month-toggle").addEventListener("click", () => {
+      state.calendarMonthOpen = !state.calendarMonthOpen;
+      renderCalendar();
+    });
     $("#calendar-filter-clear").addEventListener("click", () => {
       state.calendarBrandFilter = "";
       state.calendarSeasonFilter = "";
       state.calendarStageFilter = "";
+      state.calendarLocationFilter = "";
+      state.calendarRouteFilter = "";
+      state.calendarWeekOnly = false;
+      state.calendarRiskOnly = false;
+      state.calendarMineOnly = false;
       renderCalendar();
     });
     $("#lightbox-close").addEventListener("click", closeMediaLightbox);
