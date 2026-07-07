@@ -282,6 +282,7 @@ async function ensureStyleProfileAudit(supabase, orgId, style, sample, review, b
       processOwner: textOrNull(body.processOwner),
       qcOwner: textOrNull(body.qcOwner),
       bondingOwner: textOrNull(body.bondingOwner),
+      roleOwners: body.roleOwners && typeof body.roleOwners === "object" ? body.roleOwners : {},
     },
     styleId: style.id,
     sampleId: sample.id,

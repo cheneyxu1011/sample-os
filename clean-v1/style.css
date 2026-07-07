@@ -1060,6 +1060,15 @@ textarea:focus {
   gap: 12px;
 }
 
+.basic-info-grid,
+.owner-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
 .modal-grid label {
   display: grid;
   gap: 6px;
@@ -1093,6 +1102,35 @@ textarea:focus {
 .modal-section p {
   margin: -6px 0 12px;
   color: var(--muted);
+}
+
+.owner-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.owner-section-head h3 {
+  margin-bottom: 6px;
+}
+
+.owner-section-head p {
+  margin: 0;
+}
+
+.owner-section-head .secondary-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.optional-owner-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 
 .wide-field {
@@ -2045,6 +2083,15 @@ textarea:focus {
 
   .modal-grid {
     grid-template-columns: 1fr;
+  }
+
+  .basic-info-grid,
+  .owner-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-section-head {
+    display: grid;
   }
 
   .cover-upload {

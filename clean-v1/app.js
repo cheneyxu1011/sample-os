@@ -169,6 +169,18 @@
     bondingOwner: ["bonding_owner"]
   };
 
+  const legacyOwnerFieldByRole = {
+    business_pm: "businessOwner",
+    sample_keeper: "sampleOwner",
+    sample_feedback_owner: "sampleOwner",
+    sample_review_gate_owner: "gateOwner",
+    final_approver: "finalApprover",
+    pattern_reviewer: "patternOwner",
+    process_reviewer: "processOwner",
+    quality_reviewer: "qcOwner",
+    bonding_owner: "bondingOwner"
+  };
+
 
   function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
@@ -244,6 +256,10 @@
 
   function roleById(roleId) {
     return activeRoleTemplates().find((role) => role.id === roleId) || roleTemplates.find((role) => role.id === roleId);
+  }
+
+  function isDefaultReviewRole(role) {
+    return String(role?.reviewDefault || "").trim() === "是";
   }
 
   function hasConfiguredRoleTemplates() {
@@ -322,7 +338,14 @@
   }
 
   function selectedValuesFromForm(form) {
-    return Object.fromEntries(Object.keys(ownerRoleMap).map((name) => [name, form.elements[name]?.value || ""]));
+    const roleOwners = {};
+    $$("[data-role-owner-select]").forEach((select) => {
+      if (select.value) roleOwners[select.dataset.roleId] = select.value;
+    });
+    return {
+      roleOwners,
+      ...Object.fromEntries(Object.keys(ownerRoleMap).map((name) => [name, form.elements[name]?.value || ""]))
+    };
   }
 
   function populateOwnerSelects(values = {}) {
@@ -330,18 +353,74 @@
     if (!form) return;
     const brand = form.elements.brand?.value || "";
     const route = form.elements.route?.value || "normal";
-    $$("[data-owner-role]").forEach((select) => {
-      const name = select.name;
-      const roleIds = String(select.dataset.ownerRole || "").split(/\s+/).filter(Boolean);
-      const emptyLabel = select.dataset.emptyLabel || "可选";
-      const current = values[name] ?? select.value ?? "";
-      const users = ownerOptionsForRoles(roleIds, brand, route);
-      select.innerHTML = `<option value="">${esc(emptyLabel)}</option>${users.map((user) => `<option value="${esc(user.name)}">${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("")}`;
-      if (current && !users.some((user) => user.name === current)) {
-        select.insertAdjacentHTML("beforeend", `<option value="${esc(current)}">${esc(current)} / 已保存</option>`);
-      }
-      select.value = current || (name === "finalApprover" && users.some((user) => user.name === "杨总") ? "杨总" : "");
+    const defaults = activeRoleTemplates().filter(isDefaultReviewRole);
+    const optional = activeRoleTemplates().filter((role) => !isDefaultReviewRole(role));
+    const roleOwners = values.roleOwners || {};
+    const selectedForRole = (role, users, autoDefault) => {
+      const legacyName = legacyOwnerFieldByRole[role.id];
+      const current = roleOwners[role.id] || values[legacyName] || "";
+      if (current) return current;
+      return autoDefault ? users[0]?.name || "" : "";
+    };
+    const roleField = (role, autoDefault) => {
+      const users = ownerOptionsForRoles([role.id], brand, route);
+      const current = selectedForRole(role, users, autoDefault);
+      const options = users.map((user) => `<option value="${esc(user.name)}">${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("");
+      const saved = current && !users.some((user) => user.name === current) ? `<option value="${esc(current)}">${esc(current)} / 已保存</option>` : "";
+      return `
+        <label>${esc(roleShortName(role))}
+          <select name="roleOwner_${esc(role.id)}" data-role-owner-select data-role-id="${esc(role.id)}" data-legacy-owner="${esc(legacyOwnerFieldByRole[role.id] || "")}">
+            <option value="">${autoDefault ? "未指定" : "按需添加"}</option>
+            ${options}
+            ${saved}
+          </select>
+        </label>
+      `;
+    };
+    $("#default-owner-grid").innerHTML = defaults.map((role) => roleField(role, true)).join("");
+    $("#optional-owner-grid").innerHTML = optional.map((role) => roleField(role, false)).join("");
+    $$("[data-role-owner-select]").forEach((select) => {
+      const role = roleById(select.dataset.roleId);
+      const users = ownerOptionsForRoles([select.dataset.roleId], brand, route);
+      select.value = selectedForRole(role, users, isDefaultReviewRole(role));
     });
+    const hasOptionalValue = optional.some((role) => {
+      const legacyName = legacyOwnerFieldByRole[role.id];
+      return Boolean(roleOwners[role.id] || values[legacyName]);
+    });
+    setOptionalOwnerPanelVisible(hasOptionalValue);
+  }
+
+  function setOptionalOwnerPanelVisible(visible) {
+    const panel = $("#optional-owner-panel");
+    const button = $("#toggle-optional-owners");
+    if (!panel || !button) return;
+    panel.hidden = !visible;
+    button.textContent = visible ? "收起按需参与" : "添加按需参与";
+    button.setAttribute("aria-expanded", String(visible));
+  }
+
+  function roleOwnersFromForm() {
+    const roleOwners = {};
+    $$("[data-role-owner-select]").forEach((select) => {
+      const roleId = select.dataset.roleId;
+      if (roleId && select.value) roleOwners[roleId] = select.value;
+    });
+    return roleOwners;
+  }
+
+  function legacyOwnersFromRoleOwners(roleOwners) {
+    const pick = (...roleIds) => roleIds.map((roleId) => roleOwners[roleId]).find(Boolean) || "";
+    return {
+      businessOwner: pick("business_pm"),
+      sampleOwner: pick("sample_keeper", "sample_feedback_owner"),
+      gateOwner: pick("sample_review_gate_owner"),
+      finalApprover: pick("final_approver") || "杨总",
+      patternOwner: pick("pattern_reviewer"),
+      processOwner: pick("process_reviewer"),
+      qcOwner: pick("quality_reviewer"),
+      bondingOwner: pick("bonding_owner")
+    };
   }
 
   function currentStyle() {
@@ -491,6 +570,8 @@
     if (bracket) return bracket[1];
     const colon = label.match(/^([a-z_]+):/i);
     if (colon) return colon[1];
+    if (/^(款式主图|款式图|样衣正面图)(\s|·|$)/.test(label)) return "style_cover";
+    if (/^正面(\s|·|$)/.test(label)) return "front";
     return item?.mediaCategory || item?.fileCategory || "";
   }
 
@@ -501,7 +582,8 @@
 
   function isStyleCoverMedia(item) {
     const category = categoryFromLabel(item);
-    return ["style_cover", "front"].includes(category) || item?.label === "款式图";
+    const label = String(item?.label || "");
+    return ["style_cover", "front"].includes(category) || /^(款式主图|款式图|样衣正面图)(\s|·|$)/.test(label);
   }
 
   function findStyleCover(sample) {
@@ -509,7 +591,7 @@
   }
 
   function uploadLabel(category, file) {
-    return `${fileCategoryLabels[category] || "评审资料"} · ${file.name}`;
+    return `[${category}] ${fileCategoryLabels[category] || "评审资料"} · ${file.name}`;
   }
 
   function routeStatus(style) {
@@ -1432,6 +1514,8 @@
 
   function stylePayloadFromForm(form) {
     const fields = new FormData(form);
+    const roleOwners = roleOwnersFromForm();
+    const legacyOwners = legacyOwnersFromRoleOwners(roleOwners);
     return {
       styleNo: String(fields.get("styleNo") || "").trim(),
       brand: String(fields.get("brand") || "").trim(),
@@ -1445,14 +1529,8 @@
       customerDeadline: String(fields.get("customerDeadline") || ""),
       orderMeetingDate: String(fields.get("orderMeetingDate") || ""),
       reviewObjective: String(fields.get("reviewObjective") || "").trim(),
-      businessOwner: String(fields.get("businessOwner") || "").trim(),
-      sampleOwner: String(fields.get("sampleOwner") || "").trim(),
-      gateOwner: String(fields.get("gateOwner") || "").trim(),
-      finalApprover: String(fields.get("finalApprover") || "").trim(),
-      patternOwner: String(fields.get("patternOwner") || "").trim(),
-      processOwner: String(fields.get("processOwner") || "").trim(),
-      qcOwner: String(fields.get("qcOwner") || "").trim(),
-      bondingOwner: String(fields.get("bondingOwner") || "").trim(),
+      roleOwners,
+      ...legacyOwners,
       versionName: String(fields.get("samplePhase") || "first_sample"),
       quantity: 1,
       highRisk: false
@@ -1810,6 +1888,10 @@
     const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
     const review = state.data?.reviews?.find((item) => item.styleId === style?.id || item.sampleId === sample?.id);
     const owners = style?.owners || style?.profile?.owners || {};
+    const roleOwners = {
+      ...(owners.roleOwners || {}),
+      ...(style?.profile?.owners?.roleOwners || {})
+    };
     const values = {
       styleNo: style?.styleNo || "",
       styleName: style?.styleName || "",
@@ -1830,7 +1912,8 @@
       patternOwner: owners.patternOwner || "",
       processOwner: owners.processOwner || "",
       qcOwner: owners.qcOwner || "",
-      bondingOwner: owners.bondingOwner || ""
+      bondingOwner: owners.bondingOwner || "",
+      roleOwners
     };
     populateBrandSelect(values.brand);
     populateLocationSelect(values.sampleLocation);
@@ -2017,6 +2100,9 @@
     });
     $("#style-form").brand.addEventListener("input", () => populateOwnerSelects(selectedValuesFromForm($("#style-form"))));
     $("#style-form").route.addEventListener("change", () => populateOwnerSelects(selectedValuesFromForm($("#style-form"))));
+    $("#toggle-optional-owners").addEventListener("click", () => {
+      setOptionalOwnerPanelVisible($("#optional-owner-panel").hidden);
+    });
     $("#style-form").addEventListener("submit", (event) => {
       event.preventDefault();
       createStyleFromForm(event.currentTarget);

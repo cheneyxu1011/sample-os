@@ -502,6 +502,7 @@ async function updateStyleInfo(supabase, orgId, body) {
       processOwner: textOrNull(body.processOwner),
       qcOwner: textOrNull(body.qcOwner),
       bondingOwner: textOrNull(body.bondingOwner),
+      roleOwners: body.roleOwners && typeof body.roleOwners === "object" ? body.roleOwners : {},
     },
     styleId,
     sampleId,

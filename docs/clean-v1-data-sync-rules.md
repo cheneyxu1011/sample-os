@@ -274,6 +274,21 @@ Every upload creates a new object key. For replacement behavior, add metadata fi
 
 Until those fields exist, deleting media should remove or hide only the Supabase metadata row. S3 hard-delete should be an admin cleanup task.
 
+Style cover uploads must be globally recognizable across the style form, review header, review media list, and pipeline cards.
+
+- New uploads should label style cover files with the `style_cover` category.
+- The UI and snapshot API must also recognize older Chinese labels such as `款式主图`, `款式图`, and `样衣正面图` as style cover media.
+- Review media and style cover media share the same `sample_media` source, but the cover slot must filter by category instead of taking any random uploaded image.
+
+## Role Owner Rules
+
+New and edit style forms must read owners from the shared role template configuration.
+
+- Default review roles are shown directly as owner selects.
+- Optional/on-demand roles stay collapsed until the user expands them.
+- Owner selections are saved as `roleOwners` and mirrored to legacy owner fields such as `businessOwner`, `gateOwner`, `qcOwner`, and `bondingOwner` for compatibility.
+- Any future owner-related feature must verify the pipeline card, review header, department cards, settings role templates, and refresh-after-save path all read the same owner data.
+
 ## Security Rules
 
 Frontend code must never contain:

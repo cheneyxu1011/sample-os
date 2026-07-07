@@ -34,6 +34,8 @@ function parseMediaCategory(label) {
   if (bracket) return bracket[1];
   const colon = text.match(/^([a-z_]+):/i);
   if (colon) return colon[1];
+  if (/^(款式主图|款式图|样衣正面图)(\s|·|$)/.test(text)) return "style_cover";
+  if (/^正面(\s|·|$)/.test(text)) return "front";
   return "";
 }
 
