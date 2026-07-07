@@ -38,7 +38,10 @@
           <div class="top-actions">
             <button class="primary-button" type="button" id="new-style-button">新建款式</button>
             <button class="secondary-button" type="button" id="reload-data">刷新数据</button>
-            <div class="status-pill" id="blocking-pill">读取中</div>
+            <div class="status-stack" aria-live="polite">
+              <div class="status-pill" id="risk-pill">风险：读取中</div>
+              <div class="status-pill" id="release-pill">放行：读取中</div>
+            </div>
           </div>
         </header>
 
@@ -113,6 +116,21 @@
             </form>
             <div id="issue-list" class="issue-list"></div>
           </section>
+
+          <section class="panel final-approval-panel">
+            <div class="panel-head">
+              <div>
+                <h2>最终放行</h2>
+                <p>系统会先检查资料、部门评审、阻塞 Issue 和逾期风险。</p>
+              </div>
+            </div>
+            <div id="review-summary-box" class="review-summary-box"></div>
+            <div class="final-actions">
+              <button class="primary-button" type="button" id="final-approve">最终审批：可寄样</button>
+              <button class="secondary-button" type="button" id="final-hold">暂缓寄样</button>
+            </div>
+            <div class="upload-status" id="final-approval-status" role="status"></div>
+          </section>
         </section>
 
         <section class="view" id="calendar-view" data-title="样衣日历">
@@ -157,10 +175,10 @@
             <section class="panel wide">
               <h2>数据同步规则</h2>
               <ol class="sync-rules">
-                <li>页面加载和关键写入后重新拉取 /api/sampleos/snapshot。</li>
+                <li>页面加载和关键写入后重新拉取 /api/sampleos/snapshot-p0。</li>
                 <li>评审、Issue、位置和放行状态只通过 /api/sampleos/sync 写入。</li>
                 <li>媒体文件上传 S3，Supabase 只保存 sample_media 元数据。</li>
-                <li>重大和严重未关闭 Issue 默认阻止寄样。</li>
+                <li>寄样放行状态由逾期、负责人、资料、部门评审、阻塞 Issue、最终审批共同计算。</li>
               </ol>
             </section>
           </div>
@@ -180,39 +198,86 @@
       <form class="modal-card" id="style-form">
         <div class="modal-head">
           <div>
-            <span>开发入口</span>
-            <h2>新建款式</h2>
+            <span>开发入口 / 款式资料初始化</span>
+            <h2>新建样衣评审款式</h2>
+            <p>请先录入款式基础信息和开发资料</p>
           </div>
           <button class="modal-close" type="button" id="style-modal-close" aria-label="关闭">×</button>
         </div>
-        <div class="modal-grid">
-          <label>款号<input name="styleNo" required /></label>
-          <label>品牌<input name="brand" required value="萨洛蒙" /></label>
-          <label>款式名称<input name="styleName" required /></label>
-          <label>季节<input name="season" value="SS27" /></label>
-          <label>路线
-            <select name="route">
-              <option value="normal">普通款式</option>
-              <option value="bonding_xinchangjiang">压胶路线</option>
-              <option value="outsourced">外发款式</option>
-              <option value="rudong_factory">如东工厂款式</option>
-            </select>
-          </label>
-          <label>样品阶段
-            <select name="samplePhase">
-              <option value="first_sample">一次样</option>
-              <option value="second_sample">二次样</option>
-              <option value="third_sample">三次样</option>
-              <option value="sms">SMS / 销售样</option>
-              <option value="pp">PP / 产前样</option>
-            </select>
-          </label>
-          <label>样衣位置<input name="sampleLocation" value="样衣间" /></label>
-          <label>预计寄样日期<input name="plannedShipDate" type="date" /></label>
+        <div class="style-create-layout">
+          <section class="modal-section">
+            <h3>基础信息</h3>
+            <div class="modal-grid">
+              <label>款号<input name="styleNo" data-required-message="请输入款号" required /><small data-field-error="styleNo"></small></label>
+              <label>款式名称<input name="styleName" data-required-message="请输入款式名称" required /><small data-field-error="styleName"></small></label>
+              <label>品牌<input name="brand" data-required-message="请输入品牌" required value="萨洛蒙" /><small data-field-error="brand"></small></label>
+              <label>季节<input name="season" data-required-message="请输入季节" required value="SS27" /><small data-field-error="season"></small></label>
+              <label>客户<input name="customer" placeholder="可选" /></label>
+              <label>路线
+                <select name="route">
+                  <option value="normal">普通款式</option>
+                  <option value="important">重点款式</option>
+                  <option value="risk">风险款式</option>
+                  <option value="quick_response">快反款式</option>
+                </select>
+              </label>
+              <label>样品阶段
+                <select name="samplePhase" required data-required-message="请选择样品阶段">
+                  <option value="first_sample">一次样</option>
+                  <option value="second_sample" selected>二次样</option>
+                  <option value="sms_sample">SMS 样</option>
+                  <option value="pps_sample">PPS 样</option>
+                  <option value="top_sample">TOP 样</option>
+                </select>
+                <small data-field-error="samplePhase"></small>
+              </label>
+              <label>样衣位置<input name="sampleLocation" value="样衣间" /></label>
+              <label>预计寄样日期<input name="plannedShipDate" type="date" /></label>
+              <label>客户交期<input name="customerDeadline" type="date" /></label>
+              <label class="wide-field">意见来源<input name="customerCommentSource" placeholder="客户二次样反馈 / 内部预审 / 品质复盘" /></label>
+              <label class="wide-field">本轮评审目标<textarea name="reviewObjective" rows="2">确认质量与工艺问题责任人，判断是否可寄样</textarea></label>
+            </div>
+          </section>
+
+          <section class="modal-section">
+            <h3>责任人</h3>
+            <div class="modal-grid owner-grid">
+              <label>业务负责人<input name="businessOwner" placeholder="可选" /></label>
+              <label>样衣负责人<input name="sampleOwner" placeholder="可选" /></label>
+              <label>Gate Owner<input name="gateOwner" placeholder="未指定" /></label>
+              <label>Final Approver<input name="finalApprover" value="杨总" /></label>
+              <label>版型负责人<input name="patternOwner" placeholder="可选" /></label>
+              <label>工艺负责人<input name="processOwner" placeholder="可选" /></label>
+              <label>品质负责人<input name="qcOwner" placeholder="可选" /></label>
+              <label>压胶负责人<input name="bondingOwner" placeholder="可选" /></label>
+            </div>
+          </section>
+
+          <section class="modal-section material-section">
+            <div>
+              <h3>款式资料</h3>
+              <p>先创建 style record，再上传资料到 S3 并绑定 style_id。</p>
+            </div>
+            <div class="material-grid">
+              <label class="material-upload cover-upload">
+                <input type="file" accept="image/*" data-style-init-file="style_cover" />
+                <span>款式主图</span>
+                <small>建议样衣正面图</small>
+                <div id="style-cover-preview" class="style-cover-preview">暂无主图</div>
+              </label>
+              <label class="material-upload"><input type="file" accept="image/*,.pdf,.xls,.xlsx,.doc,.docx" data-style-init-file="customer_reference" multiple /><span>客户原始资料</span><small>图片 / PDF / Excel / Word</small></label>
+              <label class="material-upload"><input type="file" accept=".pdf,.xls,.xlsx,.csv,image/*" data-style-init-file="measurement_table" multiple /><span>尺寸表</span><small>PDF / Excel / 图片</small></label>
+              <label class="material-upload"><input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" data-style-init-file="tech_pack" multiple /><span>工艺单</span><small>技术资料</small></label>
+              <label class="material-upload"><input type="file" accept=".pdf,.xls,.xlsx,.csv,image/*" data-style-init-file="bom" multiple /><span>BOM / 物料表</span><small>面辅料清单</small></label>
+              <label class="material-upload"><input type="file" accept="image/*,.pdf,.doc,.docx" data-style-init-file="customer_comments" multiple /><span>客户修改意见</span><small>反馈截图或文档</small></label>
+              <label class="material-upload"><input type="file" data-style-init-file="other" multiple /><span>其他附件</span><small>补充资料</small></label>
+            </div>
+            <div class="upload-status" id="style-create-status" role="status"></div>
+          </section>
         </div>
         <div class="modal-actions">
           <button class="secondary-button" type="button" id="style-modal-cancel">取消</button>
-          <button class="primary-button" type="submit">保存到 Supabase</button>
+          <button class="primary-button" type="submit" id="style-create-submit">创建款式</button>
         </div>
       </form>
     </div>

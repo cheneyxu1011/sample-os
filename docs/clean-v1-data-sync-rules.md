@@ -77,7 +77,15 @@ New style creation must:
 - create or backfill `styles`, `samples`, `reviews`
 - create or backfill default department review rows
 - create or backfill preparation checklist audit data
+- capture customer deadline, comment source, review objective, and text owner fallback data in `audit_events.action = style_profile` until dedicated columns exist
 - never create a `LOCAL` style in the real workflow
+
+The create dialog is a style development initialization entry, not a database form. It must use现场文案:
+
+- title: `新建样衣评审款式`
+- primary button: `创建款式`
+- progress: `正在创建款式...`
+- success toast: `款式创建成功，已进入评审页面`
 
 Uploads must require real Supabase IDs:
 
@@ -103,6 +111,29 @@ Style deletion must use `delete-style-fast` so related samples, reviews, issues,
 
 Supabase must never store photo or video binary content.
 
+## Style Cover And File Categories
+
+Style cover media and review media must remain separate.
+
+- Header cover image reads only category `style_cover` or legacy label `款式图`.
+- Review media excludes style cover files.
+- If no style cover exists, the header shows `请上传样衣正面图`.
+- New uploads pass file category to S3 metadata.
+- Until Supabase has dedicated `file_category` and `media_category` columns, Clean V1 writes category prefixes into `sample_media.label`, for example `[style_cover] 款式主图`.
+
+Recommended SQL migration when the schema is ready:
+
+```sql
+alter table sample_media
+  add column if not exists file_category text,
+  add column if not exists media_category text,
+  add column if not exists is_active boolean not null default true,
+  add column if not exists replaced_by uuid null references sample_media(id);
+
+create index if not exists sample_media_style_category_idx
+  on sample_media (org_id, style_id, file_category, media_category, is_active);
+```
+
 ## ID Rules
 
 Supabase UUIDs are canonical IDs.
@@ -123,6 +154,39 @@ Frontend code should prefer UUIDs from snapshot responses. External refs are pas
 - `critical`: blocks shipment and requires rework verification.
 
 The frontend can display blocking state, but backend data must remain authoritative through `issues.shipment_blocking` and issue status.
+
+## Shipment Release Rules
+
+The UI must not show `可寄样` only because there are no blocking issues.
+
+Clean V1 computes two visible states:
+
+- current risk state
+- shipment release state
+
+Release state values:
+
+- `ready_to_send`
+- `pending_final_approval`
+- `blocked_by_issue`
+- `blocked_by_department_review`
+- `blocked_by_owner_missing`
+- `blocked_by_preparation`
+- `overdue_pending_confirm`
+
+If `planned_ship_date` is earlier than today and `final_decision` is not `approve_to_send`, release state must be `overdue_pending_confirm`.
+
+The automatic next step order is:
+
+1. save style basic info
+2. assign Gate Owner
+3. assign Final Approver
+4. complete preparation materials
+5. complete all required department reviews
+6. rework and verify blocking issues
+7. verify previous round changes
+8. final approval
+9. generate shipment record and notify business owner
 
 ## Media Replacement Rules
 

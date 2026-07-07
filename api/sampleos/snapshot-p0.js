@@ -28,6 +28,15 @@ function parseIssueEvidenceNote(note) {
   return meta;
 }
 
+function parseMediaCategory(label) {
+  const text = String(label || "");
+  const bracket = text.match(/^\[([a-z_]+)\]\s*/i);
+  if (bracket) return bracket[1];
+  const colon = text.match(/^([a-z_]+):/i);
+  if (colon) return colon[1];
+  return "";
+}
+
 async function mediaAccessUrl(s3, item) {
   if (!s3 || !item.s3_bucket || !item.s3_object_key) return null;
   const command = new GetObjectCommand({
@@ -67,7 +76,7 @@ export default async function handler(req, res) {
       supabase.from("sample_people").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_workers").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_settings").select("*").eq("org_id", org.id),
-      supabase.from("audit_events").select("*").eq("org_id", org.id).eq("entity_type", "style").in("action", ["sample_variants", "preparation_checklist"]).order("created_at", { ascending: true }),
+      supabase.from("audit_events").select("*").eq("org_id", org.id).eq("entity_type", "style").in("action", ["sample_variants", "preparation_checklist", "style_profile"]).order("created_at", { ascending: true }),
     ]);
 
     const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult, auditEventsResult];
@@ -95,12 +104,14 @@ export default async function handler(req, res) {
     const reviewIssueMap = new Map();
     const variantAuditMap = new Map();
     const preparationChecklistMap = new Map();
+    const styleProfileMap = new Map();
     const s3 = process.env.AWS_REGION ? new S3Client({ region: process.env.AWS_REGION }) : null;
 
     auditEvents.forEach((event) => {
       if (!event.entity_id) return;
       if (event.action === "sample_variants") variantAuditMap.set(event.entity_id, event.detail || {});
       if (event.action === "preparation_checklist") preparationChecklistMap.set(event.entity_id, event.detail || {});
+      if (event.action === "style_profile") styleProfileMap.set(event.entity_id, event.detail || {});
     });
     issues.forEach((issue) => {
       if (!issue.review_id) return;
@@ -109,16 +120,21 @@ export default async function handler(req, res) {
 
     const samplePayload = await Promise.all(samples.map(async (sample) => {
       const review = sampleReviewMap.get(sample.id);
-      const mediaList = await Promise.all(media.filter((item) => item.sample_id === sample.id).map(async (item) => ({
-        id: item.id,
-        label: item.label || "已上传文件",
-        fileName: item.s3_object_key?.split("/").pop() || item.label || "已上传文件",
-        mediaKind: item.media_kind,
-        mimeType: item.mime_type,
-        byteSize: item.byte_size,
-        uploadedAt: cleanDateTime(item.created_at),
-        url: await mediaAccessUrl(s3, item),
-      })));
+      const mediaList = await Promise.all(media.filter((item) => item.sample_id === sample.id).map(async (item) => {
+        const category = parseMediaCategory(item.label);
+        return {
+          id: item.id,
+          label: item.label || "已上传文件",
+          fileName: item.s3_object_key?.split("/").pop() || item.label || "已上传文件",
+          fileCategory: category || null,
+          mediaCategory: category || null,
+          mediaKind: item.media_kind,
+          mimeType: item.mime_type,
+          byteSize: item.byte_size,
+          uploadedAt: cleanDateTime(item.created_at),
+          url: await mediaAccessUrl(s3, item),
+        };
+      }));
       return {
         id: sample.id,
         externalRef: sample.external_ref,
@@ -144,13 +160,22 @@ export default async function handler(req, res) {
       source: { kind: "supabase", orgId: org.id, orgName: org.name, singleStyleMode: false, loadedAt: new Date().toISOString() },
       settings: settingsMap,
       gateRules: settingsMap.gateRules || undefined,
-      styleList: styles.map((style) => ({
+      styleList: styles.map((style) => {
+        const profile = styleProfileMap.get(style.id) || {};
+        const owners = profile.owners || {};
+        return ({
         id: style.id,
         externalRef: style.external_ref,
         styleNo: style.style_no,
         brand: style.brand,
         season: style.season || "",
         styleName: style.style_name,
+        customer: profile.customer || "",
+        customerDeadline: profile.customerDeadline || "",
+        customerCommentSource: profile.customerCommentSource || "",
+        reviewObjective: profile.reviewObjective || "",
+        owners,
+        profile,
         category: style.category || "",
         route: style.route || "normal",
         currentGate: style.current_gate || "business_input",
@@ -166,7 +191,8 @@ export default async function handler(req, res) {
         sampleVariants: Array.isArray(style.sample_variants) && style.sample_variants.length ? style.sample_variants : (variantAuditMap.get(style.id)?.sampleVariants || []),
         quantity: Number(style.quantity || variantAuditMap.get(style.id)?.quantity || 1),
         preparationChecklist: preparationChecklistMap.get(style.id)?.items || [],
-      })),
+      });
+      }),
       samples: samplePayload,
       reviews: reviews.map((review) => ({
         id: review.id,

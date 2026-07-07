@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const ALLOWED_MEDIA_KINDS = new Set(["photo", "video", "document"]);
 
@@ -125,6 +126,20 @@ export default async function handler(req, res) {
     const resolvedReviewId = await resolveEntityId(supabase, "reviews", profile.org_id, reviewId, reviewExternalRef);
     const resolvedIssueId = await resolveEntityId(supabase, "issues", profile.org_id, issueId, issueExternalRef);
     if (!resolvedStyleId || !resolvedSampleId) return json(res, 400, { error: "Style or sample has not been seeded in Supabase yet" });
+
+    try {
+      const s3 = new S3Client({ region: s3Region });
+      await s3.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: s3ObjectKey }));
+    } catch (headError) {
+      console.error("S3 object verification failed before metadata insert", {
+        s3Bucket,
+        s3Region,
+        s3ObjectKey,
+        message: headError.message,
+        name: headError.name,
+      });
+      return json(res, 400, { error: "S3 upload verification failed", detail: headError.message });
+    }
 
     const { data, error } = await supabase
       .from("sample_media")

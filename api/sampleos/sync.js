@@ -180,11 +180,44 @@ async function updateSampleLocation(supabase, orgId, body) {
 }
 
 async function updateReviewDecision(supabase, orgId, body) {
-  const status = body.finalDecision === "hold_shipment" ? "rework_verification" : "shipment_decision";
+  const finalDecision = body.finalDecision || "none";
+  if (!body.reviewId) throw new Error("reviewId is required");
+
+  if (finalDecision === "approve_to_send") {
+    const { data: blockingIssues, error: issueError } = await supabase
+      .from("issues")
+      .select("id, title, level, status, shipment_blocking")
+      .eq("org_id", orgId)
+      .eq("review_id", body.reviewId)
+      .neq("status", "closed")
+      .or("shipment_blocking.eq.true,level.in.(major,critical)");
+    if (issueError) throw syncError("check blocking issues before final approval", issueError, { reviewId: body.reviewId });
+    if (blockingIssues?.length) {
+      const error = new Error(`Final Approval blocked: ${blockingIssues.length} blocking Issue 未关闭`);
+      error.stage = "final_approval_blocked_by_issue";
+      error.payload = { reviewId: body.reviewId, blockingIssues };
+      throw error;
+    }
+
+    const { data: departmentReviews, error: departmentError } = await supabase
+      .from("review_department_reviews")
+      .select("id, status")
+      .eq("org_id", orgId)
+      .eq("review_id", body.reviewId);
+    if (departmentError) throw syncError("check department reviews before final approval", departmentError, { reviewId: body.reviewId });
+    if (!departmentReviews?.length || departmentReviews.some((row) => row.status !== "pass")) {
+      const error = new Error("Final Approval blocked: 部门评审未全部通过");
+      error.stage = "final_approval_blocked_by_department_review";
+      error.payload = { reviewId: body.reviewId, departmentReviews };
+      throw error;
+    }
+  }
+
+  const status = finalDecision === "hold_shipment" ? "rework_verification" : finalDecision === "approve_to_send" ? "approved_to_send" : "shipment_decision";
   const { error } = await supabase
     .from("reviews")
     .update({
-      final_decision: body.finalDecision || "none",
+      final_decision: finalDecision,
       status,
       exception_reason: body.exceptionReason || null,
       exception_risk_note: body.exceptionRiskNote || null,
@@ -195,7 +228,19 @@ async function updateReviewDecision(supabase, orgId, body) {
     .eq("org_id", orgId)
     .eq("id", body.reviewId);
   if (error) throw error;
-  return { reviewId: body.reviewId, finalDecision: body.finalDecision || "none", status };
+
+  if (Array.isArray(body.reviewSummary) && body.reviewSummary.length) {
+    const { error: auditError } = await supabase.from("audit_events").insert({
+      org_id: orgId,
+      entity_type: "review",
+      entity_id: body.reviewId,
+      action: "review_summary",
+      detail: { finalDecision, summary: body.reviewSummary },
+    });
+    if (auditError) throw syncError("insert review summary audit", auditError, { reviewId: body.reviewId });
+  }
+
+  return { reviewId: body.reviewId, finalDecision, status };
 }
 
 async function updateIssueStatus(supabase, orgId, body) {

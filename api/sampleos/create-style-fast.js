@@ -26,6 +26,11 @@ function profileIdOrNull(value) {
   return isUuid(value) ? String(value) : null;
 }
 
+function textOrNull(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
 function externalRefFor(prefix, value) {
   const clean = String(value || "").trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "");
   return `${prefix}_${clean || Date.now()}`;
@@ -179,7 +184,7 @@ async function ensureDefaultDepartmentReviews(supabase, orgId, review, now) {
     { department: "打样部", role: "打样反馈人", focusTags: ["打样异常", "资料清晰", "制作困难"] },
   ];
 
-  for (const item of defaults) {
+  await Promise.all(defaults.map(async (item) => {
     const departmentId = await ensureDepartment(supabase, orgId, item.department);
     const { data: existing, error: existingError } = await supabase
       .from("review_department_reviews")
@@ -189,7 +194,7 @@ async function ensureDefaultDepartmentReviews(supabase, orgId, review, now) {
       .eq("department_id", departmentId)
       .maybeSingle();
     if (existingError) throw syncError("check default department review", existingError, { reviewId: review.id, department: item.department });
-    if (existing?.id) continue;
+    if (existing?.id) return;
 
     const { error } = await supabase.from("review_department_reviews").insert({
       org_id: orgId,
@@ -203,7 +208,7 @@ async function ensureDefaultDepartmentReviews(supabase, orgId, review, now) {
       created_at: now,
     });
     if (error) throw syncError("insert default department review", error, { reviewId: review.id, department: item.department });
-  }
+  }));
 }
 
 async function ensurePreparationChecklist(supabase, orgId, style, body) {
@@ -262,6 +267,58 @@ async function ensureSampleVariantsAudit(supabase, orgId, style, body) {
   if (error) throw syncError("insert sample variants audit", error, { styleId: style.id, sampleVariants });
 }
 
+async function ensureStyleProfileAudit(supabase, orgId, style, sample, review, body) {
+  const detail = {
+    customer: textOrNull(body.customer),
+    customerDeadline: textOrNull(body.customerDeadline),
+    customerCommentSource: textOrNull(body.customerCommentSource),
+    reviewObjective: textOrNull(body.reviewObjective),
+    owners: {
+      businessOwner: textOrNull(body.businessOwner),
+      sampleOwner: textOrNull(body.sampleOwner),
+      gateOwner: textOrNull(body.gateOwner),
+      finalApprover: textOrNull(body.finalApprover) || "杨总",
+      patternOwner: textOrNull(body.patternOwner),
+      processOwner: textOrNull(body.processOwner),
+      qcOwner: textOrNull(body.qcOwner),
+      bondingOwner: textOrNull(body.bondingOwner),
+    },
+    styleId: style.id,
+    sampleId: sample.id,
+    reviewId: review.id,
+  };
+
+  const hasUsefulDetail = detail.customer || detail.customerDeadline || detail.customerCommentSource || detail.reviewObjective || Object.values(detail.owners).some(Boolean);
+  if (!hasUsefulDetail) return;
+
+  const { data: existing, error: existingError } = await supabase
+    .from("audit_events")
+    .select("id, detail")
+    .eq("org_id", orgId)
+    .eq("entity_type", "style")
+    .eq("entity_id", style.id)
+    .eq("action", "style_profile")
+    .maybeSingle();
+  if (existingError) throw syncError("check style profile audit", existingError, { styleId: style.id });
+
+  if (existing?.id) {
+    const mergedOwners = { ...(existing.detail?.owners || {}), ...detail.owners };
+    const mergedDetail = { ...(existing.detail || {}), ...detail, owners: mergedOwners };
+    const { error } = await supabase.from("audit_events").update({ detail: mergedDetail }).eq("id", existing.id);
+    if (error) throw syncError("update style profile audit", error, { styleId: style.id });
+    return;
+  }
+
+  const { error } = await supabase.from("audit_events").insert({
+    org_id: orgId,
+    entity_type: "style",
+    entity_id: style.id,
+    action: "style_profile",
+    detail,
+  });
+  if (error) throw syncError("insert style profile audit", error, { styleId: style.id });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -280,6 +337,7 @@ export default async function handler(req, res) {
     await ensureDefaultDepartmentReviews(supabase, org.id, review, now);
     await ensurePreparationChecklist(supabase, org.id, style, body);
     await ensureSampleVariantsAudit(supabase, org.id, style, body);
+    await ensureStyleProfileAudit(supabase, org.id, style, sample, review, body);
     return json(res, 200, {
       ok: true,
       result: {

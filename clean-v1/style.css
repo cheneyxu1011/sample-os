@@ -396,6 +396,52 @@ h3 {
   background: #fff6e5;
 }
 
+.system-id {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.status-strip span {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #eef3f6;
+  color: #49616d;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.status-strip span.green {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.status-strip span.amber {
+  background: #fff6e5;
+  color: #9a5a00;
+}
+
+.status-strip span.red {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr));
@@ -449,6 +495,12 @@ h3 {
 
 .danger-button:hover {
   background: var(--warn-bg);
+}
+
+.badge.pending,
+.status-pill.pending {
+  background: #fff6e5;
+  color: #9a5a00;
 }
 
 .primary-button:disabled {
@@ -692,7 +744,7 @@ textarea {
 }
 
 .modal-card {
-  width: min(760px, 96vw);
+  width: min(1080px, 96vw);
   max-height: 92vh;
   overflow: auto;
   border: 1px solid var(--line);
@@ -722,6 +774,11 @@ textarea {
   margin-bottom: 0;
 }
 
+.modal-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
 .modal-close {
   width: 34px;
   height: 34px;
@@ -743,6 +800,98 @@ textarea {
   gap: 6px;
   color: var(--muted);
   font-weight: 750;
+}
+
+.modal-grid label small {
+  min-height: 16px;
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.style-create-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.modal-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfd;
+}
+
+.modal-section h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.modal-section p {
+  margin: -6px 0 12px;
+  color: var(--muted);
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
+.wide-field textarea {
+  resize: vertical;
+}
+
+.material-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.material-upload {
+  border: 1px dashed #b7c9d3;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.material-upload:hover {
+  border-color: var(--accent);
+  background: #f5fbf9;
+}
+
+.material-upload input {
+  display: none;
+}
+
+.material-upload span {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.material-upload small {
+  color: var(--muted);
+}
+
+.cover-upload {
+  grid-row: span 2;
+}
+
+.style-cover-preview {
+  margin-top: 6px;
+  min-height: 160px;
+  border-radius: 8px;
+  background: #f4f7f8;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  overflow: hidden;
+}
+
+.style-cover-preview img {
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  object-fit: cover;
 }
 
 .modal-actions {
@@ -818,6 +967,34 @@ textarea {
   color: var(--muted);
   font-weight: 500;
   margin-top: 4px;
+}
+
+.issue-actions,
+.final-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.final-approval-panel {
+  margin-top: 16px;
+}
+
+.review-summary-box {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.review-summary-box p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.review-summary-box p + p {
+  margin-top: 6px;
 }
 
 .calendar-card {
@@ -1051,12 +1228,18 @@ textarea {
     width: 100%;
   }
 
+  .status-stack {
+    width: 100%;
+    justify-content: stretch;
+  }
+
   .review-grid,
   .settings-grid,
   .department-grid,
   .media-preview,
   .uploaded-media,
   .upload-actions,
+  .material-grid,
   .month-weekdays,
   .month-calendar-grid {
     grid-template-columns: 1fr;
@@ -1168,6 +1351,10 @@ textarea {
 
   .modal-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cover-upload {
+    grid-row: auto;
   }
 
   .modal-actions {

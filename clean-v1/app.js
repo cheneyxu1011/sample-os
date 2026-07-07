@@ -3,6 +3,7 @@
     data: null,
     selectedStyleId: null,
     selectedFiles: [],
+    styleInitFiles: {},
     lightboxIndex: -1,
     uploading: false,
     touchStartX: null,
@@ -33,9 +34,51 @@
 
   const routeLabels = {
     normal: "普通款式",
+    important: "重点款式",
+    risk: "风险款式",
+    quick_response: "快反款式",
     bonding_xinchangjiang: "压胶路线",
     outsourced: "外发款式",
     rudong_factory: "如东工厂款式"
+  };
+
+  const gateLabels = {
+    preparation_gate: "评审前准备",
+    sample_review_gate: "样衣评审",
+    final_approval_gate: "最终放行",
+    business_input: "开发入口"
+  };
+
+  const sampleStageLabels = {
+    first_sample: "一次样",
+    second_sample: "二次样",
+    sms_sample: "SMS 样",
+    pps_sample: "PPS 样",
+    top_sample: "TOP 样",
+    sms: "SMS 样",
+    pp: "PPS 样",
+    third_sample: "三次样"
+  };
+
+  const fileCategoryLabels = {
+    style_cover: "款式主图",
+    customer_reference: "客户原始资料",
+    measurement_table: "尺寸表",
+    tech_pack: "工艺单",
+    bom: "BOM / 物料表",
+    customer_comments: "客户修改意见",
+    other: "其他附件",
+    review_media: "评审媒体"
+  };
+
+  const releaseLabels = {
+    ready_to_send: "可寄样",
+    pending_final_approval: "待最终审批",
+    blocked_by_issue: "禁止寄样：存在阻塞 Issue",
+    blocked_by_department_review: "禁止寄样：部门未评审完成",
+    blocked_by_owner_missing: "禁止寄样：责任人未指定",
+    blocked_by_preparation: "禁止寄样：评审资料未齐全",
+    overdue_pending_confirm: "寄样日期已逾期，需重新确认"
   };
 
   function isUuid(value) {
@@ -110,7 +153,7 @@
   }
 
   function reviewMediaList() {
-    return (currentSample()?.mediaList || []).filter((item) => item.label !== "款式图");
+    return (currentSample()?.mediaList || []).filter((item) => !isStyleCoverMedia(item));
   }
 
   function isBlocking(issue) {
@@ -121,17 +164,149 @@
     return state.data?.settings?.routeRules?.[style.route]?.label || routeLabels[style.route] || style.route || "路线未设";
   }
 
-  function routeStatus(style) {
-    const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id);
-    const blockers = issues.filter(isBlocking);
-    const review = state.data?.reviews?.find((item) => item.styleId === style.id);
-    if (review?.exceptionRequest?.approvalStatus === "待审批") return { label: "等待例外放行", tone: "amber" };
-    if (blockers.length) return { label: "阻止寄样", tone: "red" };
-    if (style.currentGate === "preparation_gate" || style.riskStatus === "approaching_due" || /准备闸口/.test(style.blockerSummary || "")) {
-      return { label: "准备闸口未完成", tone: "neutral" };
+  function gateLabel(value) {
+    return gateLabels[value] || value || "未设置";
+  }
+
+  function sampleStageLabel(value) {
+    return sampleStageLabels[value] || value || "未设置";
+  }
+
+  function textOwner(style, review, field, fallback = "未指定") {
+    const profile = style?.profile || {};
+    const owners = style?.owners || profile.owners || {};
+    const dbValue = field === "gateOwner" ? (style?.gateOwner || review?.gateOwner) : (style?.finalApprover || review?.finalApprover);
+    const textValue = owners[field] || profile[field] || "";
+    return dbValue ? userName(dbValue) : (textValue || fallback);
+  }
+
+  function plannedDate(style, sample) {
+    return style?.plannedShipDate || sample?.plannedShipDate || "";
+  }
+
+  function dateOnly(value) {
+    const text = dateText(value);
+    return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+  }
+
+  function overdueDays(value) {
+    const text = dateOnly(value);
+    if (!text) return 0;
+    const [year, month, day] = text.split("-").map(Number);
+    const target = new Date(year, month - 1, day);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.floor((today - target) / 86400000);
+    return Math.max(0, diff);
+  }
+
+  function isFinalApproved(review) {
+    return ["approve_to_send", "approved_to_send", "ship"].includes(String(review?.finalDecision || ""));
+  }
+
+  function departmentReviewIncomplete(review) {
+    const rows = review?.departmentReviews || [];
+    return !rows.length || rows.some((row) => !["pass", "closed"].includes(row.status));
+  }
+
+  function hasMediaCategory(sample, category) {
+    return (sample?.mediaList || []).some((item) => categoryFromLabel(item) === category);
+  }
+
+  function preparationIncomplete(style, sample) {
+    const rows = style?.preparationChecklist || [];
+    if (rows.length) {
+      return rows.some((item) => {
+        if (item.done === true) return false;
+        if (item.id === "tech_pack") return !hasMediaCategory(sample, "tech_pack");
+        if (item.id === "bom") return !hasMediaCategory(sample, "bom");
+        if (item.id === "customer_info") return !(style?.brand && style?.styleNo);
+        if (item.id === "sample_route") return !style?.route;
+        if (item.id === "ship_date") return !plannedDate(style, sample);
+        return true;
+      });
     }
-    if (review?.status === "reviewing" || style.currentGate === "sample_review_gate") return { label: "评审中", tone: "neutral" };
-    if (review?.finalDecision === "ship" || (!blockers.length && review)) return { label: "可以寄样", tone: "green" };
+    return style?.currentGate === "preparation_gate" && !(hasMediaCategory(sample, "tech_pack") && hasMediaCategory(sample, "bom"));
+  }
+
+  function verifiedPreviousChanges(style) {
+    return !(style?.preparationChecklist || []).some((item) => /上一轮|复验|验证/.test(item.label || "") && item.done !== true);
+  }
+
+  function computeShipmentState(style, sample, review, issues) {
+    if (!style || !sample) {
+      return { risk: "暂无数据", release: "blocked_by_preparation", nextStep: "先保存款式基础信息", tone: "neutral", overdue: 0 };
+    }
+    const blockers = (issues || []).filter(isBlocking);
+    const overdue = overdueDays(plannedDate(style, sample));
+    const gateOwnerText = textOwner(style, review, "gateOwner", "");
+    const finalApproverText = textOwner(style, review, "finalApprover", "");
+
+    if (overdue && !isFinalApproved(review)) {
+      return { risk: `寄样已逾期 ${overdue} 天`, release: "overdue_pending_confirm", nextStep: "重新确认预计寄样日期和寄样结论", tone: "amber", overdue };
+    }
+    if (blockers.length) {
+      return { risk: "存在阻塞 Issue", release: "blocked_by_issue", nextStep: "整改并复核阻塞 Issue", tone: "red", overdue };
+    }
+    if (!gateOwnerText || gateOwnerText === "未指定") {
+      return { risk: "Gate Owner 未指定", release: "blocked_by_owner_missing", nextStep: "指定 Gate Owner", tone: "amber", overdue };
+    }
+    if (!finalApproverText || finalApproverText === "未指定") {
+      return { risk: "Final Approver 未指定", release: "blocked_by_owner_missing", nextStep: "指定最终审批人", tone: "amber", overdue };
+    }
+    if (preparationIncomplete(style, sample)) {
+      return { risk: "评审资料未齐全", release: "blocked_by_preparation", nextStep: "完成评审前资料确认", tone: "amber", overdue };
+    }
+    if (departmentReviewIncomplete(review)) {
+      return { risk: "部门未评审完成", release: "blocked_by_department_review", nextStep: "完成所有必评部门评审", tone: "amber", overdue };
+    }
+    if (!verifiedPreviousChanges(style)) {
+      return { risk: "上一轮修改点未验证", release: "pending_final_approval", nextStep: "验证上一轮修改点", tone: "amber", overdue };
+    }
+    if (!isFinalApproved(review)) {
+      return { risk: "无阻塞 Issue", release: "pending_final_approval", nextStep: "最终审批确认是否寄样", tone: "amber", overdue };
+    }
+    return { risk: "无阻塞 Issue", release: "ready_to_send", nextStep: "生成寄样记录并通知业务寄样", tone: "green", overdue };
+  }
+
+  function categoryFromLabel(item) {
+    const label = String(item?.label || "");
+    const bracket = label.match(/^\[([a-z_]+)\]\s*/i);
+    if (bracket) return bracket[1];
+    const colon = label.match(/^([a-z_]+):/i);
+    if (colon) return colon[1];
+    return item?.mediaCategory || item?.fileCategory || "";
+  }
+
+  function readableMediaLabel(item) {
+    const label = String(item?.label || item?.fileName || "");
+    return label.replace(/^\[[a-z_]+\]\s*/i, "").replace(/^[a-z_]+:\s*/i, "") || item?.fileName || "已上传文件";
+  }
+
+  function isStyleCoverMedia(item) {
+    const category = categoryFromLabel(item);
+    return ["style_cover", "front"].includes(category) || item?.label === "款式图";
+  }
+
+  function findStyleCover(sample) {
+    return (sample?.mediaList || []).find((item) => isStyleCoverMedia(item) && item.url);
+  }
+
+  function uploadLabel(category, file) {
+    return `[${category}] ${fileCategoryLabels[category] || category} · ${file.name}`;
+  }
+
+  function routeStatus(style) {
+    const sample = state.data?.samples?.find((item) => item.styleId === style.id);
+    const review = state.data?.reviews?.find((item) => item.styleId === style.id || item.sampleId === sample?.id);
+    const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
+    const shipment = computeShipmentState(style, sample, review, issues);
+    if (review?.exceptionRequest?.approvalStatus === "待审批") return { label: "等待例外放行", tone: "amber" };
+    if (shipment.release === "ready_to_send") return { label: "可以寄样", tone: "green" };
+    if (shipment.release === "blocked_by_issue") return { label: "阻止寄样", tone: "red" };
+    if (shipment.release === "blocked_by_preparation") return { label: "准备闸口未完成", tone: "neutral" };
+    if (shipment.release === "pending_final_approval" || review?.status === "reviewing" || style.currentGate === "sample_review_gate") return { label: "评审中", tone: "neutral" };
+    if (shipment.release === "overdue_pending_confirm") return { label: "等待例外放行", tone: "amber" };
     return { label: "状态未设", tone: "neutral" };
   }
 
@@ -153,18 +328,18 @@
     const sample = state.data?.samples?.find((item) => item.styleId === style.id);
     const review = state.data?.reviews?.find((item) => item.styleId === style.id || item.sampleId === sample?.id);
     const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
-    const blockers = issues.filter(isBlocking);
-    const status = blockers.length ? "blocked" : "ok";
+    const shipment = computeShipmentState(style, sample, review, issues);
+    const status = shipment.release === "ready_to_send" ? "ok" : shipment.tone === "red" ? "blocked" : "pending";
     const routeState = routeStatus(style);
-    const styleImage = sample?.mediaList?.find((item) => item.label === "款式图" && item.url);
+    const styleImage = findStyleCover(sample);
     const visual = includeAction ? "" : `
       <div class="style-visual">
         <label class="style-image-upload ${styleImage?.url ? "has-image" : ""}">
           <input type="file" accept="image/*" data-style-image-upload />
           ${styleImage?.url
-            ? `<img src="${esc(styleImage.url)}" alt="款式图" />`
-            : '<span class="style-image-empty"><strong>款式图</strong><small>专门上传通道</small></span>'}
-          <span class="style-image-action">${styleImage?.url ? "更换款式图" : "上传款式图"}</span>
+            ? `<img src="${esc(styleImage.url)}" alt="款式主图" />`
+            : '<span class="style-image-empty"><strong>请上传样衣正面图</strong><small>款式主图专用通道</small></span>'}
+          <span class="style-image-action">${styleImage?.url ? "更换款式主图" : "上传款式主图"}</span>
         </label>
       </div>
     `;
@@ -174,9 +349,13 @@
         <div class="style-card-main">
           <div class="style-title">
             <h2>${esc(style.styleName)}</h2>
-            <span class="badge ${status}">${blockers.length ? `${blockers.length} 个阻塞 Issue` : "可寄样"}</span>
+            <span class="badge ${status}">${esc(releaseLabels[shipment.release] || shipment.release)}</span>
           </div>
-          <p>${esc(style.brand)} / ${esc(style.styleNo)} / ${esc(style.externalRef || style.id)}</p>
+          <p>${esc(style.brand)} / ${esc(style.styleNo)} <small class="system-id">系统 ID：${esc(style.externalRef || style.id)}</small></p>
+          ${!includeAction ? `<div class="status-strip">
+            <span class="${esc(shipment.tone)}">当前风险状态：${esc(shipment.risk)}</span>
+            <span class="${esc(shipment.tone)}">寄样放行状态：${esc(releaseLabels[shipment.release] || shipment.release)}</span>
+          </div>` : ""}
           ${includeAction ? `
             <div class="mobile-pipeline-summary">
               <div><strong>${esc(style.styleNo || "未填款号")}</strong><span>${esc(style.brand || "未填品牌")}</span></div>
@@ -185,13 +364,16 @@
           ` : ""}
           <div class="meta-grid">
             ${meta("季节", style.season)}
-            ${meta("当前 Gate", style.currentGate)}
-            ${meta("样品阶段", style.samplePhase)}
+            ${meta("当前 Gate", gateLabel(style.currentGate))}
+            ${meta("样品阶段", sampleStageLabel(style.samplePhase))}
             ${meta("样衣位置", sample?.location || style.sampleLocation)}
-            ${meta("预计寄样", style.plannedShipDate || sample?.plannedShipDate)}
-            ${meta("Gate Owner", userName(style.gateOwner || review?.gateOwner))}
-            ${meta("Final Approver", userName(style.finalApprover || review?.finalApprover))}
-            ${meta("下一步", style.nextAction || style.blockerSummary)}
+            ${meta("预计寄样", plannedDate(style, sample))}
+            ${meta("客户交期", style.customerDeadline)}
+            ${meta("意见来源", style.customerCommentSource)}
+            ${meta("本轮目标", style.reviewObjective)}
+            ${meta("Gate Owner", textOwner(style, review, "gateOwner", "未指定"))}
+            ${meta("Final Approver", textOwner(style, review, "finalApprover", "杨总"))}
+            ${meta("下一步", shipment.nextStep)}
           </div>
         </div>
         ${includeAction ? `
@@ -206,10 +388,18 @@
   }
 
   function updateStatus() {
-    const blockers = currentIssues().filter(isBlocking);
-    const pill = $("#blocking-pill");
-    pill.className = `status-pill ${blockers.length ? "blocked" : "ok"}`;
-    pill.textContent = blockers.length ? `寄样阻止：${blockers.length} 个 Issue` : "可寄样：无阻塞 Issue";
+    const style = currentStyle();
+    const shipment = computeShipmentState(style, currentSample(), currentReview(), currentIssues());
+    const riskPill = $("#risk-pill");
+    const releasePill = $("#release-pill");
+    if (riskPill) {
+      riskPill.className = `status-pill ${shipment.tone === "green" ? "ok" : shipment.tone === "red" ? "blocked" : "pending"}`;
+      riskPill.textContent = `风险：${shipment.risk}`;
+    }
+    if (releasePill) {
+      releasePill.className = `status-pill ${shipment.release === "ready_to_send" ? "ok" : shipment.tone === "red" ? "blocked" : "pending"}`;
+      releasePill.textContent = releaseLabels[shipment.release] || shipment.release;
+    }
   }
 
   function renderPipeline() {
@@ -253,6 +443,7 @@
     const issues = currentIssues();
     $("#issue-list").innerHTML = issues.length ? issues.map((issue) => {
       const blocked = isBlocking(issue);
+      const canMarkVerify = issue.status !== "closed" && issue.status !== "pending_verification";
       return `
         <article class="issue-row ${blocked ? "blocked" : ""}">
           <strong>
@@ -261,10 +452,47 @@
           </strong>
           <span class="badge ${blocked ? "blocked" : "ok"}">${esc(levelLabels[issue.level] || issue.level)} / ${blocked ? "阻止寄样" : "不阻止"}</span>
           <span>${esc(statusLabels[issue.status] || issue.status)}</span>
-          ${issue.status !== "closed" ? `<button class="secondary-button" type="button" data-close-issue="${esc(issue.id)}">关闭</button>` : ""}
+          <div class="issue-actions">
+            ${canMarkVerify ? `<button class="secondary-button" type="button" data-verify-issue="${esc(issue.id)}">整改完成</button>` : ""}
+            ${issue.status !== "closed" ? `<button class="secondary-button" type="button" data-close-issue="${esc(issue.id)}">复核关闭</button>` : ""}
+          </div>
         </article>
       `;
     }).join("") : '<div class="empty">暂无 Issue。</div>';
+  }
+
+  function reviewSummaryText(style, sample, review, issues, shipment) {
+    const blockers = issues.filter(isBlocking);
+    const passedDepartments = (review?.departmentReviews || []).filter((row) => row.status === "pass").length;
+    const totalDepartments = review?.departmentReviews?.length || 0;
+    return [
+      `款式：${style?.brand || ""} ${style?.styleNo || ""} / ${style?.styleName || ""}`,
+      `阶段：${sampleStageLabel(style?.samplePhase)}；Gate：${gateLabel(style?.currentGate)}`,
+      `资料：${preparationIncomplete(style, sample) ? "未齐全" : "已齐全"}；部门评审：${passedDepartments}/${totalDepartments}`,
+      `Issue：${issues.length} 个，其中阻塞 ${blockers.length} 个`,
+      `放行判断：${releaseLabels[shipment.release] || shipment.release}`,
+      `下一步：${shipment.nextStep}`
+    ];
+  }
+
+  function renderFinalApproval() {
+    const style = currentStyle();
+    const sample = currentSample();
+    const review = currentReview();
+    const issues = currentIssues();
+    const shipment = computeShipmentState(style, sample, review, issues);
+    const box = $("#review-summary-box");
+    const approveButton = $("#final-approve");
+    const holdButton = $("#final-hold");
+    if (!box || !approveButton || !holdButton) return;
+    box.innerHTML = reviewSummaryText(style, sample, review, issues, shipment).map((line) => `<p>${esc(line)}</p>`).join("");
+    const canApprove = shipment.release === "pending_final_approval" || shipment.release === "ready_to_send";
+    approveButton.disabled = !canApprove || !review;
+    approveButton.title = approveButton.disabled ? (releaseLabels[shipment.release] || shipment.risk) : "确认最终可寄样";
+    holdButton.disabled = !review;
+    $("#final-approval-status").textContent = isFinalApproved(review)
+      ? "最终审批已通过：可寄样。"
+      : approveButton.disabled ? `暂不能最终放行：${releaseLabels[shipment.release] || shipment.risk}` : "可以提交最终审批。";
   }
 
   function renderMedia() {
@@ -277,7 +505,7 @@
         <article class="media-card">
           <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(item.label || item.fileName)}">×</button>
           <button class="media-open" type="button" data-open-media="${esc(item.id)}" aria-label="放大查看 ${esc(item.label || item.fileName)}">${media}</button>
-          <small>${esc(item.label || item.fileName)} · ${esc(item.uploadedAt || "")}</small>
+          <small>${esc(readableMediaLabel(item))} · ${esc(item.uploadedAt || "")}</small>
         </article>
       `;
     }).join("") : '<div class="empty">暂无已上传媒体。</div>';
@@ -293,7 +521,7 @@
           <div class="date-block"><span>${esc(dateText(date).slice(0, 4) || "日期")}</span><strong>${esc(dateText(date).slice(5) || "--")}</strong></div>
           <div>
             <h3>${esc(style.brand)} ${esc(style.styleNo)} / ${esc(style.styleName)}</h3>
-            <p>${esc(style.samplePhase)} · ${esc(sample?.location || style.sampleLocation || "未设置")} · ${esc(style.currentGate)}</p>
+            <p>${esc(sampleStageLabel(style.samplePhase))} · ${esc(sample?.location || style.sampleLocation || "未设置")} · ${esc(gateLabel(style.currentGate))}</p>
           </div>
         </article>
       `;
@@ -372,9 +600,9 @@
     const style = currentStyle();
     const review = currentReview();
     const owners = [
-      ["Gate Owner", userName(style?.gateOwner || review?.gateOwner)],
+      ["Gate Owner", textOwner(style, review, "gateOwner", "未指定")],
       ["Preparation Gate Owner", userName(data.gateRules?.preparationGateOwner)],
-      ["Final Approver", userName(style?.finalApprover || review?.finalApprover)]
+      ["Final Approver", textOwner(style, review, "finalApprover", "杨总")]
     ];
     $("#owner-list").innerHTML = owners.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("");
 
@@ -395,6 +623,7 @@
     renderDepartments();
     renderIssues();
     renderMedia();
+    renderFinalApproval();
     renderCalendar();
     renderSettings();
     updateStatus();
@@ -412,6 +641,7 @@
       $("#source-time").textContent = data.source?.loadedAt ? `加载于 ${new Date(data.source.loadedAt).toLocaleString()}` : "已加载";
       renderAll();
     } catch (error) {
+      console.error("读取 Supabase snapshot 失败", { error });
       showMessage(`无法读取 Supabase snapshot：${error.message}`);
       $("#source-label").textContent = "连接失败";
       $("#pipeline-list").innerHTML = "无法连接数据源，请确认 Vercel 环境变量和 Supabase 可用。";
@@ -442,6 +672,7 @@
       });
       await loadSnapshot();
     } catch (error) {
+      console.error("保存部门评审失败", { index, reviewId: review.id, row, status, opinion, error });
       showMessage(`保存评审失败：${error.message}`);
       await loadSnapshot();
     }
@@ -471,40 +702,117 @@
       form.department.value = "品质部";
       await loadSnapshot();
     } catch (error) {
+      console.error("新增 Issue 失败", { styleId: style.id, sampleId: sample?.id, reviewId: review.id, level, error });
       showMessage(`新增 Issue 失败：${error.message}`);
+    }
+  }
+
+  function setFieldErrors(form, errors) {
+    form.querySelectorAll("[data-field-error]").forEach((node) => {
+      node.textContent = errors[node.dataset.fieldError] || "";
+    });
+  }
+
+  function validateStyleForm(form) {
+    const fields = new FormData(form);
+    const errors = {};
+    if (!String(fields.get("styleNo") || "").trim()) errors.styleNo = "请输入款号";
+    if (!String(fields.get("styleName") || "").trim()) errors.styleName = "请输入款式名称";
+    if (!String(fields.get("brand") || "").trim()) errors.brand = "请输入品牌";
+    if (!String(fields.get("season") || "").trim()) errors.season = "请输入季节";
+    if (!String(fields.get("samplePhase") || "").trim()) errors.samplePhase = "请选择样品阶段";
+    setFieldErrors(form, errors);
+    return errors;
+  }
+
+  async function uploadFilesForCreatedStyle(filesByCategory, context) {
+    const entries = Object.entries(filesByCategory || {}).flatMap(([category, files]) => (
+      Array.from(files || []).map((file) => ({ category, file }))
+    ));
+    if (!entries.length) return;
+    $("#style-create-status").textContent = `正在上传资料：0/${entries.length}`;
+    let index = 0;
+    for (const { category, file } of entries) {
+      index += 1;
+      $("#style-create-status").textContent = `正在上传资料：${index}/${entries.length} ${file.name}`;
+      const presigned = await createUpload(file, {
+        ...context,
+        label: uploadLabel(category, file),
+        fileCategory: category,
+        mediaCategory: category === "style_cover" ? "style_cover" : "document"
+      });
+      await putToS3(file, presigned, "#style-create-status");
+      await completeUpload(file, presigned);
     }
   }
 
   async function createStyleFromForm(form) {
     const fields = new FormData(form);
+    const errors = validateStyleForm(form);
+    const firstError = Object.values(errors)[0];
+    if (firstError) {
+      $("#style-create-status").textContent = `创建失败：${firstError}`;
+      return showMessage(`创建失败：${firstError}`);
+    }
     const payload = {
       styleNo: String(fields.get("styleNo") || "").trim(),
       brand: String(fields.get("brand") || "").trim(),
       styleName: String(fields.get("styleName") || "").trim(),
       season: String(fields.get("season") || "").trim(),
+      customer: String(fields.get("customer") || "").trim(),
       route: String(fields.get("route") || "normal"),
       samplePhase: String(fields.get("samplePhase") || "first_sample"),
       sampleLocation: String(fields.get("sampleLocation") || "样衣间").trim(),
       plannedShipDate: String(fields.get("plannedShipDate") || ""),
+      customerDeadline: String(fields.get("customerDeadline") || ""),
+      customerCommentSource: String(fields.get("customerCommentSource") || "").trim(),
+      reviewObjective: String(fields.get("reviewObjective") || "").trim(),
+      businessOwner: String(fields.get("businessOwner") || "").trim(),
+      sampleOwner: String(fields.get("sampleOwner") || "").trim(),
+      gateOwner: String(fields.get("gateOwner") || "").trim(),
+      finalApprover: String(fields.get("finalApprover") || "").trim(),
+      patternOwner: String(fields.get("patternOwner") || "").trim(),
+      processOwner: String(fields.get("processOwner") || "").trim(),
+      qcOwner: String(fields.get("qcOwner") || "").trim(),
+      bondingOwner: String(fields.get("bondingOwner") || "").trim(),
       versionName: String(fields.get("samplePhase") || "first_sample"),
       quantity: 1,
       highRisk: false
     };
-    if (!payload.styleNo || !payload.brand || !payload.styleName) return showMessage("款号、品牌、款式名称必须填写。");
+    const submit = $("#style-create-submit");
+    submit.disabled = true;
+    submit.textContent = "正在创建款式...";
+    $("#style-create-status").textContent = "正在创建款式...";
     try {
       const response = await requestJson("/api/sampleos/create-style-fast", {
         method: "POST",
         body: JSON.stringify(payload)
       });
       const result = response.result || {};
+      if (!isUuid(result.styleId) || !isUuid(result.sampleId) || !isUuid(result.reviewId)) {
+        throw new Error("style_id 未生成");
+      }
+      await uploadFilesForCreatedStyle(state.styleInitFiles, {
+        styleId: result.styleId,
+        sampleId: result.sampleId,
+        reviewId: result.reviewId,
+        styleExternalRef: result.style?.external_ref || null,
+        sampleExternalRef: result.sample?.external_ref || null,
+        reviewExternalRef: result.review?.external_ref || null
+      });
       await loadSnapshot();
       state.selectedStyleId = result.styleId || state.selectedStyleId;
       renderAll();
       closeStyleModal();
-      showMessage(result.message || "款式已保存到 Supabase。", "ok");
-      switchView(result.existing ? "review" : "pipeline");
+      showMessage(result.existing ? "该款号已存在，已打开现有款式。" : "款式创建成功，已进入评审页面", "ok");
+      switchView("review");
     } catch (error) {
-      showMessage(`款式保存失败：${error.message}`);
+      console.error("创建款式失败", { payload, selectedFiles: state.styleInitFiles, error });
+      $("#style-create-status").textContent = `创建失败：${error.message}`;
+      showMessage(`创建失败：${error.message}`);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "创建款式";
     }
   }
 
@@ -521,6 +829,7 @@
       await loadSnapshot();
       showMessage("款式已删除。", "ok");
     } catch (error) {
+      console.error("删除款式失败", { styleId, error });
       showMessage(`删除款式失败：${error.message}`);
     }
   }
@@ -530,7 +839,47 @@
       await syncData("issueStatus", { issueId, status: "closed" });
       await loadSnapshot();
     } catch (error) {
+      console.error("关闭 Issue 失败", { issueId, error });
       showMessage(`关闭 Issue 失败：${error.message}`);
+    }
+  }
+
+  async function markIssueReadyForVerification(issueId) {
+    try {
+      await syncData("issueStatus", { issueId, status: "pending_verification" });
+      await loadSnapshot();
+      showMessage("Issue 已标记为待复验。", "ok");
+    } catch (error) {
+      console.error("标记 Issue 待复验失败", { issueId, error });
+      showMessage(`标记待复验失败：${error.message}`);
+    }
+  }
+
+  async function submitFinalDecision(finalDecision) {
+    const review = currentReview();
+    const style = currentStyle();
+    const sample = currentSample();
+    const issues = currentIssues();
+    const shipment = computeShipmentState(style, sample, review, issues);
+    if (!review) return showMessage("缺少当前评审，不能提交最终审批。");
+    if (finalDecision === "approve_to_send" && !(shipment.release === "pending_final_approval" || shipment.release === "ready_to_send")) {
+      const reason = releaseLabels[shipment.release] || shipment.risk;
+      $("#final-approval-status").textContent = `最终审批被阻断：${reason}`;
+      return showMessage(`最终审批被阻断：${reason}`);
+    }
+    try {
+      $("#final-approval-status").textContent = "正在提交最终审批...";
+      await syncData("reviewDecision", {
+        reviewId: review.id,
+        finalDecision,
+        reviewSummary: reviewSummaryText(style, sample, review, issues, shipment)
+      });
+      await loadSnapshot();
+      showMessage(finalDecision === "approve_to_send" ? "最终审批已通过，可以寄样。" : "已暂缓寄样。", "ok");
+    } catch (error) {
+      console.error("最终审批提交失败", { reviewId: review.id, finalDecision, error });
+      $("#final-approval-status").textContent = `最终审批失败：${error.message}`;
+      showMessage(`最终审批失败：${error.message}`);
     }
   }
 
@@ -539,6 +888,7 @@
       await syncData("deleteMedia", { mediaId });
       await loadSnapshot();
     } catch (error) {
+      console.error("删除媒体失败", { mediaId, error });
       showMessage(`删除媒体失败：${error.message}`);
     }
   }
@@ -551,7 +901,7 @@
     $("#lightbox-stage").innerHTML = isVideo
       ? `<video src="${esc(item.url)}" controls autoplay></video>`
       : `<img src="${esc(item.url)}" alt="${esc(item.label || item.fileName)}" />`;
-    $("#lightbox-caption").textContent = `${item.label || item.fileName || "媒体预览"} · ${state.lightboxIndex + 1}/${mediaList.length}`;
+    $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · ${state.lightboxIndex + 1}/${mediaList.length}`;
     $("#lightbox-prev").disabled = mediaList.length <= 1;
     $("#lightbox-next").disabled = mediaList.length <= 1;
   }
@@ -590,13 +940,15 @@
         mediaKind,
         fileName: file.name,
         label: context.label || file.name,
+        fileCategory: context.fileCategory || null,
+        mediaCategory: context.mediaCategory || null,
         mimeType: file.type || "application/octet-stream",
         byteSize: file.size
       })
     });
   }
 
-  async function putToS3(file, presigned) {
+  async function putToS3(file, presigned, statusSelector = "#upload-status") {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open(presigned.method || "PUT", presigned.uploadUrl, true);
@@ -604,7 +956,8 @@
       xhr.upload.onprogress = (event) => {
         if (!event.lengthComputable) return;
         const percent = Math.round((event.loaded / event.total) * 100);
-        $("#upload-status").textContent = `上传中：${file.name} ${percent}%`;
+        const status = $(statusSelector);
+        if (status) status.textContent = `上传中：${file.name} ${percent}%`;
       };
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) resolve();
@@ -661,7 +1014,10 @@
           reviewId: review?.id || null,
           styleExternalRef: style.externalRef,
           sampleExternalRef: sample.externalRef,
-          reviewExternalRef: review?.externalRef || null
+          reviewExternalRef: review?.externalRef || null,
+          label: uploadLabel("review_media", file),
+          fileCategory: "review_media",
+          mediaCategory: file.type.startsWith("image/") ? "review_photo" : file.type.startsWith("video/") ? "review_video" : "review_document"
         };
         const presigned = await createUpload(file, context);
         await putToS3(file, presigned);
@@ -673,6 +1029,7 @@
       $("#upload-status").textContent = "上传成功，已同步到 Supabase。";
       await loadSnapshot();
     } catch (error) {
+      console.error("上传评审媒体失败", { files: state.selectedFiles, error });
       $("#upload-status").textContent = `上传失败：${error.message}`;
       showMessage(`上传失败：${error.message}`);
     } finally {
@@ -698,13 +1055,16 @@
         styleExternalRef: style.externalRef,
         sampleExternalRef: sample.externalRef,
         reviewExternalRef: review?.externalRef || null,
-        label: "款式图"
+        label: uploadLabel("style_cover", file),
+        fileCategory: "style_cover",
+        mediaCategory: "style_cover"
       };
       const presigned = await createUpload(file, context);
       await putToS3(file, presigned);
       await completeUpload(file, presigned);
       await loadSnapshot();
     } catch (error) {
+      console.error("款式主图上传失败", { file, styleId: style?.id, sampleId: sample?.id, reviewId: review?.id, error });
       showMessage(`款式图上传失败：${error.message}`);
     }
   }
@@ -726,7 +1086,13 @@
     $("#style-form").reset();
     $("#style-form").brand.value = "萨洛蒙";
     $("#style-form").season.value = "SS27";
+    $("#style-form").samplePhase.value = "second_sample";
     $("#style-form").sampleLocation.value = "样衣间";
+    $("#style-form").finalApprover.value = "杨总";
+    state.styleInitFiles = {};
+    $("#style-cover-preview").innerHTML = "暂无主图";
+    $("#style-create-status").textContent = "";
+    setFieldErrors($("#style-form"), {});
     document.body.style.overflow = "";
   }
 
@@ -758,6 +1124,9 @@
 
       const closeIssueButton = event.target.closest("[data-close-issue]");
       if (closeIssueButton) closeIssue(closeIssueButton.dataset.closeIssue);
+
+      const verifyIssueButton = event.target.closest("[data-verify-issue]");
+      if (verifyIssueButton) markIssueReadyForVerification(verifyIssueButton.dataset.verifyIssue);
 
       const deleteMediaButton = event.target.closest("[data-delete-media]");
       if (deleteMediaButton) deleteMedia(deleteMediaButton.dataset.deleteMedia);
@@ -827,7 +1196,25 @@
       }).join("");
     });
 
+    document.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-style-init-file]");
+      if (!input) return;
+      const category = input.dataset.styleInitFile;
+      const files = Array.from(input.files || []);
+      state.styleInitFiles[category] = category === "style_cover" ? files.slice(0, 1) : files;
+      const count = Object.values(state.styleInitFiles).reduce((sum, list) => sum + (list?.length || 0), 0);
+      $("#style-create-status").textContent = count ? `已选择 ${count} 个款式资料，创建后上传。` : "";
+      if (category === "style_cover") {
+        const file = files[0];
+        $("#style-cover-preview").innerHTML = file
+          ? `<img src="${esc(URL.createObjectURL(file))}" alt="款式主图预览" />`
+          : "暂无主图";
+      }
+    });
+
     $("#upload-selected").addEventListener("click", uploadSelectedFiles);
+    $("#final-approve").addEventListener("click", () => submitFinalDecision("approve_to_send"));
+    $("#final-hold").addEventListener("click", () => submitFinalDecision("hold_shipment"));
     document.addEventListener("change", (event) => {
       const input = event.target.closest("[data-style-image-upload]");
       if (!input) return;
