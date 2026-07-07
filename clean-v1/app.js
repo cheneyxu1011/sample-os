@@ -105,6 +105,24 @@
     { id: "document_controller", name: "Document Controller / 资料版本管理员", type: "流程角色", stages: ["资料管理"], responsibility: "维护 TP、BOM、纸样、客户 Comment 资料版本", permissions: ["上传资料", "标记资料版本", "作废旧版本", "创建资料不一致 Issue"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [] }
   ];
 
+  const defaultUsers = [
+    { id: "default_guyao", name: "顾瑶", department: "业务部", enabled: true, scope: ["萨洛蒙", "样衣评审"] },
+    { id: "default_guyonghong", name: "顾永宏", department: "业务部", enabled: true, scope: ["萨洛蒙", "样衣评审"] },
+    { id: "default_wang", name: "王部长", department: "开发管理", enabled: true, scope: ["普通打样", "样衣评审"] },
+    { id: "default_daqian", name: "大前", department: "品质部", enabled: true, scope: ["萨洛蒙", "样衣评审"] },
+    { id: "default_yang", name: "杨总", department: "管理层", enabled: true, isFinalApprover: true, scope: ["例外放行"] },
+    { id: "default_zhang", name: "张部长", department: "压胶开发", enabled: true, scope: ["压胶 / 新长江"] },
+    { id: "default_xia", name: "夏红霞", department: "新长江", enabled: true, scope: ["压胶 / 新长江"] },
+    { id: "default_xu", name: "徐海燕", department: "版型部", enabled: true, scope: ["样衣评审"] },
+    { id: "default_process", name: "陈工艺", department: "工艺部", enabled: true, scope: ["样衣评审"] },
+    { id: "default_ie", name: "麦克", department: "IE 部", enabled: true, scope: ["样衣评审"] },
+    { id: "default_sample", name: "李师傅", department: "打样部", enabled: true, scope: ["普通打样", "样衣评审"] },
+    { id: "default_material", name: "李卫红", department: "面料组", enabled: true, scope: ["普通打样"] },
+    { id: "default_trim", name: "大红", department: "辅料组", enabled: true, scope: ["普通打样"] },
+    { id: "default_dispatch", name: "大戴", department: "样衣间", enabled: true, scope: ["普通打样"] }
+  ];
+
+
   function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
   }
@@ -621,7 +639,7 @@
 
   function renderSettings() {
     const data = state.data || {};
-    const users = data.users || [];
+    const users = data.users?.length ? data.users : defaultUsers;
     const gateRules = data.gateRules || {};
     const ownerOrDefault = (userId, fallback) => {
       if (!userId) return fallback;
@@ -710,7 +728,7 @@
   }
 
   function renderAssignmentModalOptions(personId) {
-    const users = state.data?.users || [];
+    const users = state.data?.users?.length ? state.data.users : defaultUsers;
     $("#assignment-person").innerHTML = users.map((user) => `<option value="${esc(user.id)}" ${personId === user.id ? "selected" : ""}>${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("");
     $("#assignment-role-list").innerHTML = roleTemplates.map((role) => `
       <label><input type="checkbox" name="roleIds" value="${esc(role.id)}"><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
@@ -746,6 +764,9 @@
       console.error("读取 Supabase snapshot 失败", { error });
       showMessage(`无法读取 Supabase snapshot：${error.message}`);
       $("#source-label").textContent = "连接失败";
+      state.data = state.data || {};
+      renderSettings();
+      updateStatus();
       $("#pipeline-list").innerHTML = "无法连接数据源，请确认 Vercel 环境变量和 Supabase 可用。";
     } finally {
       state.loading = false;
@@ -1172,10 +1193,19 @@
   }
 
   function switchView(viewName) {
+    if (!$(`#${viewName}-view`)) return;
     $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
     $$(".view").forEach((view) => view.classList.toggle("active", view.id === `${viewName}-view`));
     $("#view-title").textContent = $(`#${viewName}-view`).dataset.title;
+    if (window.location.hash !== `#${viewName}`) {
+      window.history.replaceState(null, "", `#${viewName}`);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function initViewFromHash() {
+    const viewName = window.location.hash.replace("#", "");
+    if (viewName) switchView(viewName);
   }
 
   function openStyleModal() {
@@ -1359,5 +1389,9 @@
   }
 
   bindEvents();
+  state.data = state.data || {};
+  renderSettings();
+  updateStatus();
+  initViewFromHash();
   loadSnapshot();
 })();
