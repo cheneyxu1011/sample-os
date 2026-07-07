@@ -1,5 +1,12 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/clean-v0/",
+      "permanent": false
+    }
+  ],
   "functions": {
     "api/**/*.js": {
       "maxDuration": 10
