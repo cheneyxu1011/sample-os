@@ -6,13 +6,17 @@
     styleInitFiles: {},
     editingStyleId: null,
     editingPersonId: null,
+    editingBrandId: null,
     lightboxIndex: -1,
     uploading: false,
     touchStartX: null,
     loading: false,
     settingsTab: "templates",
     reviewBrandFilter: "",
-    reviewStyleFilter: ""
+    reviewStyleFilter: "",
+    calendarBrandFilter: "",
+    calendarSeasonFilter: "",
+    calendarStageFilter: ""
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -703,6 +707,39 @@
     return defaultBrands;
   }
 
+  function serializeBrands(brands = configuredBrands()) {
+    return brands.map((brand) => ({
+      id: brand.id || brand.name.toLowerCase().replace(/\s+/g, "_"),
+      name: brand.name,
+      aliases: Array.isArray(brand.aliases) ? brand.aliases : []
+    }));
+  }
+
+  function populateBrandSelect(value = "萨洛蒙") {
+    const select = $("#style-brand-select");
+    if (!select) return;
+    const brands = configuredBrands();
+    select.innerHTML = brands.map((brand) => `<option value="${esc(brand.name)}">${esc(brand.name)}</option>`).join("");
+    if (value && !brands.some((brand) => brand.name === value)) {
+      select.insertAdjacentHTML("beforeend", `<option value="${esc(value)}">${esc(value)} / 已保存</option>`);
+    }
+    select.value = value || brands[0]?.name || "";
+  }
+
+  async function saveBrands(brands, message = "品牌已保存") {
+    try {
+      await syncData("updateSetting", {
+        key: "brands",
+        value: serializeBrands(brands)
+      });
+      await loadSnapshot();
+      showMessage(message, "ok");
+    } catch (error) {
+      console.error("保存品牌失败", { brands, error });
+      showMessage(`保存品牌失败：${error.message}`);
+    }
+  }
+
   function normalizeLocation(item, index = 0) {
     if (typeof item === "string") return { id: `location_${index}`, label: item };
     if (item && typeof item === "object") {
@@ -879,7 +916,28 @@
   }
 
   function renderCalendar() {
-    const styles = state.data?.styleList || [];
+    const allStyles = state.data?.styleList || [];
+    const brandOptions = Array.from(new Set([...configuredBrands().map((brand) => brand.name), ...allStyles.map((style) => style.brand).filter(Boolean)]));
+    const seasonOptions = Array.from(new Set(allStyles.map((style) => style.season).filter(Boolean)));
+    const stageOptions = Array.from(new Set(allStyles.map((style) => style.samplePhase).filter(Boolean)));
+    const brandSelect = $("#calendar-brand-filter");
+    const seasonSelect = $("#calendar-season-filter");
+    const stageSelect = $("#calendar-stage-filter");
+    if (brandSelect) {
+      brandSelect.innerHTML = `<option value="">全部品牌</option>${brandOptions.map((brand) => `<option value="${esc(brand)}" ${state.calendarBrandFilter === brand ? "selected" : ""}>${esc(brand)}</option>`).join("")}`;
+    }
+    if (seasonSelect) {
+      seasonSelect.innerHTML = `<option value="">全部季节</option>${seasonOptions.map((season) => `<option value="${esc(season)}" ${state.calendarSeasonFilter === season ? "selected" : ""}>${esc(season)}</option>`).join("")}`;
+    }
+    if (stageSelect) {
+      stageSelect.innerHTML = `<option value="">全部阶段</option>${stageOptions.map((stage) => `<option value="${esc(stage)}" ${state.calendarStageFilter === stage ? "selected" : ""}>${esc(sampleStageLabel(stage))}</option>`).join("")}`;
+    }
+    const styles = allStyles.filter((style) => {
+      const brandOk = !state.calendarBrandFilter || style.brand === state.calendarBrandFilter;
+      const seasonOk = !state.calendarSeasonFilter || style.season === state.calendarSeasonFilter;
+      const stageOk = !state.calendarStageFilter || style.samplePhase === state.calendarStageFilter;
+      return brandOk && seasonOk && stageOk;
+    });
     $("#calendar-list").innerHTML = styles.length ? styles.map((style) => {
       const sample = state.data?.samples?.find((item) => item.styleId === style.id);
       const date = style.plannedShipDate || sample?.plannedShipDate || "";
@@ -892,7 +950,7 @@
           </div>
         </article>
       `;
-    }).join("") : '<div class="empty">暂无日历数据。</div>';
+    }).join("") : '<div class="empty">当前筛选下暂无日历数据。</div>';
     renderMonthCalendar(styles);
   }
 
@@ -990,7 +1048,7 @@
           <strong>${esc(brand.name)}</strong>
           <small>${brand.aliases?.length ? `英文 / 别名：${esc(brand.aliases.join(" / "))}` : "暂无别名"}</small>
         </div>
-        <button type="button">编辑</button>
+        <button type="button" data-edit-brand="${esc(brand.id)}">编辑</button>
       </article>
     `).join("");
 
@@ -1017,7 +1075,7 @@
         <dl>
           <div>
             <dt>关键权限</dt>
-            <dd class="editable-chip-list">
+            <dd class="editable-chip-list permission-editor">
               ${role.permissions.length ? role.permissions.map((item, index) => `<button type="button" data-role-remove-permission="${esc(role.id)}" data-index="${index}">${esc(item)} ×</button>`).join("") : "<em>未设置</em>"}
               <span class="inline-add"><input data-role-permission-input="${esc(role.id)}" placeholder="新增权限" /><button type="button" data-role-add-permission="${esc(role.id)}">添加</button></span>
             </dd>
@@ -1032,7 +1090,7 @@
           </div>
           <div>
             <dt>当前分配人员</dt>
-            <dd class="editable-chip-list">
+            <dd class="editable-chip-list people-editor">
               ${assignedPeople.length ? assignedPeople.map((person) => `<button type="button" data-role-remove-person="${esc(role.id)}" data-person="${esc(person)}">${esc(person)} ×</button>`).join("") : "<em>未分配</em>"}
               <span class="inline-add">
                 <select data-role-person-select="${esc(role.id)}">
@@ -1162,6 +1220,56 @@
       console.error("删除人员失败", { personId, person, error });
       showMessage(`删除人员失败：${error.message}`);
     }
+  }
+
+  function openBrandModal(brandId = null) {
+    const brand = brandId ? configuredBrands().find((item) => item.id === brandId) : null;
+    state.editingBrandId = brand?.id || null;
+    $("#brand-modal-title").textContent = brand ? "编辑品牌" : "新增品牌";
+    const form = $("#brand-form");
+    form.reset();
+    form.elements.namedItem("name").value = brand?.name || "";
+    form.elements.namedItem("aliases").value = brand?.aliases?.join(", ") || "";
+    $("#brand-save-status").textContent = "";
+    setFieldErrors(form, {});
+    $("#brand-modal").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeBrandModal() {
+    $("#brand-modal").hidden = true;
+    $("#brand-form").reset();
+    $("#brand-save-status").textContent = "";
+    state.editingBrandId = null;
+    document.body.style.overflow = "";
+  }
+
+  async function saveBrandFromForm(form) {
+    const fields = new FormData(form);
+    const name = String(fields.get("name") || "").trim();
+    if (!name) {
+      setFieldErrors(form, { name: "请输入品牌名称" });
+      $("#brand-save-status").textContent = "保存失败：请输入品牌名称";
+      return;
+    }
+    setFieldErrors(form, {});
+    const aliases = String(fields.get("aliases") || "")
+      .split(/[,，]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const brands = configuredBrands();
+    const duplicate = brands.find((brand) => brand.name === name && brand.id !== state.editingBrandId);
+    if (duplicate) {
+      $("#brand-save-status").textContent = "保存失败：品牌已存在";
+      return;
+    }
+    const id = state.editingBrandId || name.toLowerCase().replace(/\s+/g, "_");
+    const nextBrands = state.editingBrandId
+      ? brands.map((brand) => brand.id === state.editingBrandId ? { ...brand, name, aliases } : brand)
+      : [...brands, { id, name, aliases }];
+    $("#brand-save-status").textContent = "正在保存品牌...";
+    await saveBrands(nextBrands, state.editingBrandId ? "品牌已更新。" : "品牌已新增。");
+    closeBrandModal();
   }
 
   async function saveRoleTemplates(templates, message = "角色模板已保存") {
@@ -1724,6 +1832,7 @@
       qcOwner: owners.qcOwner || "",
       bondingOwner: owners.bondingOwner || ""
     };
+    populateBrandSelect(values.brand);
     populateLocationSelect(values.sampleLocation);
     populateOwnerSelects(values);
     Object.entries(values).forEach(([name, value]) => {
@@ -1748,6 +1857,7 @@
     if (style) {
       fillStyleForm(style);
     } else {
+      populateBrandSelect("萨洛蒙");
       populateLocationSelect("样衣间");
       populateOwnerSelects({
         finalApprover: "杨总"
@@ -1760,7 +1870,7 @@
   function closeStyleModal() {
     $("#style-modal").hidden = true;
     $("#style-form").reset();
-    $("#style-form").brand.value = "萨洛蒙";
+    populateBrandSelect("萨洛蒙");
     $("#style-form").season.value = "SS27";
     $("#style-form").samplePhase.value = "second_sample";
     populateLocationSelect("样衣间");
@@ -1846,6 +1956,9 @@
       const deletePersonButton = event.target.closest("[data-delete-person]");
       if (deletePersonButton) deletePersonRecord(deletePersonButton.dataset.deletePerson);
 
+      const editBrandButton = event.target.closest("[data-edit-brand]");
+      if (editBrandButton) openBrandModal(editBrandButton.dataset.editBrand);
+
       const removePermissionButton = event.target.closest("[data-role-remove-permission]");
       if (removePermissionButton) {
         const roleId = removePermissionButton.dataset.roleRemovePermission;
@@ -1896,7 +2009,7 @@
 
     $("#new-style-button").addEventListener("click", () => openStyleModal());
     $("#add-person").addEventListener("click", () => openPersonModal());
-    $("#add-brand").addEventListener("click", () => showMessage("新增品牌入口已保留；当前品牌先使用 SUPREME、迪桑特、萨洛蒙。", "ok"));
+    $("#add-brand").addEventListener("click", () => openBrandModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
     $("#style-modal-cancel").addEventListener("click", closeStyleModal);
     $("#style-modal").addEventListener("click", (event) => {
@@ -1916,6 +2029,15 @@
     $("#person-form").addEventListener("submit", (event) => {
       event.preventDefault();
       savePersonFromForm(event.currentTarget);
+    });
+    $("#brand-modal-close").addEventListener("click", closeBrandModal);
+    $("#brand-modal-cancel").addEventListener("click", closeBrandModal);
+    $("#brand-modal").addEventListener("click", (event) => {
+      if (event.target.id === "brand-modal") closeBrandModal();
+    });
+    $("#brand-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      saveBrandFromForm(event.currentTarget);
     });
     document.addEventListener("change", (event) => {
       const finalRelease = event.target.closest("[data-role-final-release]");
@@ -1953,6 +2075,24 @@
       state.reviewStyleFilter = "";
       ensureSelectedStyleVisible();
       renderAll();
+    });
+    $("#calendar-brand-filter").addEventListener("change", (event) => {
+      state.calendarBrandFilter = event.currentTarget.value;
+      renderCalendar();
+    });
+    $("#calendar-season-filter").addEventListener("change", (event) => {
+      state.calendarSeasonFilter = event.currentTarget.value;
+      renderCalendar();
+    });
+    $("#calendar-stage-filter").addEventListener("change", (event) => {
+      state.calendarStageFilter = event.currentTarget.value;
+      renderCalendar();
+    });
+    $("#calendar-filter-clear").addEventListener("click", () => {
+      state.calendarBrandFilter = "";
+      state.calendarSeasonFilter = "";
+      state.calendarStageFilter = "";
+      renderCalendar();
     });
     $("#lightbox-close").addEventListener("click", closeMediaLightbox);
     $("#lightbox-prev").addEventListener("click", () => moveLightbox(-1));

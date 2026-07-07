@@ -89,6 +89,24 @@ Sample location options are shared workflow data.
 - Default location options include: 开发车间, 样衣间, 如东工厂, 新长江工厂, 事务所, 万航工厂, 外协工厂, 掘港工厂, 已寄出, 待返修.
 - New styles must choose sample location from the shared location options instead of free text.
 
+## Brand Rules
+
+Brand options are shared settings data.
+
+- Brand management must persist through `sample_settings.key = brands` and reload through `snapshot-p0`.
+- Brand options must be reused by create/edit style, review filters, personnel scope, pipeline cards, calendar summaries, and settings.
+- New styles must choose brand from the shared brand options instead of free text.
+
+## Calendar Filter Rules
+
+Calendar filters must use shared style fields:
+
+- brand from shared brand settings and existing style data
+- season from style season
+- sample stage from canonical sample stage labels
+
+Filtering must update both the list cards and the month calendar.
+
 ## Write Flow
 
 All business writes go through `POST /api/sampleos/sync`.

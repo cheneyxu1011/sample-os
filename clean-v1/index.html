@@ -38,7 +38,7 @@
           <div class="top-actions">
             <button class="primary-button view-action" type="button" id="new-style-button" data-hide-on="calendar settings">新建款式</button>
             <button class="secondary-button view-action" type="button" id="reload-data" data-hide-on="calendar settings">刷新数据</button>
-            <div class="status-stack" aria-live="polite">
+            <div class="status-stack view-action" data-hide-on="calendar settings" aria-live="polite">
               <div class="status-pill" id="risk-pill">风险：读取中</div>
               <div class="status-pill" id="release-pill">放行：读取中</div>
             </div>
@@ -160,6 +160,12 @@
               <p>按预计寄样日期聚合样衣。</p>
             </div>
           </div>
+          <div class="filter-bar calendar-filter-bar">
+            <label>品牌<select id="calendar-brand-filter"></select></label>
+            <label>季节<select id="calendar-season-filter"></select></label>
+            <label>样品阶段<select id="calendar-stage-filter"></select></label>
+            <button class="secondary-button" type="button" id="calendar-filter-clear">清除筛选</button>
+          </div>
           <div id="calendar-list" class="calendar-list"></div>
           <section class="month-calendar" aria-label="样衣万年历">
             <div class="month-calendar-head">
@@ -191,7 +197,6 @@
             <div class="settings-actions">
               <button class="primary-button" type="button" id="add-person">新增人员</button>
               <button class="secondary-button" type="button" disabled title="暂不开放新增角色">新增角色模板</button>
-              <button class="secondary-button" type="button">批量导入</button>
             </div>
           </section>
           <div class="settings-stats" id="settings-stats"></div>
@@ -272,7 +277,7 @@
             <div class="modal-grid">
               <label>款号<input name="styleNo" data-required-message="请输入款号" required /><small data-field-error="styleNo"></small></label>
               <label>款式名称<input name="styleName" data-required-message="请输入款式名称" required /><small data-field-error="styleName"></small></label>
-              <label>品牌<input name="brand" data-required-message="请输入品牌" required value="萨洛蒙" /><small data-field-error="brand"></small></label>
+              <label>品牌<select name="brand" id="style-brand-select" data-required-message="请输入品牌" required></select><small data-field-error="brand"></small></label>
               <label>季节<input name="season" data-required-message="请输入季节" required value="SS27" /><small data-field-error="season"></small></label>
               <label>客户<input name="customer" placeholder="可选" /></label>
               <label>路线
@@ -373,6 +378,30 @@
         <div class="modal-actions">
           <button class="secondary-button" type="button" id="person-modal-cancel">取消</button>
           <button class="primary-button" type="submit">保存人员</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="brand-modal" hidden>
+      <form class="modal-card person-modal-card" id="brand-form">
+        <div class="modal-head">
+          <div>
+            <span>品牌管理</span>
+            <h2 id="brand-modal-title">新增品牌</h2>
+            <p>品牌会同步用于新建款式、样衣评审筛选和人员适用范围。</p>
+          </div>
+          <button class="modal-close" type="button" id="brand-modal-close" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-section">
+          <div class="modal-grid">
+            <label>品牌名称<input name="name" required data-required-message="请输入品牌名称" /><small data-field-error="name"></small></label>
+            <label>英文 / 别名<input name="aliases" placeholder="多个别名用逗号分隔" /></label>
+          </div>
+        </div>
+        <div class="upload-status" id="brand-save-status" role="status"></div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" id="brand-modal-cancel">取消</button>
+          <button class="primary-button" type="submit">保存品牌</button>
         </div>
       </form>
     </div>
