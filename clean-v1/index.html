@@ -31,8 +31,8 @@
             <h1 id="view-title">开发流水线</h1>
           </div>
           <div class="top-actions">
-            <button class="primary-button view-action" type="button" id="new-style-button" data-hide-on="calendar settings">新建款式</button>
-            <button class="secondary-button view-action" type="button" id="reload-data" data-hide-on="calendar settings">刷新数据</button>
+            <button class="primary-button view-action" type="button" id="new-style-button" data-hide-on="review calendar settings">新建款式</button>
+            <button class="secondary-button view-action" type="button" id="reload-data" data-hide-on="review calendar settings">刷新数据</button>
             <div class="status-stack view-action" data-hide-on="calendar settings" aria-live="polite">
               <div class="status-pill" id="risk-pill">风险：读取中</div>
               <div class="status-pill" id="release-pill">放行：读取中</div>
@@ -54,13 +54,14 @@
 
         <section class="view" id="review-view" data-title="样衣评审">
           <section class="panel review-filter-panel">
-            <div class="panel-head">
+            <div class="current-review-switch">
               <div>
-                <h2>查找样衣评审</h2>
-                <p>按品牌或款号切换到对应款式的评审记录。</p>
+                <span>当前款式</span>
+                <strong id="review-current-style">正在加载...</strong>
               </div>
+              <button class="secondary-button" type="button" id="toggle-review-filter">切换款式</button>
             </div>
-            <div class="review-filter">
+            <div class="review-filter" id="review-filter-body" hidden>
               <label>品牌
                 <select id="review-brand-filter"></select>
               </label>
@@ -75,24 +76,15 @@
           </section>
           <div id="review-summary" class="style-summary skeleton">正在加载评审...</div>
 
-          <div class="grid review-grid">
-            <section class="panel">
-              <div class="panel-head">
-                <div>
-                  <h2>部门评审</h2>
-                  <p>记录各部门评审意见，作为寄样放行依据。</p>
-                </div>
-              </div>
-              <div id="department-cards" class="department-grid"></div>
-            </section>
-
-            <section class="panel">
+          <div class="review-workspace">
+            <section class="panel review-media-panel">
               <div class="panel-head">
                 <div>
                   <h2>评审媒体</h2>
-                  <p>上传照片、视频和资料，便于评审复核。</p>
+                  <p>先看主图和当前证据，再填写自己的评审意见。</p>
                 </div>
               </div>
+              <div id="media-focus" class="media-focus"></div>
               <div class="upload-actions">
                 <label class="upload-choice">
                   <input data-media-upload-input type="file" accept="image/*" multiple />
@@ -104,10 +96,31 @@
                 </label>
               </div>
               <div class="upload-status" id="upload-status" role="status"></div>
-              <h3 class="subhead">已上传</h3>
+              <h3 class="subhead">缩略图</h3>
               <div id="uploaded-media" class="uploaded-media"></div>
             </section>
+
+            <section class="panel my-review-panel">
+              <div class="panel-head">
+                <div>
+                  <h2>我的评审任务</h2>
+                  <p>只展开当前评审人的任务，保存后再提交或转 Issue。</p>
+                </div>
+              </div>
+              <div id="my-review-task"></div>
+              <div id="gate-owner-card"></div>
+            </section>
           </div>
+
+          <section class="panel department-progress-panel">
+            <div class="panel-head">
+              <div>
+                <h2>部门评审进度</h2>
+                <p>其他部门默认折叠，只显示提交状态和 Issue 数量。</p>
+              </div>
+            </div>
+            <div id="department-cards" class="department-grid"></div>
+          </section>
 
           <section class="panel issue-panel">
             <div class="panel-head">

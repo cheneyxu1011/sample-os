@@ -107,6 +107,20 @@ Calendar filters must use shared style fields:
 
 Filtering must update both the list cards and the month calendar.
 
+## Review Page Workflow Rules
+
+The sample review page is reviewer-first.
+
+- The default view must prioritize: current style summary, review media, my review task, department progress, Issue list, and final decision.
+- The review page must not show global create-style or manual refresh controls in the main reviewer workflow.
+- Style switching must stay collapsed by default so reviewers do not lose the first screen to search controls.
+- Review media selection is shared with quick Issue creation.
+- When a reviewer clicks `转为 Issue`, the Issue draft must carry the current department, reviewer, review opinion, role focus, selected media, media label, and media part label.
+- Department review cards must render from the shared role template / style owner data. If settings assign multiple people to a default review role, the review page must show all of them as reviewer chips.
+- Other departments should render as progress/status by default; detailed draft opinions remain hidden until submitted, unless the current reviewer owns that row.
+- Gate Owner / review owner cards may show release judgment, but regular reviewers should see only the tasks they need to complete.
+- Any new review-page control must write through the shared sync APIs or explicitly show that it is temporary.
+
 ## Write Flow
 
 All business writes go through `POST /api/sampleos/sync`.

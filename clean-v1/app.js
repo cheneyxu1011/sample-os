@@ -7,6 +7,8 @@
     editingPersonId: null,
     editingBrandId: null,
     lightboxIndex: -1,
+    selectedMediaId: "",
+    pendingIssueContext: null,
     lightboxTool: "",
     lightboxZoomIndex: 0,
     lightboxDraftAnnotations: [],
@@ -86,6 +88,18 @@
     customer_comments: "客户修改意见",
     other: "其他附件",
     review_media: "评审媒体"
+  };
+
+  const mediaPartLabels = {
+    front: "正面",
+    back: "背面",
+    side: "侧身",
+    collar: "领口 / 帽口",
+    cuff: "袖口",
+    hem: "下摆",
+    bonding_seam: "压胶缝",
+    pocket: "口袋",
+    other: "其他"
   };
 
   const releaseLabels = {
@@ -597,6 +611,38 @@
     return row.responsibility || role?.responsibility || `输入${row.department}评审意见`;
   }
 
+  function currentReviewerName(style = currentStyle(), review = currentReview()) {
+    const gateOwner = textOwner(style, review, "gateOwner", "");
+    if (gateOwner && gateOwner !== "未指定") return gateOwner;
+    return roleOwnerNames(style, "quality_reviewer")[0] || "大前";
+  }
+
+  function myDepartmentRow(rows, style, review) {
+    const me = currentReviewerName(style, review);
+    const preferred = rows.find((row) => row.roleId === "quality_reviewer" && departmentReviewerNames(row, style).includes(me));
+    return preferred || rows.find((row) => departmentReviewerNames(row, style).includes(me)) || rows[0] || null;
+  }
+
+  function blockingIssueCount() {
+    return currentIssues().filter(isBlocking).length;
+  }
+
+  function releaseStatusCopy(shipment, issues = currentIssues()) {
+    const blockers = issues.filter(isBlocking).length;
+    if (shipment.release === "ready_to_send") return { title: "当前可寄样", reason: "无阻塞项", tone: "ok" };
+    if (blockers) return { title: "当前不可寄样", reason: `存在 ${blockers} 个 Blocking Issue`, tone: "blocked" };
+    const rawReason = releaseLabels[shipment.release] || shipment.risk;
+    return {
+      title: "当前不可寄样",
+      reason: String(rawReason || "").replace(/^禁止寄样：/, ""),
+      tone: shipment.tone === "red" ? "blocked" : "pending"
+    };
+  }
+
+  function issueCountForDepartment(department) {
+    return currentIssues().filter((issue) => issue.sourceDepartment === department).length;
+  }
+
   function plannedDate(style, sample) {
     return style?.plannedShipDate || sample?.plannedShipDate || "";
   }
@@ -894,12 +940,12 @@
     const riskPill = $("#risk-pill");
     const releasePill = $("#release-pill");
     if (riskPill) {
-      riskPill.className = `status-pill ${shipment.tone === "green" ? "ok" : shipment.tone === "red" ? "blocked" : "pending"}`;
-      riskPill.textContent = `风险：${shipment.risk}`;
+      const copy = releaseStatusCopy(shipment);
+      riskPill.className = `status-pill ${copy.tone}`;
+      riskPill.textContent = copy.title === "当前可寄样" ? "当前可寄样" : `${copy.title}｜原因：${copy.reason}`;
     }
     if (releasePill) {
-      releasePill.className = `status-pill ${shipment.release === "ready_to_send" ? "ok" : shipment.tone === "red" ? "blocked" : "pending"}`;
-      releasePill.textContent = releaseLabels[shipment.release] || shipment.release;
+      releasePill.hidden = true;
     }
   }
 
@@ -1032,8 +1078,48 @@
     ensureSelectedStyleVisible();
     renderReviewFilter();
     const style = currentStyle();
+    const sample = currentSample();
+    const review = currentReview();
+    const issues = currentIssues();
+    const shipment = computeShipmentState(style, sample, review, issues);
+    const release = releaseStatusCopy(shipment, issues);
+    const cover = findStyleCover(sample);
     $("#review-summary").classList.remove("skeleton");
-    $("#review-summary").innerHTML = style ? styleCard(style, false) : '<div class="empty">暂无评审数据。</div>';
+    $("#review-current-style").textContent = style ? `${style.brand || "未填品牌"} ${style.styleNo || "未填款号"} / ${style.styleName || "未填款名"}` : "暂无款式";
+    $("#review-summary").innerHTML = style ? `
+      <article class="review-hero-card">
+        <div class="review-cover">
+          <label class="style-image-upload ${cover?.url ? "has-image" : ""}">
+            <input type="file" accept="image/*" data-style-image-upload />
+            ${cover?.url
+              ? `<img src="${esc(cover.url)}" alt="款式主图" />`
+              : '<span class="style-image-empty"><strong>请上传样衣正面图</strong><small>款式主图专用通道</small></span>'}
+            <span class="style-image-action">${cover?.url ? "更换款式主图" : "上传款式主图"}</span>
+          </label>
+        </div>
+        <div class="review-core">
+          <h2>${esc(style.styleName || "未填款式名称")}</h2>
+          <p>${esc(style.brand || "未填品牌")} / ${esc(style.styleNo || "未填款号")}</p>
+          <dl>
+            <div><dt>样品阶段</dt><dd>${esc(sampleStageLabel(style.samplePhase))}</dd></div>
+            <div><dt>季节</dt><dd>${esc(style.season || "未设置")}</dd></div>
+            <div><dt>样衣位置</dt><dd>${esc(sample?.location || style.sampleLocation || "未设置")}</dd></div>
+            <div><dt>预计寄样</dt><dd>${esc(plannedDate(style, sample) || "未设置")}</dd></div>
+            <div><dt>客户交期</dt><dd>${esc(style.customerDeadline || "未设置")}</dd></div>
+          </dl>
+        </div>
+        <div class="review-judgement">
+          <span class="status-pill ${release.tone}">${esc(release.title)}</span>
+          <dl>
+            <div><dt>原因</dt><dd>${esc(release.reason)}</dd></div>
+            <div><dt>下一步</dt><dd>${esc(shipment.nextStep)}</dd></div>
+            <div><dt>Gate Owner</dt><dd>${esc(textOwner(style, review, "gateOwner", "未指定"))}</dd></div>
+            <div><dt>Final Approver</dt><dd>${esc(textOwner(style, review, "finalApprover", "杨总"))}</dd></div>
+            <div><dt>本轮目标</dt><dd>${esc(style.reviewObjective || "确认质量与工艺问题责任人，并判断是否允许寄样")}</dd></div>
+          </dl>
+        </div>
+      </article>
+    ` : '<div class="empty">暂无评审数据。</div>';
   }
 
   function renderDepartments() {
@@ -1041,30 +1127,35 @@
     const review = currentReview();
     const rows = departmentRowsForReview(review, style);
     state.departmentReviewRows = rows;
+    renderMyReviewTask(rows, style, review);
     const optional = optionalDepartmentRoles(review);
+    const me = currentReviewerName(style, review);
     const cards = rows.length ? rows.map((row, index) => {
       const role = roleForDepartmentRow(row);
       const reviewers = departmentReviewerNames(row, style);
+      const isMine = reviewers.includes(me);
+      const submitted = ["pass", "needs_improvement", "fail"].includes(row.status);
+      const draft = row.opinion && row.status === "pending";
+      const issueCount = issueCountForDepartment(row.department);
       return `
-      <article class="department-card" data-department-index="${index}" data-role-id="${esc(row.roleId || "")}">
-        <header>
-          <div>
-            <strong>${esc(row.department)}</strong>
-            <small>
-              <span>${esc(row.role || roleShortName(role) || "评审员")}</span>
-              ${reviewerChips(reviewers)}
-            </small>
-          </div>
-          <span class="badge ${row.status === "fail" ? "blocked" : row.status === "needs_improvement" ? "pending" : "ok"}">${esc(statusLabels[row.status] || row.status)}</span>
-        </header>
-        <div class="field-grid">
-          <select data-review-status>
-            ${["pending", "pass", "needs_improvement", "fail"].map((status) => `<option value="${status}" ${row.status === status ? "selected" : ""}>${esc(statusLabels[status])}</option>`).join("")}
-          </select>
-          <button class="secondary-button" type="button" data-save-department="${index}">保存意见</button>
-        </div>
-        <textarea data-review-opinion placeholder="${esc(reviewCardPlaceholder(row))}">${esc(row.opinion || "")}</textarea>
-      </article>
+        <details class="department-progress-card" data-department-index="${index}" data-role-id="${esc(row.roleId || "")}" ${isMine ? "open" : ""}>
+          <summary>
+            <span>
+              <strong>${esc(row.department)}</strong>
+              <small>${esc(row.role || roleShortName(role) || "评审员")} ${reviewerChips(reviewers)}</small>
+            </span>
+            <span class="department-progress-meta">
+              <i>${esc(isMine ? "当前评审" : draft ? "已保存草稿" : statusLabels[row.status] || row.status)}</i>
+              <i>${esc(issueCount ? `${issueCount} 个 Issue` : "0 个 Issue")}</i>
+            </span>
+          </summary>
+          ${submitted || isMine ? `
+            <div class="department-readonly-opinion">
+              <p>${esc(row.opinion || reviewCardPlaceholder(row))}</p>
+              ${isMine ? `<button class="secondary-button compact-button" type="button" data-scroll-my-review>编辑我的评审</button>` : ""}
+            </div>
+          ` : `<div class="department-readonly-opinion muted">待提交，暂不显示草稿内容。</div>`}
+        </details>
     `;
     }).join("") : '<div class="empty">暂无部门评审行。</div>';
     const optionalPanel = optional.length ? `
@@ -1088,6 +1179,61 @@
       </details>
     ` : "";
     $("#department-cards").innerHTML = cards + optionalPanel;
+  }
+
+  function renderMyReviewTask(rows, style, review) {
+    const row = myDepartmentRow(rows, style, review);
+    const index = row ? rows.indexOf(row) : -1;
+    const container = $("#my-review-task");
+    const gateBox = $("#gate-owner-card");
+    if (!container || !gateBox) return;
+    if (!row) {
+      container.innerHTML = '<div class="empty">当前没有匹配到你的评审任务。</div>';
+      gateBox.innerHTML = "";
+      return;
+    }
+    const reviewers = departmentReviewerNames(row, style);
+    const statusText = row.opinion && row.status === "pending" ? "已保存草稿" : (statusLabels[row.status] || "待提交");
+    container.innerHTML = `
+      <article class="my-review-card" data-department-index="${index}">
+        <div class="my-review-head">
+          <div>
+            <span>部门：${esc(row.department)}</span>
+            <h3>${esc(row.role || "评审员")}</h3>
+            ${reviewerChips(reviewers)}
+          </div>
+          <span class="badge ${row.status === "fail" ? "blocked" : row.status === "needs_improvement" ? "pending" : "ok"}">${esc(statusText)}</span>
+        </div>
+        <p class="review-duty">职责提示：${esc(reviewCardPlaceholder(row))}</p>
+        <label>评审结果
+          <select data-review-status>
+            ${["pending", "pass", "needs_improvement", "fail"].map((status) => `<option value="${status}" ${row.status === status ? "selected" : ""}>${esc(statusLabels[status])}</option>`).join("")}
+          </select>
+        </label>
+        <label>评审意见
+          <textarea data-review-opinion placeholder="${esc(reviewCardPlaceholder(row))}">${esc(row.opinion || "")}</textarea>
+        </label>
+        <div class="my-review-actions">
+          <button class="secondary-button" type="button" data-save-department="${index}">保存草稿</button>
+          <button class="primary-button" type="button" data-submit-review="${index}">提交评审</button>
+          <button class="secondary-button" type="button" data-review-to-issue="${index}">转为 Issue</button>
+        </div>
+      </article>
+    `;
+    const isGateOwner = roleOwnerNames(style, "sample_review_gate_owner").includes(currentReviewerName(style, review));
+    const rowsDone = rows.filter((item) => ["pass", "needs_improvement", "fail"].includes(item.status)).length;
+    const blockers = currentIssues().filter(isBlocking).length;
+    gateBox.innerHTML = isGateOwner ? `
+      <article class="gate-owner-panel">
+        <h3>放行判断卡</h3>
+        <dl>
+          <div><dt>部门评审完成</dt><dd>${esc(rowsDone)} / ${esc(rows.length)}</dd></div>
+          <div><dt>未关闭 Issue</dt><dd>${esc(currentIssues().filter((issue) => issue.status !== "closed").length)}</dd></div>
+          <div><dt>Blocking Issue</dt><dd>${esc(blockers)}</dd></div>
+          <div><dt>当前判断</dt><dd>${esc(blockers ? "暂停寄样" : "等待最终判断")}</dd></div>
+        </dl>
+      </article>
+    ` : "";
   }
 
   function renderIssues() {
@@ -1148,20 +1294,53 @@
 
   function renderMedia() {
     const mediaList = reviewMediaList();
+    if (!state.selectedMediaId || !mediaList.some((item) => item.id === state.selectedMediaId)) {
+      state.selectedMediaId = mediaList[0]?.id || "";
+    }
+    const selected = mediaList.find((item) => item.id === state.selectedMediaId);
+    const focus = $("#media-focus");
+    if (focus) {
+      if (!selected) {
+        focus.innerHTML = '<div class="media-focus-empty">暂无评审媒体，请先上传照片或视频。</div>';
+      } else {
+        const isVideo = selected.mediaKind === "video" || String(selected.mimeType || "").startsWith("video/");
+        const preview = isVideo
+          ? `<video src="${esc(selected.url || "")}" controls muted></video>`
+          : `<img src="${esc(selected.url || "")}" alt="${esc(selected.label || selected.fileName)}" />`;
+        focus.innerHTML = `
+          <div class="media-focus-stage">
+            <button class="media-open" type="button" data-open-media="${esc(selected.id)}" aria-label="放大查看 ${esc(selected.label || selected.fileName)}">${preview}</button>
+          </div>
+          <div class="media-focus-meta">
+            <strong>${esc(readableMediaLabel(selected))}</strong>
+            <span>${esc(mediaPartLabels[categoryFromLabel(selected)] || "未标注部位")}</span>
+            <button class="secondary-button compact-button" type="button" data-review-to-issue>当前图片转 Issue</button>
+          </div>
+        `;
+      }
+    }
     $("#uploaded-media").innerHTML = mediaList.length ? mediaList.map((item) => {
       const media = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/")
         ? `<video src="${esc(item.url || "")}" controls muted></video>`
         : `<img src="${esc(item.url || "")}" alt="${esc(item.label || item.fileName)}" />`;
       const category = categoryFromLabel(item);
+      const partOptions = Object.entries(mediaPartLabels).map(([value, label]) => `<option value="${esc(value)}" ${category === value ? "selected" : ""}>${esc(label)}</option>`).join("");
       return `
-        <article class="media-card">
+        <article class="media-card ${item.id === state.selectedMediaId ? "selected" : ""}">
           <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(item.label || item.fileName)}">×</button>
-          <button class="media-open" type="button" data-open-media="${esc(item.id)}" aria-label="放大查看 ${esc(item.label || item.fileName)}">${media}</button>
+          <button class="media-open" type="button" data-select-media="${esc(item.id)}" aria-label="选择 ${esc(item.label || item.fileName)}">${media}</button>
+          <label class="media-name-field">
+            <span>部位</span>
+            <select data-media-part-select="${esc(item.id)}">
+              <option value="">未标注</option>
+              ${partOptions}
+            </select>
+          </label>
           <label class="media-name-field">
             <span>名称</span>
             <input data-media-label-input="${esc(item.id)}" value="${esc(mediaNameForEdit(item))}" />
           </label>
-          <small>${esc(fileCategoryLabels[category] || "评审媒体")} · ${esc(item.uploadedAt || "")}</small>
+          <small>${esc(mediaPartLabels[category] || fileCategoryLabels[category] || "评审媒体")} · ${esc(item.uploadedAt || "")}</small>
         </article>
       `;
     }).join("") : '<div class="empty">暂无已上传媒体。</div>';
@@ -1629,7 +1808,7 @@
     const style = currentStyle();
     const review = currentReview();
     const row = state.departmentReviewRows?.[index] || review?.departmentReviews?.[index];
-    const card = $(`[data-department-index="${index}"]`);
+    const card = $(`.my-review-card[data-department-index="${index}"]`) || $(`.department-card[data-department-index="${index}"]`);
     if (!review || !row || !card) return;
     const status = card.querySelector("[data-review-status]").value;
     const opinion = card.querySelector("[data-review-opinion]").value;
@@ -1663,19 +1842,30 @@
     if (!style || !review) return showMessage("缺少当前款式或评审，不能新增 Issue。");
     const fields = new FormData(form);
     const level = fields.get("level");
+    const context = state.pendingIssueContext;
+    const description = context ? [
+      fields.get("title"),
+      `部门：${context.department}`,
+      `评审人：${context.reviewer || "未指定"}`,
+      `关注点：${context.focus || "未设置"}`,
+      `评审意见：${context.opinion || "未填写"}`,
+      `图片：${context.mediaLabel || "未选择"}`,
+      `部位：${context.mediaPart || "未标注"}`
+    ].join("\n") : fields.get("title");
     try {
       await syncData("createIssue", {
         styleId: style.id,
         sampleId: sample?.id,
         reviewId: review.id,
         title: fields.get("title"),
-        description: fields.get("title"),
+        description,
         sourceDepartment: fields.get("department"),
         level,
         shipmentBlocking: level === "major" || level === "critical",
         canShipWithNote: level === "minor" || level === "normal",
         status: "not_started"
       });
+      state.pendingIssueContext = null;
       form.reset();
       form.department.value = "品质部";
       await loadSnapshot();
@@ -2297,6 +2487,53 @@
     }
   }
 
+  async function saveMediaPart(select) {
+    const mediaId = select?.dataset.mediaPartSelect;
+    const item = reviewMediaList().find((media) => media.id === mediaId);
+    if (!mediaId || !item) return;
+    const name = mediaNameForEdit(item);
+    const nextLabel = select.value ? `[${select.value}] ${name}` : name;
+    if (nextLabel === item.label) return;
+    select.disabled = true;
+    try {
+      await syncData("updateMediaLabel", { mediaId, label: nextLabel });
+      $("#upload-status").dataset.tone = "success";
+      $("#upload-status").textContent = "媒体部位已保存。";
+      await loadSnapshot();
+    } catch (error) {
+      console.error("保存媒体部位失败", { mediaId, label: nextLabel, error });
+      $("#upload-status").dataset.tone = "error";
+      $("#upload-status").textContent = `部位保存失败：${error.message}`;
+      showMessage(`部位保存失败：${error.message}`);
+      select.disabled = false;
+    }
+  }
+
+  function fillIssueFromReview(index = null) {
+    const rows = state.departmentReviewRows || [];
+    const style = currentStyle();
+    const review = currentReview();
+    const row = Number.isInteger(index) ? rows[index] : myDepartmentRow(rows, style, review);
+    const form = $("#issue-form");
+    if (!form || !row) return;
+    const selected = reviewMediaList().find((item) => item.id === state.selectedMediaId);
+    const part = selected ? (mediaPartLabels[categoryFromLabel(selected)] || "未标注部位") : "未选择图片";
+    state.pendingIssueContext = {
+      department: row.department,
+      reviewer: departmentReviewerNames(row, style)[0] || "",
+      opinion: row.opinion || "",
+      focus: reviewCardPlaceholder(row),
+      mediaId: selected?.id || "",
+      mediaLabel: selected ? readableMediaLabel(selected) : "",
+      mediaPart: part
+    };
+    form.elements.title.value = `${row.department}评审问题 - ${part}`;
+    form.elements.level.value = row.status === "fail" ? "major" : "normal";
+    form.elements.department.value = row.department;
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+    showMessage(`已带入${row.department}、当前意见和当前图片，可补充 Issue 标题后提交。`, "ok");
+  }
+
   async function uploadStyleImage(file) {
     const style = currentStyle();
     const sample = currentSample();
@@ -2566,6 +2803,24 @@
       const saveDepartmentButton = event.target.closest("[data-save-department]");
       if (saveDepartmentButton) saveDepartment(Number(saveDepartmentButton.dataset.saveDepartment));
 
+      const submitReviewButton = event.target.closest("[data-submit-review]");
+      if (submitReviewButton) {
+        const index = Number(submitReviewButton.dataset.submitReview);
+        const card = $(`.my-review-card[data-department-index="${index}"]`);
+        const select = card?.querySelector("[data-review-status]");
+        if (select && select.value === "pending") select.value = "pass";
+        saveDepartment(index);
+      }
+
+      const reviewToIssueButton = event.target.closest("[data-review-to-issue]");
+      if (reviewToIssueButton) {
+        const rawIndex = reviewToIssueButton.dataset.reviewToIssue;
+        fillIssueFromReview(rawIndex === undefined || rawIndex === "" ? null : Number(rawIndex));
+      }
+
+      const scrollMyReviewButton = event.target.closest("[data-scroll-my-review]");
+      if (scrollMyReviewButton) $("#my-review-task")?.scrollIntoView({ behavior: "smooth", block: "center" });
+
       const closeIssueButton = event.target.closest("[data-close-issue]");
       if (closeIssueButton) closeIssue(closeIssueButton.dataset.closeIssue);
 
@@ -2577,6 +2832,12 @@
 
       const openMediaButton = event.target.closest("[data-open-media]");
       if (openMediaButton) openMediaLightbox(openMediaButton.dataset.openMedia);
+
+      const selectMediaButton = event.target.closest("[data-select-media]");
+      if (selectMediaButton) {
+        state.selectedMediaId = selectMediaButton.dataset.selectMedia;
+        renderMedia();
+      }
     });
 
     document.addEventListener("focusout", (event) => {
@@ -2589,6 +2850,11 @@
       if (!input || event.key !== "Enter") return;
       event.preventDefault();
       input.blur();
+    });
+
+    document.addEventListener("change", (event) => {
+      const mediaPart = event.target.closest("[data-media-part-select]");
+      if (mediaPart) saveMediaPart(mediaPart);
     });
 
     $("#new-style-button").addEventListener("click", () => openStyleModal());
@@ -2665,6 +2931,11 @@
       state.reviewStyleFilter = "";
       ensureSelectedStyleVisible();
       renderAll();
+    });
+    $("#toggle-review-filter").addEventListener("click", () => {
+      const filter = $("#review-filter-body");
+      filter.hidden = !filter.hidden;
+      $("#toggle-review-filter").textContent = filter.hidden ? "切换款式" : "收起切换";
     });
     $("#calendar-brand-filter").addEventListener("change", (event) => {
       state.calendarBrandFilter = event.currentTarget.value;
