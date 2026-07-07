@@ -204,6 +204,53 @@ h3 {
   background: var(--warn-bg);
 }
 
+.status-pill.overview {
+  color: #7a4d00;
+  background: #fff4d9;
+}
+
+.badge.critical,
+.pipeline-state.critical {
+  color: #7f1d1d;
+  background: #fee2e2;
+}
+
+.badge.review,
+.pipeline-state.review {
+  color: var(--accent);
+  background: rgba(0, 113, 227, 0.1);
+}
+
+.ghost-action {
+  opacity: 0.64;
+}
+
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.view-toggle button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.view-toggle button.active {
+  color: var(--accent);
+  background: rgba(0, 113, 227, 0.1);
+}
+
 .banner {
   border: 1px solid #f1c7c1;
   background: var(--warn-bg);
@@ -428,6 +475,138 @@ h3 {
   align-content: center;
 }
 
+.pipeline-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 156px;
+  gap: 18px;
+}
+
+.pipeline-info-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pipeline-info-grid section {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(248, 248, 250, 0.82);
+}
+
+.pipeline-info-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.pipeline-info-grid strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.pipeline-info-grid p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 680;
+  overflow-wrap: anywhere;
+}
+
+.more-actions {
+  position: relative;
+}
+
+.more-actions summary {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.75);
+  font-weight: 850;
+  cursor: pointer;
+  list-style: none;
+}
+
+.more-actions summary::-webkit-details-marker {
+  display: none;
+}
+
+.more-actions > div {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 10;
+  min-width: 132px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.pipeline-table {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.pipeline-row {
+  display: grid;
+  grid-template-columns: 110px 110px 120px 136px 240px 120px 120px 120px minmax(220px, 1fr) 82px;
+  gap: 10px;
+  align-items: center;
+  min-width: 1480px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.pipeline-row:first-child {
+  border-top: 0;
+}
+
+.pipeline-row-head {
+  color: var(--muted);
+  background: rgba(242, 242, 247, 0.72);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.pipeline-state {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.pipeline-state.ok {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.pipeline-state.pending {
+  color: var(--amber);
+  background: var(--amber-bg);
+}
+
+.pipeline-state.blocked {
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+
 .route-tags {
   display: flex;
   flex-wrap: wrap;
@@ -470,6 +649,62 @@ h3 {
   border-radius: 8px;
   padding: 14px;
   background: rgba(255, 255, 255, 0.68);
+}
+
+.roadmap-compact {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.roadmap-compact-item {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  text-align: left;
+  cursor: default;
+}
+
+.roadmap-compact-item[data-roadmap-action="review"],
+.roadmap-compact-item[data-roadmap-action="issues"],
+.roadmap-compact-item[data-roadmap-action="final"] {
+  cursor: pointer;
+}
+
+.roadmap-compact-item span,
+.roadmap-compact-item small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 730;
+}
+
+.roadmap-compact-item strong {
+  display: block;
+  margin: 4px 0 2px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.roadmap-compact-item.complete {
+  border-color: rgba(52, 199, 89, 0.28);
+  background: var(--ok-bg);
+}
+
+.roadmap-compact-item.current {
+  border-color: rgba(0, 113, 227, 0.34);
+  background: rgba(0, 113, 227, 0.08);
+}
+
+.roadmap-compact-item.risk {
+  border-color: rgba(255, 149, 0, 0.34);
+  background: var(--amber-bg);
+}
+
+.roadmap-toggle {
+  margin-top: 10px;
 }
 
 .roadmap-head {
@@ -2514,16 +2749,24 @@ textarea:focus {
     gap: 8px;
   }
 
-  .pipeline-list .style-card-main > .style-title,
-  .pipeline-list .style-card-main > p,
-  .pipeline-list .meta-grid {
-    display: none;
+  .pipeline-card {
+    grid-template-columns: 1fr;
+  }
+
+  .pipeline-info-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    margin-top: 10px;
   }
 
   .gate-roadmap {
     margin-top: 8px;
     padding: 12px;
     overflow: hidden;
+  }
+
+  .roadmap-compact {
+    grid-template-columns: 1fr 1fr;
   }
 
   .roadmap-head {
@@ -2572,16 +2815,25 @@ textarea:focus {
   .pipeline-actions {
     width: 100%;
     min-width: 0;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr auto;
     gap: 6px;
   }
 
   .pipeline-actions .primary-button,
-  .pipeline-actions .secondary-button,
-  .pipeline-actions .danger-button {
+  .pipeline-actions .secondary-button {
     min-height: 34px;
     padding: 0 6px;
     font-size: 12px;
+  }
+
+  .more-actions summary {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .more-actions > div {
+    right: 0;
   }
 
   .route-tags {

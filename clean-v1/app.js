@@ -17,6 +17,8 @@
     draggingTextAnnotation: null,
     lightboxPan: { x: 0, y: 0 },
     lightboxPanning: null,
+    pipelineViewMode: "cards",
+    expandedRoadmaps: {},
     uploading: false,
     touchStartX: null,
     loading: false,
@@ -643,6 +645,103 @@
     return currentIssues().filter((issue) => issue.sourceDepartment === department).length;
   }
 
+  function pipelineIssueCounts(issues = []) {
+    const openIssues = issues.filter((issue) => issue.status !== "closed");
+    const blockingIssues = issues.filter(isBlocking);
+    const criticalIssues = blockingIssues.filter((issue) => issue.level === "critical");
+    const normalIssues = openIssues.filter((issue) => issue.level === "normal");
+    return { open: openIssues.length, blocking: blockingIssues.length, critical: criticalIssues.length, normal: normalIssues.length };
+  }
+
+  function pipelineStatus(style, sample, review, issues, shipment) {
+    const counts = pipelineIssueCounts(issues);
+    if (counts.critical) {
+      return {
+        label: "暂停寄样｜严重 Issue 未复验",
+        tone: "critical",
+        riskLevel: "严重风险",
+        blockerType: "严重 Issue",
+        owner: textOwner(style, review, "gateOwner", "未指定")
+      };
+    }
+    if (counts.blocking) {
+      return {
+        label: `样衣评审阻塞｜${counts.blocking} 个 Blocking Issue`,
+        tone: "blocked",
+        riskLevel: "高风险",
+        blockerType: "Issue 阻塞",
+        owner: textOwner(style, review, "gateOwner", "未指定")
+      };
+    }
+    if (shipment.release === "blocked_by_preparation") {
+      return {
+        label: "准备闸口未完成｜资料未齐",
+        tone: "pending",
+        riskLevel: "资料风险",
+        blockerType: "资料未齐",
+        owner: textOwner(style, review, "preparationGateOwner", "王部长")
+      };
+    }
+    if (shipment.release === "overdue_pending_confirm") {
+      return {
+        label: "待负责人判断｜交期逾期",
+        tone: "pending",
+        riskLevel: "交期风险",
+        blockerType: "交期逾期",
+        owner: textOwner(style, review, "gateOwner", "未指定")
+      };
+    }
+    if (shipment.release === "blocked_by_owner_missing") {
+      return {
+        label: "待 Gate Owner 判断",
+        tone: "review",
+        riskLevel: "责任人风险",
+        blockerType: "待负责人判断",
+        owner: textOwner(style, review, "gateOwner", "未指定")
+      };
+    }
+    if (counts.normal) {
+      return {
+        label: "待 Gate Owner 判断",
+        tone: "review",
+        riskLevel: "一般风险",
+        blockerType: "待负责人判断",
+        owner: textOwner(style, review, "gateOwner", "未指定")
+      };
+    }
+    if (shipment.release === "ready_to_send") {
+      return {
+        label: "当前可寄样",
+        tone: "ok",
+        riskLevel: "低风险",
+        blockerType: "无卡点",
+        owner: textOwner(style, review, "gateOwner", "未指定")
+      };
+    }
+    return {
+      label: releaseLabels[shipment.release] || shipment.risk || "待确认",
+      tone: shipment.tone === "red" ? "blocked" : "pending",
+      riskLevel: shipment.risk || "待确认",
+      blockerType: departmentReviewIncomplete(review) ? "部门评审未完成" : "待负责人判断",
+      owner: textOwner(style, review, "gateOwner", "未指定")
+    };
+  }
+
+  function pipelineOverview() {
+    const styles = state.data?.styleList || [];
+    const summary = styles.reduce((acc, style) => {
+      const sample = state.data?.samples?.find((item) => item.styleId === style.id);
+      const review = state.data?.reviews?.find((item) => item.styleId === style.id || item.sampleId === sample?.id);
+      const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
+      const shipment = computeShipmentState(style, sample, review, issues);
+      if (shipment.release !== "ready_to_send") acc.blocked += 1;
+      if (shipment.release === "blocked_by_preparation") acc.preparation += 1;
+      if (shipment.release === "overdue_pending_confirm") acc.overdue += 1;
+      return acc;
+    }, { blocked: 0, preparation: 0, overdue: 0 });
+    return `当前风险：${summary.blocked} 个款式不可寄样｜${summary.preparation} 个款式资料未齐｜${summary.overdue} 个款式交期逾期`;
+  }
+
   function plannedDate(style, sample) {
     return style?.plannedShipDate || sample?.plannedShipDate || "";
   }
@@ -848,21 +947,46 @@
 
   function renderRoadmap(style, sample, review, issues, shipment) {
     const nodes = roadmapNodes(style, sample, review, issues, shipment);
+    const expanded = Boolean(state.expandedRoadmaps[style.id]);
+    const currentIndex = nodes.findIndex((node) => node.status === "current");
+    const firstRiskIndex = nodes.findIndex((node) => node.status === "risk");
+    const activeIndex = currentIndex >= 0 ? currentIndex : firstRiskIndex >= 0 ? firstRiskIndex : Math.max(0, nodes.findIndex((node) => node.status === "pending") - 1);
+    const current = nodes[activeIndex] || nodes[0];
+    const lastComplete = [...nodes].reverse().find((node) => node.status === "complete") || nodes[0];
+    const next = nodes.slice(activeIndex + 1).find((node) => node.status !== "complete") || nodes[nodes.length - 1];
+    const compactItems = [
+      ["已完成", lastComplete],
+      ["当前", current],
+      ["下一步", next],
+      ["最终", nodes[nodes.length - 1]]
+    ];
     return `
       <div class="gate-roadmap" aria-label="开发路线图">
         <div class="roadmap-head">
           <strong>开发路线图</strong>
           <span>${esc(gateLabel(style.currentGate))} · ${esc(statusLabels[review?.status] || review?.status || "进行中")}</span>
         </div>
-        <div class="roadmap-track">
-          ${nodes.map((node, index) => `
-            <button class="roadmap-node ${esc(node.status)}" type="button" title="${esc(`${node.label}：${node.desc}`)}" data-roadmap-action="${esc(node.action || "")}" data-roadmap-style="${esc(style.id)}">
-              <span class="roadmap-dot">${node.status === "complete" ? "✓" : node.status === "risk" ? "!" : ""}</span>
-              <span class="roadmap-label">${esc(index + 1)}. ${esc(node.label)}</span>
+        <div class="roadmap-compact">
+          ${compactItems.map(([label, node]) => `
+            <button class="roadmap-compact-item ${esc(node.status)}" type="button" title="${esc(`${node.label}：${node.desc}`)}" data-roadmap-action="${esc(node.action || "")}" data-roadmap-style="${esc(style.id)}">
+              <span>${esc(label)}</span>
+              <strong>${esc(node.label)}</strong>
               <small>${esc(node.desc)}</small>
             </button>
           `).join("")}
         </div>
+        <button class="secondary-button compact-button roadmap-toggle" type="button" data-toggle-roadmap="${esc(style.id)}">${expanded ? "收起流程" : "展开流程"}</button>
+        ${expanded ? `
+          <div class="roadmap-track">
+            ${nodes.map((node, index) => `
+              <button class="roadmap-node ${esc(node.status)}" type="button" title="${esc(`${node.label}：${node.desc}`)}" data-roadmap-action="${esc(node.action || "")}" data-roadmap-style="${esc(style.id)}">
+                <span class="roadmap-dot">${node.status === "complete" ? "✓" : node.status === "risk" ? "!" : ""}</span>
+                <span class="roadmap-label">${esc(index + 1)}. ${esc(node.label)}</span>
+                <small>${esc(node.desc)}</small>
+              </button>
+            `).join("")}
+          </div>
+        ` : ""}
       </div>
     `;
   }
@@ -872,8 +996,9 @@
     const review = state.data?.reviews?.find((item) => item.styleId === style.id || item.sampleId === sample?.id);
     const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
     const shipment = computeShipmentState(style, sample, review, issues);
-    const status = shipment.release === "ready_to_send" ? "ok" : shipment.tone === "red" ? "blocked" : "pending";
+    const pipeline = pipelineStatus(style, sample, review, issues, shipment);
     const routeState = routeStatus(style);
+    const issueCounts = pipelineIssueCounts(issues);
     const styleImage = findStyleCover(sample);
     const visual = includeAction ? "" : `
       <div class="style-visual">
@@ -887,25 +1012,52 @@
       </div>
     `;
     return `
-      <article class="style-card ${includeAction ? "" : "with-visual"}">
+      <article class="style-card ${includeAction ? "pipeline-card" : "with-visual"}">
         ${visual}
         <div class="style-card-main">
           <div class="style-title">
             <h2>${esc(style.styleName)}</h2>
-            <span class="badge ${status}">${esc(releaseLabels[shipment.release] || shipment.release)}</span>
+            <span class="badge ${esc(pipeline.tone)}">${esc(pipeline.label)}</span>
           </div>
           <p>${esc(style.brand)} / ${esc(style.styleNo)}</p>
-          ${!includeAction ? `<div class="status-strip">
-            <span class="${esc(shipment.tone)}">当前风险状态：${esc(shipment.risk)}</span>
-            <span class="${esc(shipment.tone)}">寄样放行状态：${esc(releaseLabels[shipment.release] || shipment.release)}</span>
-          </div>` : ""}
           ${includeAction ? `
             <div class="mobile-pipeline-summary">
               <div><strong>${esc(style.styleNo || "未填款号")}</strong><span>${esc(style.brand || "未填品牌")}</span></div>
               <div class="route-tags"><i>${esc(routeLabel(style))}</i><i class="${esc(routeState.tone)}">${esc(routeState.label)}</i></div>
             </div>
+            <div class="pipeline-info-grid">
+              <section>
+                <span>款式身份</span>
+                <strong>${esc(sampleStageLabel(style.samplePhase))}</strong>
+                <p>${esc(routeLabel(style))}</p>
+              </section>
+              <section>
+                <span>当前状态</span>
+                <strong>${esc(gateLabel(style.currentGate))}</strong>
+                <p>${esc(pipeline.riskLevel)}</p>
+              </section>
+              <section>
+                <span>卡点</span>
+                <strong>${esc(pipeline.blockerType)}</strong>
+                <p>${esc(issueCounts.blocking)} Blocking / ${esc(issueCounts.open)} 未关闭</p>
+              </section>
+              <section>
+                <span>责任与下一步</span>
+                <strong>${esc(pipeline.owner)}</strong>
+                <p>${esc(shipment.nextStep)}</p>
+              </section>
+              <section>
+                <span>关键日期</span>
+                <strong>${esc(dateText(plannedDate(style, sample)))}</strong>
+                <p>客户交期 ${esc(dateText(style.customerDeadline))}</p>
+              </section>
+            </div>
           ` : ""}
           ${!includeAction ? `
+            <div class="status-strip">
+              <span class="${esc(pipeline.tone)}">当前寄样状态：${esc(pipeline.label)}</span>
+              <span class="${esc(pipeline.tone)}">当前风险等级：${esc(pipeline.riskLevel)}</span>
+            </div>
             <div class="meta-grid">
               ${meta("季节", style.season)}
               ${meta("当前 Gate", gateLabel(style.currentGate))}
@@ -924,10 +1076,15 @@
         </div>
         ${includeAction ? `
           <div class="pipeline-actions">
-            <button class="secondary-button" type="button" data-open-style-editor="${esc(style.id)}">编辑</button>
             <button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>
             <button class="secondary-button" type="button" data-open-style-materials="${esc(style.id)}">款式资料</button>
-            <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
+            <details class="more-actions">
+              <summary>更多</summary>
+              <div>
+                <button class="secondary-button" type="button" data-open-style-editor="${esc(style.id)}">编辑</button>
+                <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
+              </div>
+            </details>
           </div>
         ` : ""}
       </article>
@@ -940,9 +1097,14 @@
     const riskPill = $("#risk-pill");
     const releasePill = $("#release-pill");
     if (riskPill) {
-      const copy = releaseStatusCopy(shipment);
-      riskPill.className = `status-pill ${copy.tone}`;
-      riskPill.textContent = copy.title === "当前可寄样" ? "当前可寄样" : `${copy.title}｜原因：${copy.reason}`;
+      if ($("#pipeline-view")?.classList.contains("active")) {
+        riskPill.className = "status-pill overview";
+        riskPill.textContent = pipelineOverview();
+      } else {
+        const copy = releaseStatusCopy(shipment);
+        riskPill.className = `status-pill ${copy.tone}`;
+        riskPill.textContent = copy.title === "当前可寄样" ? "当前可寄样" : `${copy.title}｜原因：${copy.reason}`;
+      }
     }
     if (releasePill) {
       releasePill.hidden = true;
@@ -951,10 +1113,48 @@
 
   function renderPipeline() {
     const styles = state.data?.styleList || [];
+    $$("[data-pipeline-view-mode]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.pipelineViewMode === state.pipelineViewMode);
+    });
     $("#pipeline-list").classList.remove("skeleton");
-    $("#pipeline-list").innerHTML = styles.length
-      ? styles.map((style) => styleCard(style, true)).join("")
-      : '<div class="empty">暂无款式数据。</div>';
+    $("#pipeline-list").classList.toggle("compact-list-mode", state.pipelineViewMode === "compact");
+    if (!styles.length) {
+      $("#pipeline-list").innerHTML = '<div class="empty">暂无款式数据。</div>';
+      return;
+    }
+    if (state.pipelineViewMode === "compact") {
+      $("#pipeline-list").innerHTML = `
+        <div class="pipeline-table" role="table" aria-label="紧凑开发流水线">
+          <div class="pipeline-row pipeline-row-head" role="row">
+            <span>款号</span><span>品牌</span><span>阶段</span><span>当前 Gate</span><span>状态</span><span>Blocking Issue</span><span>责任人</span><span>预计寄样</span><span>下一步</span><span>操作</span>
+          </div>
+          ${styles.map((style) => {
+            const sample = state.data?.samples?.find((item) => item.styleId === style.id);
+            const review = state.data?.reviews?.find((item) => item.styleId === style.id || item.sampleId === sample?.id);
+            const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
+            const shipment = computeShipmentState(style, sample, review, issues);
+            const pipeline = pipelineStatus(style, sample, review, issues, shipment);
+            const counts = pipelineIssueCounts(issues);
+            return `
+              <div class="pipeline-row" role="row">
+                <strong>${esc(style.styleNo || "未填")}</strong>
+                <span>${esc(style.brand || "未填")}</span>
+                <span>${esc(sampleStageLabel(style.samplePhase))}</span>
+                <span>${esc(gateLabel(style.currentGate))}</span>
+                <span><i class="pipeline-state ${esc(pipeline.tone)}">${esc(pipeline.label)}</i></span>
+                <span>${esc(counts.blocking)}</span>
+                <span>${esc(pipeline.owner)}</span>
+                <span>${esc(dateText(plannedDate(style, sample)))}</span>
+                <span>${esc(shipment.nextStep)}</span>
+                <span><button class="primary-button compact-button" type="button" data-open-review="${esc(style.id)}">打开</button></span>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+      return;
+    }
+    $("#pipeline-list").innerHTML = styles.map((style) => styleCard(style, true)).join("");
   }
 
   function configuredBrands() {
@@ -2573,6 +2773,7 @@
       const hiddenViews = String(button.dataset.hideOn || "").split(/\s+/).filter(Boolean);
       button.hidden = hiddenViews.includes(viewName);
     });
+    updateStatus();
     if (window.location.hash !== `#${viewName}`) {
       window.history.replaceState(null, "", `#${viewName}`);
     }
@@ -2723,6 +2924,20 @@
         if (action === "review") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, "#review-summary");
         if (action === "issues") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, ".issue-panel");
         if (action === "final") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, ".final-approval-panel");
+      }
+
+      const pipelineMode = event.target.closest("[data-pipeline-view-mode]");
+      if (pipelineMode) {
+        state.pipelineViewMode = pipelineMode.dataset.pipelineViewMode || "cards";
+        renderPipeline();
+        updateStatus();
+      }
+
+      const roadmapToggle = event.target.closest("[data-toggle-roadmap]");
+      if (roadmapToggle) {
+        const styleId = roadmapToggle.dataset.toggleRoadmap;
+        state.expandedRoadmaps[styleId] = !state.expandedRoadmaps[styleId];
+        renderPipeline();
       }
 
       const styleEditorButton = event.target.closest("[data-open-style-editor]");

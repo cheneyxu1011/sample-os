@@ -121,6 +121,18 @@ The sample review page is reviewer-first.
 - Gate Owner / review owner cards may show release judgment, but regular reviewers should see only the tasks they need to complete.
 - Any new review-page control must write through the shared sync APIs or explicitly show that it is temporary.
 
+## Pipeline Page Workflow Rules
+
+The development pipeline page is manager-first.
+
+- Pipeline cards must keep a consistent information structure across all styles: identity, current status, blockers, ownership / next step, and key dates.
+- Pipeline status wording must distinguish preparation gaps, review blockers, severe Issue pauses, Gate Owner judgment, and ready-to-send states.
+- Pipeline top status must summarize all visible styles instead of duplicating the selected style risk and release pills.
+- Destructive style actions must stay behind a secondary menu and keep the existing delete confirmation.
+- Roadmaps should default to a compact current-state summary and only show the full eight-step route after user expansion.
+- Compact list view must use the same shared style, sample, review, issue, and owner data as card view.
+- Any pipeline control that opens review, materials, editing, or deletion must keep `selectedStyleId` and snapshot reload behavior consistent with the review page.
+
 ## Write Flow
 
 All business writes go through `POST /api/sampleos/sync`.

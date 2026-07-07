@@ -32,7 +32,7 @@
           </div>
           <div class="top-actions">
             <button class="primary-button view-action" type="button" id="new-style-button" data-hide-on="review calendar settings">新建款式</button>
-            <button class="secondary-button view-action" type="button" id="reload-data" data-hide-on="review calendar settings">刷新数据</button>
+            <button class="secondary-button view-action ghost-action" type="button" id="reload-data" data-hide-on="pipeline review calendar settings">刷新数据</button>
             <div class="status-stack view-action" data-hide-on="calendar settings" aria-live="polite">
               <div class="status-pill" id="risk-pill">风险：读取中</div>
               <div class="status-pill" id="release-pill">放行：读取中</div>
@@ -47,6 +47,10 @@
             <div>
               <h2>开发流水线</h2>
               <p>按款式阶段、预计寄样日期和当前风险查看开发进度。</p>
+            </div>
+            <div class="view-toggle" aria-label="开发流水线视图切换">
+              <button class="active" type="button" data-pipeline-view-mode="cards">卡片视图</button>
+              <button type="button" data-pipeline-view-mode="compact">紧凑列表</button>
             </div>
           </div>
           <div id="pipeline-list" class="pipeline-list skeleton">正在加载...</div>
