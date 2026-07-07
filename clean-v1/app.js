@@ -1891,18 +1891,39 @@
     $("#lightbox-caption").textContent = "已撤销最近一条备注，点击保存备注后生效";
   }
 
+  function replaceMediaAnnotations(mediaId, annotations) {
+    const nextAnnotations = normalizeAnnotations(annotations);
+    (state.data.samples || []).forEach((sample) => {
+      (sample.mediaList || []).forEach((media) => {
+        if (String(media.id) === String(mediaId)) media.annotations = nextAnnotations;
+      });
+    });
+    return nextAnnotations;
+  }
+
   async function saveLightboxAnnotations() {
     const item = reviewMediaList()[state.lightboxIndex];
     if (!item?.id) return;
+    const draftAnnotations = normalizeAnnotations(state.lightboxDraftAnnotations);
     try {
-      await syncData("updateMediaAnnotations", {
+      $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · 正在同步备注...`;
+      const result = await syncData("updateMediaAnnotations", {
         mediaId: item.id,
-        annotations: state.lightboxDraftAnnotations
+        annotations: draftAnnotations
       });
-      $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · 备注已保存`;
+      state.lightboxDraftAnnotations = replaceMediaAnnotations(item.id, result.annotations || draftAnnotations);
+      renderAnnotations();
       await loadSnapshot();
+      const refreshedItem = reviewMediaList().find((media) => String(media.id) === String(item.id));
+      if (refreshedItem) {
+        state.lightboxDraftAnnotations = normalizeAnnotations(refreshedItem.annotations || state.lightboxDraftAnnotations);
+        renderAnnotations();
+      }
+      $("#lightbox-caption").textContent = `${readableMediaLabel(refreshedItem || item)} · ✓ 备注已同步`;
+      showMessage("图片备注已同步。", "ok");
     } catch (error) {
       console.error("保存图片备注失败", { mediaId: item.id, error });
+      $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · 备注同步失败：${error.message}`;
       showMessage(`保存图片备注失败：${error.message}`);
     }
   }
