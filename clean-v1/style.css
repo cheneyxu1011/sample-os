@@ -728,6 +728,81 @@ h3 {
   margin-bottom: 10px;
 }
 
+.department-card small {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.reviewer-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.reviewer-chips i,
+.muted-inline {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+.reviewer-chips i {
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--accent);
+}
+
+.muted-inline {
+  background: rgba(110, 118, 129, 0.1);
+  color: var(--muted);
+}
+
+.optional-review-panel {
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+}
+
+.optional-review-panel summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.optional-review-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.optional-review-list article {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.optional-review-list small {
+  color: var(--muted);
+  display: block;
+  margin: 4px 0 8px;
+}
+
+.compact-button {
+  min-height: 36px;
+  padding: 7px 12px;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);

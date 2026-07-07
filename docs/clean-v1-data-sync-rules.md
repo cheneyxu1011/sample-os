@@ -298,6 +298,9 @@ New and edit style forms must read owners from the shared role template configur
 - Any future owner-related feature must verify the pipeline card, review header, department cards, settings role templates, and refresh-after-save path all read the same owner data.
 - Department review cards must resolve reviewer names from the current style `roleOwners` before falling back to `review_department_reviews.reviewer_id`. Creating a style should also seed department review rows with matching reviewer IDs when the selected person exists in `sample_people`.
 - Saving or assigning a person must update both `sample_people` and `sample_settings.roleTemplates`. The people library, role template cards, style owner selectors, and review department cards must not maintain separate unsynced role membership.
+- Department review cards must be generated from default review role templates, not only from existing `review_department_reviews` rows. If a default role such as Business PM, Sample Feedback Owner, or Sample Review Gate Owner has assigned people, every assigned person must appear on the review card as a blue chip.
+- Role template responsibility/focus text is the source for department review textarea placeholder guidance. Review cards should show the role-specific checking prompt before falling back to generic department text.
+- Optional/on-demand review roles must stay collapsed under the department review area and can be added to the current style review temporarily. Once the added optional card is saved, it must persist through Supabase like other department review rows.
 
 ## New Feature Sync Rules
 

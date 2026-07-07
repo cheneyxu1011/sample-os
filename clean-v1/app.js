@@ -23,7 +23,8 @@
     reviewStyleFilter: "",
     calendarBrandFilter: "",
     calendarSeasonFilter: "",
-    calendarStageFilter: ""
+    calendarStageFilter: "",
+    optionalDepartmentRoleIdsByStyle: {}
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -196,6 +197,16 @@
     "IE 部": "ie_reviewer",
     "IE部": "ie_reviewer",
     "打样部": "sample_feedback_owner"
+  };
+
+  const departmentByRoleId = {
+    business_pm: "业务部",
+    pattern_reviewer: "打版组",
+    quality_reviewer: "品质部",
+    process_reviewer: "工艺部",
+    ie_reviewer: "IE 部",
+    sample_feedback_owner: "打样部",
+    sample_review_gate_owner: "样衣评审负责人"
   };
 
 
@@ -500,9 +511,90 @@
     return roleOwners[roleId] || owners[legacyName] || "";
   }
 
-  function departmentReviewerName(row, style) {
-    const roleId = departmentRoleOwnerMap[row.department] || "";
-    return roleOwnerText(style, roleId) || row.reviewerName || userName(row.reviewer);
+  function uniqueNames(names) {
+    return Array.from(new Set(names.map((name) => String(name || "").trim()).filter(Boolean).filter((name) => name !== "未指定")));
+  }
+
+  function roleOwnerNames(style, roleId, row = {}) {
+    const role = roleById(roleId);
+    const selected = roleOwnerText(style, roleId);
+    const assigned = assignedUsersForRole(roleId).map((user) => user.name);
+    const templatePeople = Array.isArray(role?.people) ? role.people : [];
+    return uniqueNames([selected, row.reviewerName, userName(row.reviewer), ...templatePeople, ...assigned]);
+  }
+
+  function departmentReviewerNames(row, style) {
+    const roleId = row.roleId || departmentRoleOwnerMap[row.department] || "";
+    return roleId ? roleOwnerNames(style, roleId, row) : uniqueNames([row.reviewerName, userName(row.reviewer)]);
+  }
+
+  function reviewerChips(names) {
+    const list = uniqueNames(names);
+    return list.length
+      ? `<span class="reviewer-chips">${list.map((name) => `<i>${esc(name)}</i>`).join("")}</span>`
+      : `<span class="muted-inline">未指定</span>`;
+  }
+
+  function roleForDepartmentRow(row) {
+    const roleId = row.roleId || departmentRoleOwnerMap[row.department] || "";
+    return roleById(roleId);
+  }
+
+  function departmentRowsForReview(review, style) {
+    const savedRows = Array.isArray(review?.departmentReviews) ? review.departmentReviews : [];
+    const rowsByRole = new Map();
+    const rowsByDepartment = new Map();
+    const prepared = savedRows.map((row) => {
+      const roleId = row.roleId || departmentRoleOwnerMap[row.department] || "";
+      const role = roleById(roleId);
+      const next = {
+        ...row,
+        roleId,
+        role: row.role || roleShortName(role) || "评审员",
+        responsibility: row.responsibility || role?.responsibility || ""
+      };
+      if (roleId) rowsByRole.set(roleId, next);
+      rowsByDepartment.set(row.department, next);
+      return next;
+    });
+    const neededRoleIds = new Set([
+      ...activeRoleTemplates().filter(isDefaultReviewRole).map((role) => role.id),
+      ...(state.optionalDepartmentRoleIdsByStyle[style?.id || ""] || [])
+    ]);
+    activeRoleTemplates().forEach((role) => {
+      if (!neededRoleIds.has(role.id)) return;
+      const department = departmentByRoleId[role.id] || roleShortName(role);
+      if (rowsByRole.has(role.id) || rowsByDepartment.has(department)) return;
+      prepared.push({
+        id: `virtual_${role.id}`,
+        isVirtual: true,
+        roleId: role.id,
+        department,
+        role: roleShortName(role),
+        reviewer: null,
+        reviewerName: "",
+        status: "pending",
+        opinion: "",
+        focusTags: [],
+        responsibility: role.responsibility || ""
+      });
+    });
+    const order = new Map(activeRoleTemplates().map((role, index) => [role.id, index]));
+    return prepared.sort((a, b) => {
+      const ai = order.has(a.roleId) ? order.get(a.roleId) : 999;
+      const bi = order.has(b.roleId) ? order.get(b.roleId) : 999;
+      return ai - bi || String(a.department).localeCompare(String(b.department), "zh-Hans-CN");
+    });
+  }
+
+  function optionalDepartmentRoles(review) {
+    const existing = new Set(departmentRowsForReview(review, currentStyle()).map((row) => row.roleId).filter(Boolean));
+    return activeRoleTemplates().filter((role) => !isDefaultReviewRole(role) && !existing.has(role.id));
+  }
+
+  function reviewCardPlaceholder(row) {
+    const role = roleForDepartmentRow(row);
+    return row.responsibility || role?.responsibility || `输入${row.department}评审意见`;
   }
 
   function plannedDate(style, sample) {
@@ -947,13 +1039,21 @@
   function renderDepartments() {
     const style = currentStyle();
     const review = currentReview();
-    const rows = review?.departmentReviews || [];
-    $("#department-cards").innerHTML = rows.length ? rows.map((row, index) => `
-      <article class="department-card" data-department-index="${index}">
+    const rows = departmentRowsForReview(review, style);
+    state.departmentReviewRows = rows;
+    const optional = optionalDepartmentRoles(review);
+    const cards = rows.length ? rows.map((row, index) => {
+      const role = roleForDepartmentRow(row);
+      const reviewers = departmentReviewerNames(row, style);
+      return `
+      <article class="department-card" data-department-index="${index}" data-role-id="${esc(row.roleId || "")}">
         <header>
           <div>
             <strong>${esc(row.department)}</strong>
-            <small>${esc(row.role || "评审员")} / ${esc(departmentReviewerName(row, style))}</small>
+            <small>
+              <span>${esc(row.role || roleShortName(role) || "评审员")}</span>
+              ${reviewerChips(reviewers)}
+            </small>
           </div>
           <span class="badge ${row.status === "fail" ? "blocked" : row.status === "needs_improvement" ? "pending" : "ok"}">${esc(statusLabels[row.status] || row.status)}</span>
         </header>
@@ -963,9 +1063,31 @@
           </select>
           <button class="secondary-button" type="button" data-save-department="${index}">保存意见</button>
         </div>
-        <textarea data-review-opinion placeholder="输入${esc(row.department)}评审意见">${esc(row.opinion || "")}</textarea>
+        <textarea data-review-opinion placeholder="${esc(reviewCardPlaceholder(row))}">${esc(row.opinion || "")}</textarea>
       </article>
-    `).join("") : '<div class="empty">暂无部门评审行。</div>';
+    `;
+    }).join("") : '<div class="empty">暂无部门评审行。</div>';
+    const optionalPanel = optional.length ? `
+      <details class="optional-review-panel">
+        <summary>按需参与评审</summary>
+        <div class="optional-review-list">
+          ${optional.map((role) => {
+            const names = roleOwnerNames(style, role.id);
+            return `
+              <article>
+                <div>
+                  <strong>${esc(roleShortName(role))}</strong>
+                  <small>${esc(role.responsibility || "按需补充评审意见")}</small>
+                  ${reviewerChips(names)}
+                </div>
+                <button class="secondary-button compact-button" type="button" data-add-optional-review="${esc(role.id)}">加入评审</button>
+              </article>
+            `;
+          }).join("")}
+        </div>
+      </details>
+    ` : "";
+    $("#department-cards").innerHTML = cards + optionalPanel;
   }
 
   function renderIssues() {
@@ -1506,7 +1628,7 @@
   async function saveDepartment(index) {
     const style = currentStyle();
     const review = currentReview();
-    const row = review?.departmentReviews?.[index];
+    const row = state.departmentReviewRows?.[index] || review?.departmentReviews?.[index];
     const card = $(`[data-department-index="${index}"]`);
     if (!review || !row || !card) return;
     const status = card.querySelector("[data-review-status]").value;
@@ -1514,7 +1636,7 @@
     row.status = status;
     row.opinion = opinion;
     renderDepartments();
-    const reviewerName = departmentReviewerName(row, style);
+    const reviewerName = departmentReviewerNames(row, style)[0] || "";
     const reviewer = allUsers().find((user) => user.name === reviewerName);
     try {
       await syncData("departmentReview", {
@@ -1524,7 +1646,7 @@
         role: row.role,
         status,
         opinion,
-        focusTags: row.focusTags || []
+        focusTags: row.focusTags?.length ? row.focusTags : [reviewCardPlaceholder(row)].filter(Boolean)
       });
       await loadSnapshot();
     } catch (error) {
@@ -2426,6 +2548,18 @@
           await updateRoleTemplate(roleId, (role) => role.people.push(person), "分配人员已添加");
           await syncPersonRoleRecord(person, roleId, true);
           await loadSnapshot();
+        }
+      }
+
+      const addOptionalReviewButton = event.target.closest("[data-add-optional-review]");
+      if (addOptionalReviewButton) {
+        const roleId = addOptionalReviewButton.dataset.addOptionalReview;
+        if (roleId) {
+          const styleKey = currentStyle()?.id || "";
+          const current = state.optionalDepartmentRoleIdsByStyle[styleKey] || [];
+          if (!current.includes(roleId)) state.optionalDepartmentRoleIdsByStyle[styleKey] = [...current, roleId];
+          renderDepartments();
+          showMessage("已加入按需评审，请填写意见后保存。", "ok");
         }
       }
 
