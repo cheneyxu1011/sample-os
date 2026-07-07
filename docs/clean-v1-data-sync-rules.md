@@ -298,6 +298,17 @@ New and edit style forms must read owners from the shared role template configur
 - Department review cards must resolve reviewer names from the current style `roleOwners` before falling back to `review_department_reviews.reviewer_id`. Creating a style should also seed department review rows with matching reviewer IDs when the selected person exists in `sample_people`.
 - Saving or assigning a person must update both `sample_people` and `sample_settings.roleTemplates`. The people library, role template cards, style owner selectors, and review department cards must not maintain separate unsynced role membership.
 
+## New Feature Sync Rules
+
+Every new tool or feature added to Clean V1 must be designed as shared, persistent data before UI work is considered complete.
+
+- Before adding a feature, identify the source of truth table or API field and confirm which pages must read the same data.
+- A feature is not complete if it only updates local UI state, temporary arrays, or one isolated page.
+- Every new write action must save through the official API, reload `snapshot-p0`, and verify the refreshed UI still shows the saved result.
+- Every new feature must be checked across all affected pages, including pipeline cards, style material modal, review header, department cards, media library, calendar, settings, and mobile layout when relevant.
+- If a feature creates, edits, deletes, annotates, assigns, uploads, or changes status, it must show clear success and failure messages in the UI and log detailed errors with `console.error`.
+- Do not add another shortcut script or one-off patch path when the data belongs in the Clean V1 main flow.
+
 ## Security Rules
 
 Frontend code must never contain:
