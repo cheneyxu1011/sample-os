@@ -92,6 +92,19 @@
     { id: "salomon", name: "萨洛蒙", aliases: ["SALOMON"] }
   ];
 
+  const defaultSampleLocations = [
+    { id: "development_workshop", label: "开发车间" },
+    { id: "sample_room", label: "样衣间" },
+    { id: "rudong_factory", label: "如东工厂" },
+    { id: "xinchangjiang_factory", label: "新长江工厂" },
+    { id: "office", label: "事务所" },
+    { id: "wanhang_factory", label: "万航工厂" },
+    { id: "outsourcing_factory", label: "外协工厂" },
+    { id: "juegang_factory", label: "掘港工厂" },
+    { id: "shipped", label: "已寄出" },
+    { id: "repair_pending", label: "待返修" }
+  ];
+
   const roleTemplates = [
     { id: "business_pm", name: "Business PM / 业务负责人", type: "评审角色", stages: ["开发准备", "样衣评审"], responsibility: "确认客户邮件、TP、BOM、Comment、颜色、辅料、交期、寄样目的是否一致", permissions: ["发起开发", "补充资料", "提交意见", "创建 Issue", "申请寄样"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["顾瑶", "顾永宏"] },
     { id: "pattern_reviewer", name: "Pattern Reviewer / 版型评审员", type: "评审角色", stages: ["样衣评审"], responsibility: "评审版型、关键尺寸、公差、结构、左右对称、纸样与实物一致性", permissions: ["提交意见", "创建尺寸/版型 Issue", "复验版型问题"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["徐海燕"] },
@@ -690,6 +703,41 @@
     return defaultBrands;
   }
 
+  function normalizeLocation(item, index = 0) {
+    if (typeof item === "string") return { id: `location_${index}`, label: item };
+    if (item && typeof item === "object") {
+      return {
+        id: item.id || item.key || item.value || `location_${index}`,
+        label: item.label || item.name || item.value || item.title || `位置 ${index + 1}`
+      };
+    }
+    return { id: `location_${index}`, label: String(item || `位置 ${index + 1}`) };
+  }
+
+  function configuredSampleLocations() {
+    const raw = state.data?.settings?.sampleLocations || state.data?.settings?.sampleLocationOptions;
+    if (Array.isArray(raw) && raw.length) {
+      const locations = raw.map(normalizeLocation).filter((item) => item.label);
+      const existing = new Set(locations.map((item) => item.label));
+      defaultSampleLocations.forEach((item) => {
+        if (!existing.has(item.label)) locations.push(item);
+      });
+      return locations;
+    }
+    return defaultSampleLocations;
+  }
+
+  function populateLocationSelect(value = "样衣间") {
+    const select = $("#sample-location-select");
+    if (!select) return;
+    const locations = configuredSampleLocations();
+    select.innerHTML = locations.map((item) => `<option value="${esc(item.label)}">${esc(item.label)}</option>`).join("");
+    if (value && !locations.some((item) => item.label === value)) {
+      select.insertAdjacentHTML("beforeend", `<option value="${esc(value)}">${esc(value)} / 已保存</option>`);
+    }
+    select.value = value || "样衣间";
+  }
+
   function styleMatchesReviewFilter(style) {
     const brand = state.reviewBrandFilter;
     const query = state.reviewStyleFilter.trim().toLowerCase();
@@ -1000,6 +1048,26 @@
     `;
     }).join("");
 
+    $("#people-library-list").innerHTML = users.length ? `
+      <div class="people-row people-head people-row-compact"><strong>人员姓名</strong><span>所属部门</span><em>已分配角色</em><small>适用品牌 / 路线</small><div>关键权限</div><div>操作</div></div>
+      ${users.map((user) => {
+        const assigned = assignedRolesForUser(user);
+        const permissions = Array.from(new Set(assigned.flatMap((role) => role.permissions))).slice(0, 4);
+        const scopes = user.scope?.length ? user.scope : ["样衣评审"];
+        return `<div class="people-row people-row-compact">
+          <strong>${esc(user.name)}</strong>
+          <span>${esc(user.department || "未设置")}</span>
+          <em>${esc(assigned.map(roleShortName).join(" / ") || "未分配固定角色")}</em>
+          <small>${esc(scopes.join(" / "))}</small>
+          <div class="permission-tags">${permissions.length ? permissions.map((item) => `<i>${esc(item)}</i>`).join("") : "<i>待分配</i>"}</div>
+          <div class="row-actions-inline">
+            <button type="button" data-edit-person="${esc(user.id)}">分配</button>
+            <button type="button" data-delete-person="${esc(user.id)}">删除</button>
+          </div>
+        </div>`;
+      }).join("")}
+    ` : '<div class="empty">暂无人员记录。</div>';
+
     const rules = data.settings?.issueLevelRules || data.issueLevelRules || {
       minor: { label: "轻微", shipmentRule: "不阻止寄样，只记录" },
       normal: { label: "一般", shipmentRule: "默认不阻止寄样，由 Gate Owner 判断" },
@@ -1013,8 +1081,7 @@
       ["普通打样", "不需要张部长 / 夏红霞作为必要节点。"],
       ["压胶 / 新长江", "需要经过张部长和夏红霞。"]
     ].map(([title, text]) => `<article><strong>${esc(title)}</strong><p>${esc(text)}</p></article>`).join("");
-    const locations = data.settings?.sampleLocations || ["开发车间", "样衣间", "新长江", "已寄出", "待返修"];
-    $("#location-list").innerHTML = locations.map((item) => `<span>${esc(item)}</span>`).join("");
+    $("#location-list").innerHTML = configuredSampleLocations().map((item) => `<span>${esc(item.label)}</span>`).join("");
   }
 
   function renderPersonModalOptions(person = null) {
@@ -1041,7 +1108,7 @@
       reviewResponsibility: roleIds.some((roleId) => roleById(roleId)?.reviewDefault === "是") ? "参与样衣评审" : "",
       permissions,
       scope,
-      enabled: fields.get("enabled") !== "false",
+      enabled: true,
       isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
       isFinalApprover: roleIds.includes("final_approver")
     };
@@ -1067,6 +1134,33 @@
       console.error("保存人员失败", { payload, error });
       $("#person-save-status").textContent = `保存失败：${error.message}`;
       showMessage(`保存人员失败：${error.message}`);
+    }
+  }
+
+  async function deletePersonRecord(personId) {
+    const person = allUsers().find((user) => user.id === personId);
+    if (!person) return;
+    if (person.isDefaultUser) {
+      showMessage("默认人员不是数据库记录，无法删除；保存为真实人员后可删除。");
+      return;
+    }
+    const ok = window.confirm(`确认删除人员记录：${person.name}？删除后会同步从角色模板分配人员中移除。`);
+    if (!ok) return;
+    try {
+      const nextTemplates = activeRoleTemplates().map((role) => ({
+        ...role,
+        people: (role.people || []).filter((name) => name !== person.name)
+      }));
+      await syncData("updateSetting", {
+        key: "roleTemplates",
+        value: serializeRoleTemplates(nextTemplates)
+      });
+      await syncData("deletePerson", { personId });
+      await loadSnapshot();
+      showMessage("人员记录已删除。", "ok");
+    } catch (error) {
+      console.error("删除人员失败", { personId, person, error });
+      showMessage(`删除人员失败：${error.message}`);
     }
   }
 
@@ -1630,6 +1724,7 @@
       qcOwner: owners.qcOwner || "",
       bondingOwner: owners.bondingOwner || ""
     };
+    populateLocationSelect(values.sampleLocation);
     populateOwnerSelects(values);
     Object.entries(values).forEach(([name, value]) => {
       if (form.elements[name]) form.elements[name].value = value || "";
@@ -1653,6 +1748,7 @@
     if (style) {
       fillStyleForm(style);
     } else {
+      populateLocationSelect("样衣间");
       populateOwnerSelects({
         finalApprover: "杨总"
       });
@@ -1667,7 +1763,7 @@
     $("#style-form").brand.value = "萨洛蒙";
     $("#style-form").season.value = "SS27";
     $("#style-form").samplePhase.value = "second_sample";
-    $("#style-form").sampleLocation.value = "样衣间";
+    populateLocationSelect("样衣间");
     $("#style-form").reviewObjective.value = "确认质量与工艺问题责任人，判断是否可寄样";
     populateOwnerSelects({ finalApprover: "杨总" });
     state.styleInitFiles = {};
@@ -1680,12 +1776,11 @@
   function openPersonModal(personId = null) {
     const person = personId ? allUsers().find((user) => user.id === personId) : null;
     state.editingPersonId = person?.id || null;
-    $("#person-modal-title").textContent = person ? "编辑人员" : "新增人员";
+    $("#person-modal-title").textContent = person ? "分配人员" : "新增人员";
     const form = $("#person-form");
     form.reset();
     form.elements.namedItem("name").value = person?.name || "";
     form.elements.namedItem("department").value = person?.department || "";
-    form.elements.namedItem("enabled").value = person?.enabled === false ? "false" : "true";
     renderPersonModalOptions(person);
     $("#person-save-status").textContent = "";
     setFieldErrors(form, {});
@@ -1747,6 +1842,9 @@
 
       const editPersonButton = event.target.closest("[data-edit-person]");
       if (editPersonButton) openPersonModal(editPersonButton.dataset.editPerson);
+
+      const deletePersonButton = event.target.closest("[data-delete-person]");
+      if (deletePersonButton) deletePersonRecord(deletePersonButton.dataset.deletePerson);
 
       const removePermissionButton = event.target.closest("[data-role-remove-permission]");
       if (removePermissionButton) {

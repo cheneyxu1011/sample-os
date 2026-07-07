@@ -206,6 +206,16 @@
             <div id="role-template-view" class="role-template-grid"></div>
           </section>
 
+          <section class="panel wide">
+            <div class="panel-head">
+              <div>
+                <h2>人员库</h2>
+                <p>人员记录只保留分配和删除操作；角色、权限和负责人从角色模板统一维护。</p>
+              </div>
+            </div>
+            <div id="people-library-list" class="person-assignment-table"></div>
+          </section>
+
           <div class="grid settings-grid">
             <section class="panel brand-panel">
               <div class="panel-head">
@@ -283,7 +293,7 @@
                 </select>
                 <small data-field-error="samplePhase"></small>
               </label>
-              <label>样衣位置<input name="sampleLocation" value="样衣间" /></label>
+              <label>样衣位置<select name="sampleLocation" id="sample-location-select"></select></label>
               <label>预计寄样日期<input name="plannedShipDate" type="date" /></label>
               <label>客户交期<input name="customerDeadline" type="date" /></label>
               <label>订货会日期<input name="orderMeetingDate" type="date" /></label>
@@ -348,7 +358,6 @@
           <div class="modal-grid">
             <label>人员姓名<input name="name" required data-required-message="请输入人员姓名" /><small data-field-error="name"></small></label>
             <label>所属部门<input name="department" placeholder="例如：业务部 / 品质部 / 工艺部" /></label>
-            <label>状态<select name="enabled"><option value="true">启用</option><option value="false">停用</option></select></label>
             <label>是否默认负责人<select name="defaultOwner"><option value="false">否</option><option value="true">是</option></select></label>
           </div>
         </div>

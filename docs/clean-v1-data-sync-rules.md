@@ -74,10 +74,20 @@ Role templates are fixed business roles. People are the configurable resource.
 - Role template cards are the primary place to assign or remove people for a role.
 - Role template cards must allow editing key permissions, final release permission, exception release permission, and current assigned people.
 - Role template edits must persist through `sample_settings.key = roleTemplates` and reload through `snapshot-p0`.
+- Deleting a person record must remove the person from every role template assignment before or during `deletePerson`.
 - Style creation owner fields must use configured people dropdowns, not free-text inputs.
 - Owner dropdowns must filter by role, brand scope, route scope, and enabled status.
 - Default fallback people are allowed only to keep the workflow usable before settings are fully configured.
 - When a person is assigned to a role in settings, the role template view, person assignment view, create/edit style dialog, review header, and pipeline status must remain consistent after refresh.
+
+## Sample Location Rules
+
+Sample location options are shared workflow data.
+
+- Location options must be reusable by create/edit style, development pipeline cards, roadmap nodes, review header, calendar summaries, and settings.
+- The frontend must normalize both string and object location settings into a display label before rendering.
+- Default location options include: 开发车间, 样衣间, 如东工厂, 新长江工厂, 事务所, 万航工厂, 外协工厂, 掘港工厂, 已寄出, 待返修.
+- New styles must choose sample location from the shared location options instead of free text.
 
 ## Write Flow
 

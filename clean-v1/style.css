@@ -1621,6 +1621,10 @@ textarea:focus {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.people-row-compact {
+  grid-template-columns: 120px 110px minmax(160px, 1.2fr) minmax(150px, 1fr) minmax(160px, 1fr) 150px;
+}
+
 .people-head {
   color: var(--muted);
   background: rgba(242, 242, 247, 0.78);
@@ -1650,6 +1654,11 @@ textarea:focus {
   color: var(--ink);
   font-size: 12px;
   font-weight: 650;
+}
+
+.row-actions-inline [data-delete-person] {
+  border-color: rgba(255, 59, 48, 0.28);
+  color: var(--danger);
 }
 
 .config-card-list {
