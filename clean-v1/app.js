@@ -1907,10 +1907,11 @@
     const draftAnnotations = normalizeAnnotations(state.lightboxDraftAnnotations);
     try {
       $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · 正在同步备注...`;
-      const result = await syncData("updateMediaAnnotations", {
+      const response = await syncData("updateMediaAnnotations", {
         mediaId: item.id,
         annotations: draftAnnotations
       });
+      const result = response.result || {};
       state.lightboxDraftAnnotations = replaceMediaAnnotations(item.id, result.annotations || draftAnnotations);
       renderAnnotations();
       await loadSnapshot();

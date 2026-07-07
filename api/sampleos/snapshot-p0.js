@@ -144,7 +144,7 @@ export default async function handler(req, res) {
       if (event.action === "style_profile") styleProfileMap.set(event.entity_id, event.detail || {});
     });
     mediaAuditEvents.forEach((event) => {
-      if (event.entity_id) mediaAnnotationMap.set(event.entity_id, event.detail || {});
+      if (event.entity_id) mediaAnnotationMap.set(String(event.entity_id), event.detail || {});
     });
     issues.forEach((issue) => {
       if (!issue.review_id) return;
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
           mimeType: item.mime_type,
           byteSize: item.byte_size,
           uploadedAt: cleanDateTime(item.created_at),
-          annotations: mediaAnnotationMap.get(item.id)?.annotations || [],
+          annotations: mediaAnnotationMap.get(String(item.id))?.annotations || [],
           url: await mediaAccessUrl(s3, item),
         };
       }));

@@ -714,6 +714,15 @@ async function updateMediaAnnotations(supabase, orgId, body) {
   const annotations = Array.isArray(body.annotations) ? body.annotations : [];
   if (!mediaId) throw new Error("mediaId is required");
 
+  const { data: media, error: mediaError } = await supabase
+    .from("sample_media")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("id", mediaId)
+    .maybeSingle();
+  if (mediaError) throw mediaError;
+  if (!media?.id) throw new Error("媒体记录不存在或已删除，无法保存备注");
+
   const detail = {
     annotations,
     updatedAt: new Date().toISOString(),
