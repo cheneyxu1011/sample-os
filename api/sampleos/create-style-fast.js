@@ -271,7 +271,7 @@ async function ensureStyleProfileAudit(supabase, orgId, style, sample, review, b
   const detail = {
     customer: textOrNull(body.customer),
     customerDeadline: textOrNull(body.customerDeadline),
-    customerCommentSource: textOrNull(body.customerCommentSource),
+    orderMeetingDate: textOrNull(body.orderMeetingDate),
     reviewObjective: textOrNull(body.reviewObjective),
     owners: {
       businessOwner: textOrNull(body.businessOwner),
@@ -288,7 +288,7 @@ async function ensureStyleProfileAudit(supabase, orgId, style, sample, review, b
     reviewId: review.id,
   };
 
-  const hasUsefulDetail = detail.customer || detail.customerDeadline || detail.customerCommentSource || detail.reviewObjective || Object.values(detail.owners).some(Boolean);
+  const hasUsefulDetail = detail.customer || detail.customerDeadline || detail.orderMeetingDate || detail.reviewObjective || Object.values(detail.owners).some(Boolean);
   if (!hasUsefulDetail) return;
 
   const { data: existing, error: existingError } = await supabase

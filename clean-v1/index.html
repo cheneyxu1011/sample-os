@@ -292,7 +292,7 @@
               <label>样衣位置<input name="sampleLocation" value="样衣间" /></label>
               <label>预计寄样日期<input name="plannedShipDate" type="date" /></label>
               <label>客户交期<input name="customerDeadline" type="date" /></label>
-              <label class="wide-field">意见来源<input name="customerCommentSource" placeholder="客户二次样反馈 / 内部预审 / 品质复盘" /></label>
+              <label>订货会日期<input name="orderMeetingDate" type="date" /></label>
               <label class="wide-field">本轮评审目标<textarea name="reviewObjective" rows="2">确认质量与工艺问题责任人，判断是否可寄样</textarea></label>
             </div>
           </section>
@@ -300,14 +300,14 @@
           <section class="modal-section">
             <h3>责任人</h3>
             <div class="modal-grid owner-grid">
-              <label>业务负责人<input name="businessOwner" placeholder="可选" /></label>
-              <label>样衣负责人<input name="sampleOwner" placeholder="可选" /></label>
-              <label>Gate Owner<input name="gateOwner" placeholder="未指定" /></label>
-              <label>Final Approver<input name="finalApprover" value="杨总" /></label>
-              <label>版型负责人<input name="patternOwner" placeholder="可选" /></label>
-              <label>工艺负责人<input name="processOwner" placeholder="可选" /></label>
-              <label>品质负责人<input name="qcOwner" placeholder="可选" /></label>
-              <label>压胶负责人<input name="bondingOwner" placeholder="可选" /></label>
+              <label>业务负责人<select name="businessOwner" data-owner-role="business_pm" data-empty-label="可选"></select></label>
+              <label>样衣负责人<select name="sampleOwner" data-owner-role="sample_keeper sample_feedback_owner" data-empty-label="可选"></select></label>
+              <label>Gate Owner<select name="gateOwner" data-owner-role="sample_review_gate_owner" data-empty-label="未指定"></select></label>
+              <label>Final Approver<select name="finalApprover" data-owner-role="final_approver" data-empty-label="未指定"></select></label>
+              <label>版型负责人<select name="patternOwner" data-owner-role="pattern_reviewer" data-empty-label="可选"></select></label>
+              <label>工艺负责人<select name="processOwner" data-owner-role="process_reviewer" data-empty-label="可选"></select></label>
+              <label>品质负责人<select name="qcOwner" data-owner-role="quality_reviewer" data-empty-label="可选"></select></label>
+              <label>压胶负责人<select name="bondingOwner" data-owner-role="bonding_owner" data-empty-label="可选"></select></label>
             </div>
           </section>
 
@@ -336,6 +336,40 @@
         <div class="modal-actions">
           <button class="secondary-button" type="button" id="style-modal-cancel">取消</button>
           <button class="primary-button" type="submit" id="style-create-submit">创建款式</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="person-modal" hidden>
+      <form class="modal-card assignment-modal-card" id="person-form">
+        <div class="modal-head">
+          <div>
+            <span>人员库</span>
+            <h2 id="person-modal-title">新增人员</h2>
+            <p>先设置人员所属部门、适用范围和固定角色，创建款式时按条件筛选。</p>
+          </div>
+          <button class="modal-close" type="button" id="person-modal-close" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-section">
+          <div class="modal-grid">
+            <label>人员姓名<input name="name" required data-required-message="请输入人员姓名" /><small data-field-error="name"></small></label>
+            <label>所属部门<input name="department" placeholder="例如：业务部 / 品质部 / 工艺部" /></label>
+            <label>状态<select name="enabled"><option value="true">启用</option><option value="false">停用</option></select></label>
+            <label>是否默认负责人<select name="defaultOwner"><option value="false">否</option><option value="true">是</option></select></label>
+          </div>
+        </div>
+        <div class="modal-section">
+          <h3>可分配角色</h3>
+          <div id="person-role-list" class="assignment-role-list"></div>
+        </div>
+        <div class="modal-section">
+          <h3>适用品牌 / 路线</h3>
+          <div class="scope-checks" id="person-scope-list"></div>
+        </div>
+        <div class="upload-status" id="person-save-status" role="status"></div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" id="person-modal-cancel">取消</button>
+          <button class="primary-button" type="submit">保存人员</button>
         </div>
       </form>
     </div>

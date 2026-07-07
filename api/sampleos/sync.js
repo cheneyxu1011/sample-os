@@ -491,7 +491,7 @@ async function updateStyleInfo(supabase, orgId, body) {
   const profileDetail = {
     customer: textOrNull(body.customer),
     customerDeadline: textOrNull(body.customerDeadline),
-    customerCommentSource: textOrNull(body.customerCommentSource),
+    orderMeetingDate: textOrNull(body.orderMeetingDate),
     reviewObjective: textOrNull(body.reviewObjective),
     owners: {
       businessOwner: textOrNull(body.businessOwner),

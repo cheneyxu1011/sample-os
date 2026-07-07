@@ -5,6 +5,7 @@
     selectedFiles: [],
     styleInitFiles: {},
     editingStyleId: null,
+    editingPersonId: null,
     lightboxIndex: -1,
     uploading: false,
     touchStartX: null,
@@ -115,21 +116,32 @@
   ];
 
   const defaultUsers = [
-    { id: "default_guyao", name: "顾瑶", department: "业务部", enabled: true, scope: ["萨洛蒙", "样衣评审"] },
-    { id: "default_guyonghong", name: "顾永宏", department: "业务部", enabled: true, scope: ["萨洛蒙", "样衣评审"] },
-    { id: "default_wang", name: "王部长", department: "开发管理", enabled: true, scope: ["普通打样", "样衣评审"] },
-    { id: "default_daqian", name: "大前", department: "品质部", enabled: true, scope: ["萨洛蒙", "样衣评审"] },
-    { id: "default_yang", name: "杨总", department: "管理层", enabled: true, isFinalApprover: true, scope: ["例外放行"] },
-    { id: "default_zhang", name: "张部长", department: "压胶开发", enabled: true, scope: ["压胶 / 新长江"] },
-    { id: "default_xia", name: "夏红霞", department: "新长江", enabled: true, scope: ["压胶 / 新长江"] },
-    { id: "default_xu", name: "徐海燕", department: "版型部", enabled: true, scope: ["样衣评审"] },
-    { id: "default_process", name: "陈工艺", department: "工艺部", enabled: true, scope: ["样衣评审"] },
-    { id: "default_ie", name: "麦克", department: "IE 部", enabled: true, scope: ["样衣评审"] },
-    { id: "default_sample", name: "李师傅", department: "打样部", enabled: true, scope: ["普通打样", "样衣评审"] },
-    { id: "default_material", name: "李卫红", department: "面料组", enabled: true, scope: ["普通打样"] },
-    { id: "default_trim", name: "大红", department: "辅料组", enabled: true, scope: ["普通打样"] },
-    { id: "default_dispatch", name: "大戴", department: "样衣间", enabled: true, scope: ["普通打样"] }
+    { id: "default_guyao", name: "顾瑶", department: "业务部", enabled: true, role: "business_pm", scope: ["萨洛蒙", "样衣评审"] },
+    { id: "default_guyonghong", name: "顾永宏", department: "业务部", enabled: true, role: "business_pm", scope: ["萨洛蒙", "样衣评审"] },
+    { id: "default_wang", name: "王部长", department: "开发管理", enabled: true, role: "preparation_gate_owner", scope: ["普通打样", "样衣评审"] },
+    { id: "default_daqian", name: "大前", department: "品质部", enabled: true, role: "quality_reviewer,sample_review_gate_owner", scope: ["萨洛蒙", "样衣评审"] },
+    { id: "default_yang", name: "杨总", department: "管理层", enabled: true, role: "final_approver", isFinalApprover: true, scope: ["例外放行"] },
+    { id: "default_zhang", name: "张部长", department: "压胶开发", enabled: true, role: "bonding_owner", scope: ["压胶 / 新长江"] },
+    { id: "default_xia", name: "夏红霞", department: "新长江", enabled: true, role: "xinchangjiang_dispatcher", scope: ["压胶 / 新长江"] },
+    { id: "default_xu", name: "徐海燕", department: "版型部", enabled: true, role: "pattern_reviewer", scope: ["样衣评审"] },
+    { id: "default_process", name: "陈工艺", department: "工艺部", enabled: true, role: "process_reviewer", scope: ["样衣评审"] },
+    { id: "default_ie", name: "麦克", department: "IE 部", enabled: true, role: "ie_reviewer", scope: ["样衣评审"] },
+    { id: "default_sample", name: "李师傅", department: "打样部", enabled: true, role: "sample_feedback_owner", scope: ["普通打样", "样衣评审"] },
+    { id: "default_material", name: "李卫红", department: "面料组", enabled: true, role: "material_owner", scope: ["普通打样"] },
+    { id: "default_trim", name: "大红", department: "辅料组", enabled: true, role: "trim_owner", scope: ["普通打样"] },
+    { id: "default_dispatch", name: "大戴", department: "样衣间", enabled: true, role: "sample_dispatcher,sample_keeper", scope: ["普通打样"] }
   ];
+
+  const ownerRoleMap = {
+    businessOwner: ["business_pm"],
+    sampleOwner: ["sample_keeper", "sample_feedback_owner"],
+    gateOwner: ["sample_review_gate_owner"],
+    finalApprover: ["final_approver"],
+    patternOwner: ["pattern_reviewer"],
+    processOwner: ["process_reviewer"],
+    qcOwner: ["quality_reviewer"],
+    bondingOwner: ["bonding_owner"]
+  };
 
 
   function isUuid(value) {
@@ -177,6 +189,98 @@
 
   function styleById(id) {
     return state.data?.styleList?.find((style) => style.id === id) || state.data?.styleList?.[0] || null;
+  }
+
+  function allUsers() {
+    const realUsers = state.data?.users || [];
+    const byName = new Map();
+    defaultUsers.forEach((user) => byName.set(user.name, { ...user, isDefaultUser: true }));
+    realUsers.forEach((user) => byName.set(user.name, { ...user, isDefaultUser: false }));
+    return Array.from(byName.values());
+  }
+
+  function userRoleIds(user) {
+    if (Array.isArray(user.roleIds)) return user.roleIds;
+    if (Array.isArray(user.roles)) return user.roles;
+    return String(user.role || "")
+      .split(/[,\s/]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function userScopes(user) {
+    return Array.isArray(user.scope) ? user.scope.filter(Boolean) : [];
+  }
+
+  function roleShortName(role) {
+    return role?.name?.split(" / ").pop() || role?.name || "";
+  }
+
+  function roleById(roleId) {
+    return roleTemplates.find((role) => role.id === roleId);
+  }
+
+  function assignedRolesForUser(user) {
+    const ids = userRoleIds(user);
+    const explicit = roleTemplates.filter((role) => ids.includes(role.id));
+    if (explicit.length) return explicit;
+    return roleTemplates.filter((role) => role.people.includes(user.name));
+  }
+
+  function assignedUsersForRole(roleId) {
+    return allUsers().filter((user) => assignedRolesForUser(user).some((role) => role.id === roleId));
+  }
+
+  function routeScopeLabels(route) {
+    const label = routeLabels[route] || route || "";
+    if (route === "bonding_xinchangjiang") return ["压胶 / 新长江", "压胶路线", label];
+    return ["普通打样", label];
+  }
+
+  function personMatchesContext(user, brand, route) {
+    const scopes = userScopes(user);
+    if (!scopes.length) return true;
+    const brandOk = !brand || scopes.includes(brand) || scopes.includes("样衣评审") || scopes.includes("全部品牌");
+    const routeLabelsForStyle = routeScopeLabels(route);
+    const routeOk = routeLabelsForStyle.some((label) => scopes.includes(label)) || scopes.includes("样衣评审") || scopes.includes("全部路线");
+    return brandOk && routeOk;
+  }
+
+  function ownerOptionsForRoles(roleIds, brand, route) {
+    const roleSet = new Set(roleIds);
+    const users = allUsers().filter((user) => {
+      if (user.enabled === false) return false;
+      const hasRole = assignedRolesForUser(user).some((role) => roleSet.has(role.id));
+      return hasRole && personMatchesContext(user, brand, route);
+    });
+    if (users.length) return users;
+    return allUsers().filter((user) => {
+      if (user.enabled === false) return false;
+      return assignedRolesForUser(user).some((role) => roleSet.has(role.id));
+    });
+  }
+
+  function selectedValuesFromForm(form) {
+    return Object.fromEntries(Object.keys(ownerRoleMap).map((name) => [name, form.elements[name]?.value || ""]));
+  }
+
+  function populateOwnerSelects(values = {}) {
+    const form = $("#style-form");
+    if (!form) return;
+    const brand = form.elements.brand?.value || "";
+    const route = form.elements.route?.value || "normal";
+    $$("[data-owner-role]").forEach((select) => {
+      const name = select.name;
+      const roleIds = String(select.dataset.ownerRole || "").split(/\s+/).filter(Boolean);
+      const emptyLabel = select.dataset.emptyLabel || "可选";
+      const current = values[name] ?? select.value ?? "";
+      const users = ownerOptionsForRoles(roleIds, brand, route);
+      select.innerHTML = `<option value="">${esc(emptyLabel)}</option>${users.map((user) => `<option value="${esc(user.name)}">${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("")}`;
+      if (current && !users.some((user) => user.name === current)) {
+        select.insertAdjacentHTML("beforeend", `<option value="${esc(current)}">${esc(current)} / 已保存</option>`);
+      }
+      select.value = current || (name === "finalApprover" && users.some((user) => user.name === "杨总") ? "杨总" : "");
+    });
   }
 
   function currentStyle() {
@@ -362,7 +466,7 @@
   }
 
   function userName(id) {
-    return state.data?.users?.find((user) => user.id === id)?.name || id || "未指定";
+    return allUsers().find((user) => user.id === id)?.name || id || "未指定";
   }
 
   function dateText(date) {
@@ -478,19 +582,21 @@
               <div class="route-tags"><i>${esc(routeLabel(style))}</i><i class="${esc(routeState.tone)}">${esc(routeState.label)}</i></div>
             </div>
           ` : ""}
-          <div class="meta-grid">
-            ${meta("季节", style.season)}
-            ${meta("当前 Gate", gateLabel(style.currentGate))}
-            ${meta("样品阶段", sampleStageLabel(style.samplePhase))}
-            ${meta("样衣位置", sample?.location || style.sampleLocation)}
-            ${meta("预计寄样", plannedDate(style, sample))}
-            ${meta("客户交期", style.customerDeadline)}
-            ${meta("意见来源", style.customerCommentSource)}
-            ${meta("本轮目标", style.reviewObjective)}
-            ${meta("Gate Owner", textOwner(style, review, "gateOwner", "未指定"))}
-            ${meta("Final Approver", textOwner(style, review, "finalApprover", "杨总"))}
-            ${meta("下一步", shipment.nextStep)}
-          </div>
+          ${!includeAction ? `
+            <div class="meta-grid">
+              ${meta("季节", style.season)}
+              ${meta("当前 Gate", gateLabel(style.currentGate))}
+              ${meta("样品阶段", sampleStageLabel(style.samplePhase))}
+              ${meta("样衣位置", sample?.location || style.sampleLocation)}
+              ${meta("预计寄样", plannedDate(style, sample))}
+              ${meta("客户交期", style.customerDeadline)}
+              ${meta("订货会日期", style.orderMeetingDate)}
+              ${meta("本轮目标", style.reviewObjective)}
+              ${meta("Gate Owner", textOwner(style, review, "gateOwner", "未指定"))}
+              ${meta("Final Approver", textOwner(style, review, "finalApprover", "杨总"))}
+              ${meta("下一步", shipment.nextStep)}
+            </div>
+          ` : ""}
           ${includeAction ? renderRoadmap(style, sample, review, issues, shipment) : ""}
         </div>
         ${includeAction ? `
@@ -766,7 +872,7 @@
 
   function renderSettings() {
     const data = state.data || {};
-    const users = data.users?.length ? data.users : defaultUsers;
+    const users = allUsers();
     const gateRules = data.gateRules || {};
     const ownerOrDefault = (userId, fallback) => {
       if (!userId) return fallback;
@@ -819,7 +925,7 @@
           <div><dt>关键权限</dt><dd>${role.permissions.map((item) => `<i>${esc(item)}</i>`).join("")}</dd></div>
           <div><dt>最终放行</dt><dd>${esc(role.finalRelease)}</dd></div>
           <div><dt>例外放行</dt><dd>${esc(role.exceptionRelease)}</dd></div>
-          <div><dt>当前分配人员</dt><dd>${role.people.length ? role.people.map((person) => `<i>${esc(person)}</i>`).join("") : "<em>未分配</em>"}</dd></div>
+          <div><dt>当前分配人员</dt><dd>${assignedUsersForRole(role.id).length ? assignedUsersForRole(role.id).map((person) => `<i>${esc(person.name)}</i>`).join("") : "<em>未分配</em>"}</dd></div>
         </dl>
       </article>
     `).join("");
@@ -827,19 +933,19 @@
     $("#person-assignment-view").innerHTML = `
       <div class="people-row people-head"><strong>人员姓名</strong><span>所属部门</span><em>已分配角色</em><small>适用品牌 / 路线</small><div>关键权限</div><span>状态</span><div>操作</div></div>
       ${users.map((user) => {
-        const assigned = roleTemplates.filter((role) => role.people.includes(user.name));
+        const assigned = assignedRolesForUser(user);
         const permissions = Array.from(new Set(assigned.flatMap((role) => role.permissions))).slice(0, 4);
         const scopes = user.scope?.length ? user.scope : ["萨洛蒙", user.isFinalApprover ? "例外放行" : "样衣评审"];
         return `<div class="people-row">
           <strong>${esc(user.name)}</strong>
           <span>${esc(user.department || "未设置")}</span>
-          <em>${esc(assigned.map((role) => role.name.split(" / ").pop()).join(" / ") || "未分配固定角色")}</em>
+          <em>${esc(assigned.map(roleShortName).join(" / ") || "未分配固定角色")}</em>
           <small>${esc(scopes.join(" / "))}</small>
           <div class="permission-tags">${permissions.length ? permissions.map((item) => `<i>${esc(item)}</i>`).join("") : "<i>待分配</i>"}</div>
           <span class="badge ${user.enabled ? "ok" : "pending"}">${user.enabled ? "启用" : "停用"}</span>
           <div class="row-actions-inline">
             <button type="button" data-open-assignment="${esc(user.id)}">分配角色</button>
-            <button type="button">编辑人员</button>
+            <button type="button" data-edit-person="${esc(user.id)}">编辑人员</button>
             <button type="button">停用</button>
           </div>
         </div>`;
@@ -865,13 +971,99 @@
   }
 
   function renderAssignmentModalOptions(personId) {
-    const users = state.data?.users?.length ? state.data.users : defaultUsers;
+    const users = allUsers();
+    const selectedUser = users.find((user) => user.id === personId) || users[0] || null;
+    const selectedRoleIds = new Set(selectedUser ? assignedRolesForUser(selectedUser).map((role) => role.id) : []);
+    const selectedScopes = new Set(selectedUser ? userScopes(selectedUser) : []);
     $("#assignment-person").innerHTML = users.map((user) => `<option value="${esc(user.id)}" ${personId === user.id ? "selected" : ""}>${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("");
     $("#assignment-role-list").innerHTML = roleTemplates.map((role) => `
-      <label><input type="checkbox" name="roleIds" value="${esc(role.id)}"><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
+      <label><input type="checkbox" name="roleIds" value="${esc(role.id)}" ${selectedRoleIds.has(role.id) ? "checked" : ""}><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
     `).join("");
     const scopes = ["萨洛蒙", "SUPREME", "迪桑特", "普通打样", "压胶 / 新长江", "样衣评审", "例外放行"];
-    $("#assignment-scope-list").innerHTML = scopes.map((scope) => `<label><input type="checkbox" name="scope" value="${esc(scope)}"><span>${esc(scope)}</span></label>`).join("");
+    $("#assignment-scope-list").innerHTML = scopes.map((scope) => `<label><input type="checkbox" name="scope" value="${esc(scope)}" ${selectedScopes.has(scope) ? "checked" : ""}><span>${esc(scope)}</span></label>`).join("");
+  }
+
+  function renderPersonModalOptions(person = null) {
+    const selectedRoleIds = new Set(person ? assignedRolesForUser(person).map((role) => role.id) : []);
+    const selectedScopes = new Set(person ? userScopes(person) : ["样衣评审"]);
+    $("#person-role-list").innerHTML = roleTemplates.map((role) => `
+      <label><input type="checkbox" name="roleIds" value="${esc(role.id)}" ${selectedRoleIds.has(role.id) ? "checked" : ""}><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
+    `).join("");
+    const scopes = ["萨洛蒙", "SUPREME", "迪桑特", "普通打样", "压胶 / 新长江", "样衣评审", "例外放行", "全部品牌", "全部路线"];
+    $("#person-scope-list").innerHTML = scopes.map((scope) => `<label><input type="checkbox" name="scope" value="${esc(scope)}" ${selectedScopes.has(scope) ? "checked" : ""}><span>${esc(scope)}</span></label>`).join("");
+  }
+
+  function personPayloadFromForm(form, basePerson = null) {
+    const fields = new FormData(form);
+    const roleIds = fields.getAll("roleIds").map(String);
+    const scope = fields.getAll("scope").map(String);
+    const permissions = Array.from(new Set(roleIds.flatMap((roleId) => roleById(roleId)?.permissions || [])));
+    return {
+      id: basePerson?.isDefaultUser ? undefined : basePerson?.id,
+      name: String(fields.get("name") || "").trim(),
+      department: String(fields.get("department") || "").trim(),
+      role: roleIds.join(","),
+      currentResponsibility: roleIds.map((roleId) => roleShortName(roleById(roleId))).filter(Boolean).join(" / "),
+      reviewResponsibility: roleIds.some((roleId) => roleById(roleId)?.reviewDefault === "是") ? "参与样衣评审" : "",
+      permissions,
+      scope,
+      enabled: fields.get("enabled") !== "false",
+      isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
+      isFinalApprover: roleIds.includes("final_approver")
+    };
+  }
+
+  async function savePersonFromForm(form) {
+    const basePerson = state.editingPersonId ? allUsers().find((user) => user.id === state.editingPersonId) : null;
+    const payload = personPayloadFromForm(form, basePerson);
+    if (!payload.name) {
+      setFieldErrors(form, { name: "请输入人员姓名" });
+      $("#person-save-status").textContent = "保存失败：请输入人员姓名";
+      return;
+    }
+    setFieldErrors(form, {});
+    $("#person-save-status").textContent = "正在保存人员...";
+    try {
+      await syncData("createPerson", payload);
+      $("#person-save-status").textContent = "人员已保存";
+      closePersonModal();
+      await loadSnapshot();
+      showMessage("人员已保存，负责人下拉已更新。", "ok");
+    } catch (error) {
+      console.error("保存人员失败", { payload, error });
+      $("#person-save-status").textContent = `保存失败：${error.message}`;
+      showMessage(`保存人员失败：${error.message}`);
+    }
+  }
+
+  async function saveAssignmentFromForm(form) {
+    const fields = new FormData(form);
+    const person = allUsers().find((user) => user.id === fields.get("person"));
+    if (!person) return showMessage("请选择人员");
+    const roleIds = fields.getAll("roleIds").map(String);
+    const scope = fields.getAll("scope").map(String);
+    const permissions = Array.from(new Set(roleIds.flatMap((roleId) => roleById(roleId)?.permissions || [])));
+    try {
+      await syncData("createPerson", {
+        id: person.isDefaultUser ? undefined : person.id,
+        name: person.name,
+        department: person.department || "",
+        role: roleIds.join(","),
+        currentResponsibility: roleIds.map((roleId) => roleShortName(roleById(roleId))).filter(Boolean).join(" / "),
+        reviewResponsibility: fields.get("reviewParticipant") === "是" ? "参与样衣评审" : "",
+        permissions,
+        scope,
+        enabled: person.enabled !== false,
+        isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
+        isFinalApprover: roleIds.includes("final_approver")
+      });
+      closeAssignmentModal();
+      await loadSnapshot();
+      showMessage("角色分配已保存，创建款式时会按条件筛选人员。", "ok");
+    } catch (error) {
+      console.error("保存角色分配失败", { person, roleIds, scope, error });
+      showMessage(`保存角色分配失败：${error.message}`);
+    }
   }
 
   function renderAll() {
@@ -1019,7 +1211,7 @@
       sampleLocation: String(fields.get("sampleLocation") || "样衣间").trim(),
       plannedShipDate: String(fields.get("plannedShipDate") || ""),
       customerDeadline: String(fields.get("customerDeadline") || ""),
-      customerCommentSource: String(fields.get("customerCommentSource") || "").trim(),
+      orderMeetingDate: String(fields.get("orderMeetingDate") || ""),
       reviewObjective: String(fields.get("reviewObjective") || "").trim(),
       businessOwner: String(fields.get("businessOwner") || "").trim(),
       sampleOwner: String(fields.get("sampleOwner") || "").trim(),
@@ -1397,7 +1589,7 @@
       sampleLocation: sample?.location || style?.sampleLocation || "样衣间",
       plannedShipDate: dateOnly(plannedDate(style, sample)),
       customerDeadline: dateOnly(style?.customerDeadline || style?.profile?.customerDeadline),
-      customerCommentSource: style?.customerCommentSource || style?.profile?.customerCommentSource || "",
+      orderMeetingDate: dateOnly(style?.orderMeetingDate || style?.profile?.orderMeetingDate),
       reviewObjective: style?.reviewObjective || style?.profile?.reviewObjective || "确认质量与工艺问题责任人，判断是否可寄样",
       businessOwner: owners.businessOwner || "",
       sampleOwner: owners.sampleOwner || "",
@@ -1408,6 +1600,7 @@
       qcOwner: owners.qcOwner || "",
       bondingOwner: owners.bondingOwner || ""
     };
+    populateOwnerSelects(values);
     Object.entries(values).forEach(([name, value]) => {
       if (form.elements[name]) form.elements[name].value = value || "";
     });
@@ -1427,7 +1620,13 @@
   function openStyleModal(styleId = null) {
     const style = styleId ? styleById(styleId) : null;
     setStyleModalMode(style ? "edit" : "create", style);
-    if (style) fillStyleForm(style);
+    if (style) {
+      fillStyleForm(style);
+    } else {
+      populateOwnerSelects({
+        finalApprover: "杨总"
+      });
+    }
     $("#style-modal").hidden = false;
     document.body.style.overflow = "hidden";
   }
@@ -1439,8 +1638,8 @@
     $("#style-form").season.value = "SS27";
     $("#style-form").samplePhase.value = "second_sample";
     $("#style-form").sampleLocation.value = "样衣间";
-    $("#style-form").finalApprover.value = "杨总";
     $("#style-form").reviewObjective.value = "确认质量与工艺问题责任人，判断是否可寄样";
+    populateOwnerSelects({ finalApprover: "杨总" });
     state.styleInitFiles = {};
     state.editingStyleId = null;
     setStyleModalMode("create");
@@ -1457,6 +1656,30 @@
   function closeAssignmentModal() {
     $("#assignment-modal").hidden = true;
     $("#assignment-form").reset();
+    document.body.style.overflow = "";
+  }
+
+  function openPersonModal(personId = null) {
+    const person = personId ? allUsers().find((user) => user.id === personId) : null;
+    state.editingPersonId = person?.id || null;
+    $("#person-modal-title").textContent = person ? "编辑人员" : "新增人员";
+    const form = $("#person-form");
+    form.reset();
+    form.elements.namedItem("name").value = person?.name || "";
+    form.elements.namedItem("department").value = person?.department || "";
+    form.elements.namedItem("enabled").value = person?.enabled === false ? "false" : "true";
+    renderPersonModalOptions(person);
+    $("#person-save-status").textContent = "";
+    setFieldErrors(form, {});
+    $("#person-modal").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closePersonModal() {
+    $("#person-modal").hidden = true;
+    $("#person-form").reset();
+    $("#person-save-status").textContent = "";
+    state.editingPersonId = null;
     document.body.style.overflow = "";
   }
 
@@ -1513,6 +1736,9 @@
       const assignmentButton = event.target.closest("[data-open-assignment]");
       if (assignmentButton) openAssignmentModal(assignmentButton.dataset.openAssignment);
 
+      const editPersonButton = event.target.closest("[data-edit-person]");
+      if (editPersonButton) openPersonModal(editPersonButton.dataset.editPerson);
+
       const saveDepartmentButton = event.target.closest("[data-save-department]");
       if (saveDepartmentButton) saveDepartment(Number(saveDepartmentButton.dataset.saveDepartment));
 
@@ -1530,7 +1756,7 @@
     });
 
     $("#new-style-button").addEventListener("click", () => openStyleModal());
-    $("#add-person").addEventListener("click", () => showMessage("新增人员入口已保留；当前版本先聚焦固定角色分配。", "ok"));
+    $("#add-person").addEventListener("click", () => openPersonModal());
     $("#add-brand").addEventListener("click", () => showMessage("新增品牌入口已保留；当前品牌先使用 SUPREME、迪桑特、萨洛蒙。", "ok"));
     $("#assign-role-top").addEventListener("click", () => openAssignmentModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
@@ -1538,19 +1764,30 @@
     $("#style-modal").addEventListener("click", (event) => {
       if (event.target.id === "style-modal") closeStyleModal();
     });
+    $("#style-form").brand.addEventListener("input", () => populateOwnerSelects(selectedValuesFromForm($("#style-form"))));
+    $("#style-form").route.addEventListener("change", () => populateOwnerSelects(selectedValuesFromForm($("#style-form"))));
     $("#style-form").addEventListener("submit", (event) => {
       event.preventDefault();
       createStyleFromForm(event.currentTarget);
+    });
+    $("#person-modal-close").addEventListener("click", closePersonModal);
+    $("#person-modal-cancel").addEventListener("click", closePersonModal);
+    $("#person-modal").addEventListener("click", (event) => {
+      if (event.target.id === "person-modal") closePersonModal();
+    });
+    $("#person-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      savePersonFromForm(event.currentTarget);
     });
     $("#assignment-modal-close").addEventListener("click", closeAssignmentModal);
     $("#assignment-modal-cancel").addEventListener("click", closeAssignmentModal);
     $("#assignment-modal").addEventListener("click", (event) => {
       if (event.target.id === "assignment-modal") closeAssignmentModal();
     });
+    $("#assignment-person").addEventListener("change", (event) => renderAssignmentModalOptions(event.currentTarget.value));
     $("#assignment-form").addEventListener("submit", (event) => {
       event.preventDefault();
-      closeAssignmentModal();
-      showMessage("角色分配已在前端确认；后续接入人员配置写入接口。", "ok");
+      saveAssignmentFromForm(event.currentTarget);
     });
 
     $("#reload-data").addEventListener("click", loadSnapshot);

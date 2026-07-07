@@ -172,7 +172,7 @@ export default async function handler(req, res) {
         styleName: style.style_name,
         customer: profile.customer || "",
         customerDeadline: profile.customerDeadline || "",
-        customerCommentSource: profile.customerCommentSource || "",
+        orderMeetingDate: profile.orderMeetingDate || "",
         reviewObjective: profile.reviewObjective || "",
         owners,
         profile,

@@ -32,6 +32,51 @@ The browser must not store permanent business data except short-lived UI state.
 4. All views render from `state.data`.
 5. If loading fails, the page shows a visible connection error instead of falling back to stale hidden data.
 
+## Feature Collaboration And Cross-page Consistency Rule
+
+Every new Sample OS feature must be collaborative across the whole product, not isolated to one page.
+
+When a new field, status, action, role, brand, media category, Issue behavior, Gate behavior, timeline node, or setting is added, it must be checked against every page that may read or depend on the same data:
+
+- 开发流水线
+- 样衣评审
+- 样衣日历
+- 设置
+- 新建 / 编辑款式弹窗
+- 上传和媒体预览
+- Issue 列表与最终放行
+- 后端 snapshot / sync API payloads
+
+The same business data must have one shared meaning across all pages. Do not create page-only data that cannot be read elsewhere. If a value is shown in one page and affects workflow, the matching pages must either:
+
+- display it,
+- use it in status calculation,
+- expose a clear edit path,
+- or intentionally document why it is not relevant there.
+
+Before finishing any feature, Codex must verify cross-page consistency:
+
+1. Identify which shared entities are affected: style, sample, review, department review, issue, media, brand, role, gate rule, route, location, or setting.
+2. Confirm the data is written to the real source of truth, not only temporary frontend state.
+3. Confirm snapshot reload can return the new or updated data.
+4. Confirm all relevant pages render the same updated value after refresh.
+5. Confirm mobile layout still works where the feature appears.
+6. Confirm no page keeps stale labels, missing buttons, hidden technical wording, or mismatched status logic.
+
+If a feature cannot yet be fully persisted or shared, the UI must make that limitation visible and the final response must list it as a remaining risk. Do not silently ship isolated page behavior.
+
+## Role And Person Assignment Rules
+
+Role templates are fixed business roles. People are the configurable resource.
+
+- Do not create a new role just because a new employee is added.
+- People must be maintained in the settings person library before they are selected during style creation.
+- People assignment must persist through `sample_people` and reload through `snapshot-p0`.
+- Style creation owner fields must use configured people dropdowns, not free-text inputs.
+- Owner dropdowns must filter by role, brand scope, route scope, and enabled status.
+- Default fallback people are allowed only to keep the workflow usable before settings are fully configured.
+- When a person is assigned to a role in settings, the role template view, person assignment view, create/edit style dialog, review header, and pipeline status must remain consistent after refresh.
+
 ## Write Flow
 
 All business writes go through `POST /api/sampleos/sync`.
@@ -77,7 +122,7 @@ New style creation must:
 - create or backfill `styles`, `samples`, `reviews`
 - create or backfill default department review rows
 - create or backfill preparation checklist audit data
-- capture customer deadline, comment source, review objective, and text owner fallback data in `audit_events.action = style_profile` until dedicated columns exist
+- capture customer deadline, order meeting date, review objective, and text owner fallback data in `audit_events.action = style_profile` until dedicated columns exist
 - never create a `LOCAL` style in the real workflow
 
 The create dialog is a style development initialization entry, not a database form. It must use现场文案:
