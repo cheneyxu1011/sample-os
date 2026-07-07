@@ -212,7 +212,13 @@
       const media = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/")
         ? `<video src="${esc(item.url || "")}" controls muted></video>`
         : `<img src="${esc(item.url || "")}" alt="${esc(item.label || item.fileName)}" />`;
-      return `<article class="media-card">${media}<small>${esc(item.label || item.fileName)} · ${esc(item.uploadedAt || "")}</small></article>`;
+      return `
+        <article class="media-card">
+          <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(item.label || item.fileName)}">×</button>
+          <button class="media-open" type="button" data-open-media="${esc(item.id)}" aria-label="放大查看 ${esc(item.label || item.fileName)}">${media}</button>
+          <small>${esc(item.label || item.fileName)} · ${esc(item.uploadedAt || "")}</small>
+        </article>
+      `;
     }).join("") : '<div class="empty">暂无已上传媒体。</div>';
   }
 
@@ -231,6 +237,73 @@
         </article>
       `;
     }).join("") : '<div class="empty">暂无日历数据。</div>';
+    renderMonthCalendar(styles);
+  }
+
+  function monthDateKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
+  }
+
+  function parseCalendarDate(value) {
+    const text = dateText(value);
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  function renderMonthCalendar(styles) {
+    const events = styles.map((style) => {
+      const sample = state.data?.samples?.find((item) => item.styleId === style.id);
+      const date = parseCalendarDate(style.plannedShipDate || sample?.plannedShipDate);
+      return date ? { style, sample, date, key: monthDateKey(date) } : null;
+    }).filter(Boolean);
+
+    const anchor = events[0]?.date || new Date();
+    const year = anchor.getFullYear();
+    const month = anchor.getMonth();
+    const first = new Date(year, month, 1);
+    const firstWeekday = (first.getDay() + 6) % 7;
+    const gridStart = new Date(year, month, 1 - firstWeekday);
+    const todayKey = monthDateKey(new Date());
+    const eventMap = new Map();
+
+    events.forEach((event) => {
+      eventMap.set(event.key, [...(eventMap.get(event.key) || []), event]);
+    });
+
+    $("#calendar-month-title").textContent = `${year} 年 ${month + 1} 月`;
+    $("#calendar-month-count").textContent = `${events.length} 个节点`;
+
+    const cells = [];
+    for (let index = 0; index < 42; index += 1) {
+      const day = new Date(gridStart);
+      day.setDate(gridStart.getDate() + index);
+      const key = monthDateKey(day);
+      const dayEvents = eventMap.get(key) || [];
+      const classes = [
+        "month-day",
+        day.getMonth() !== month ? "is-other-month" : "",
+        key === todayKey ? "is-today" : "",
+        dayEvents.length ? "has-events" : ""
+      ].filter(Boolean).join(" ");
+      cells.push(`
+        <div class="${classes}">
+          <div class="month-day-number">${day.getDate()}</div>
+          ${dayEvents.map(({ style, sample }) => `
+            <div class="calendar-event">
+              <strong>${esc(style.brand)} ${esc(style.styleNo)}</strong>
+              <small>${esc(style.styleName)} · ${esc(sample?.location || style.sampleLocation || "未设置")}</small>
+            </div>
+          `).join("")}
+        </div>
+      `);
+    }
+
+    $("#month-calendar-grid").innerHTML = cells.join("");
   }
 
   function renderSettings() {
@@ -350,6 +423,35 @@
     }
   }
 
+  async function deleteMedia(mediaId) {
+    try {
+      await syncData("deleteMedia", { mediaId });
+      await loadSnapshot();
+    } catch (error) {
+      showMessage(`删除媒体失败：${error.message}`);
+    }
+  }
+
+  function openMediaLightbox(mediaId) {
+    const sample = currentSample();
+    const item = sample?.mediaList?.find((media) => media.id === mediaId);
+    if (!item?.url) return;
+    const isVideo = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/");
+    $("#lightbox-stage").innerHTML = isVideo
+      ? `<video src="${esc(item.url)}" controls autoplay></video>`
+      : `<img src="${esc(item.url)}" alt="${esc(item.label || item.fileName)}" />`;
+    $("#lightbox-caption").textContent = item.label || item.fileName || "媒体预览";
+    $("#media-lightbox").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeMediaLightbox() {
+    $("#media-lightbox").hidden = true;
+    $("#lightbox-stage").innerHTML = "";
+    $("#lightbox-caption").textContent = "";
+    document.body.style.overflow = "";
+  }
+
   async function createUpload(file, context) {
     const mediaKind = file.type.startsWith("image/") ? "photo" : file.type.startsWith("video/") ? "video" : "document";
     return requestJson("/api/media/presign-upload", {
@@ -457,9 +559,23 @@
 
       const closeIssueButton = event.target.closest("[data-close-issue]");
       if (closeIssueButton) closeIssue(closeIssueButton.dataset.closeIssue);
+
+      const deleteMediaButton = event.target.closest("[data-delete-media]");
+      if (deleteMediaButton) deleteMedia(deleteMediaButton.dataset.deleteMedia);
+
+      const openMediaButton = event.target.closest("[data-open-media]");
+      if (openMediaButton) openMediaLightbox(openMediaButton.dataset.openMedia);
     });
 
     $("#reload-data").addEventListener("click", loadSnapshot);
+    $("#lightbox-close").addEventListener("click", closeMediaLightbox);
+    $("#media-lightbox").addEventListener("click", (event) => {
+      if (event.target.id === "media-lightbox") closeMediaLightbox();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !$("#media-lightbox").hidden) closeMediaLightbox();
+    });
+
     $("#issue-form").addEventListener("submit", (event) => {
       event.preventDefault();
       createIssueFromForm(event.currentTarget);

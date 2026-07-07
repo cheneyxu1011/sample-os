@@ -116,6 +116,25 @@
             </div>
           </div>
           <div id="calendar-list" class="calendar-list"></div>
+          <section class="month-calendar" aria-label="样衣万年历">
+            <div class="month-calendar-head">
+              <div>
+                <h2 id="calendar-month-title">月历</h2>
+                <p>按预计寄样日期显示样衣节点。</p>
+              </div>
+              <span id="calendar-month-count" class="badge ok">0 个节点</span>
+            </div>
+            <div class="month-weekdays" aria-hidden="true">
+              <span>周一</span>
+              <span>周二</span>
+              <span>周三</span>
+              <span>周四</span>
+              <span>周五</span>
+              <span>周六</span>
+              <span>周日</span>
+            </div>
+            <div id="month-calendar-grid" class="month-calendar-grid"></div>
+          </section>
         </section>
 
         <section class="view" id="settings-view" data-title="设置">
@@ -140,6 +159,12 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <div class="media-lightbox" id="media-lightbox" hidden>
+      <button class="lightbox-close" type="button" id="lightbox-close" aria-label="关闭预览">×</button>
+      <div class="lightbox-stage" id="lightbox-stage"></div>
+      <div class="lightbox-caption" id="lightbox-caption"></div>
     </div>
 
     <script src="./app.js"></script>
