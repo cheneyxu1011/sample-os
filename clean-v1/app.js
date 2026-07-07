@@ -13,6 +13,8 @@
     drawingAnnotation: null,
     selectedAnnotationId: null,
     draggingTextAnnotation: null,
+    lightboxPan: { x: 0, y: 0 },
+    lightboxPanning: null,
     uploading: false,
     touchStartX: null,
     loading: false,
@@ -786,6 +788,7 @@
           <div class="pipeline-actions">
             <button class="secondary-button" type="button" data-open-style-editor="${esc(style.id)}">编辑</button>
             <button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>
+            <button class="secondary-button" type="button" data-open-style-materials="${esc(style.id)}">款式资料</button>
             <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
           </div>
         ` : ""}
@@ -952,7 +955,7 @@
             <strong>${esc(row.department)}</strong>
             <small>${esc(row.role || "评审员")} / ${esc(departmentReviewerName(row, style))}</small>
           </div>
-          <span class="badge ${row.status === "fail" ? "blocked" : "ok"}">${esc(statusLabels[row.status] || row.status)}</span>
+          <span class="badge ${row.status === "fail" ? "blocked" : row.status === "needs_improvement" ? "pending" : "ok"}">${esc(statusLabels[row.status] || row.status)}</span>
         </header>
         <div class="field-grid">
           <select data-review-status>
@@ -1785,6 +1788,8 @@
     state.lightboxZoomIndex = 0;
     state.selectedAnnotationId = null;
     state.draggingTextAnnotation = null;
+    state.lightboxPan = { x: 0, y: 0 };
+    state.lightboxPanning = null;
     $("#lightbox-stage").innerHTML = isVideo
       ? `<video src="${esc(item.url)}" controls autoplay></video>`
       : `
@@ -1812,6 +1817,8 @@
     const annotator = $("#lightbox-annotator");
     if (annotator) {
       annotator.style.setProperty("--lightbox-zoom", zoom);
+      annotator.style.setProperty("--lightbox-pan-x", `${state.lightboxPan.x}px`);
+      annotator.style.setProperty("--lightbox-pan-y", `${state.lightboxPan.y}px`);
       annotator.classList.toggle("zoomed", zoom > 1);
       annotator.dataset.tool = state.lightboxTool || "";
     }
@@ -1842,14 +1849,47 @@
   }
 
   function lightboxPoint(event) {
-    const annotator = $("#lightbox-annotator");
-    if (!annotator) return null;
-    const rect = annotator.getBoundingClientRect();
+    const image = $("#lightbox-annotator img");
+    if (!image) return null;
+    const rect = image.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
     return {
       x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
       y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
     };
+  }
+
+  function beginLightboxPan(event) {
+    const zoomed = state.lightboxZoomIndex > 0;
+    if (!zoomed || state.lightboxTool !== "zoom") return false;
+    if (event.target.closest("[data-annotation-id]")) return false;
+    event.preventDefault();
+    state.lightboxPanning = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: state.lightboxPan.x,
+      originY: state.lightboxPan.y
+    };
+    $("#lightbox-annotator")?.setPointerCapture?.(event.pointerId);
+    $("#lightbox-annotator")?.classList.add("is-panning");
+    return true;
+  }
+
+  function moveLightboxPan(event) {
+    if (!state.lightboxPanning || state.lightboxPanning.pointerId !== event.pointerId) return false;
+    event.preventDefault();
+    state.lightboxPan = {
+      x: state.lightboxPanning.originX + event.clientX - state.lightboxPanning.startX,
+      y: state.lightboxPanning.originY + event.clientY - state.lightboxPanning.startY
+    };
+    updateLightboxToolState();
+    return true;
+  }
+
+  function endLightboxPan() {
+    state.lightboxPanning = null;
+    $("#lightbox-annotator")?.classList.remove("is-panning");
   }
 
   function beginAnnotation(event) {
@@ -2329,6 +2369,9 @@
       const styleEditorButton = event.target.closest("[data-open-style-editor]");
       if (styleEditorButton) openStyleModal(styleEditorButton.dataset.openStyleEditor, "edit");
 
+      const styleMaterialsButton = event.target.closest("[data-open-style-materials]");
+      if (styleMaterialsButton) openStyleModal(styleMaterialsButton.dataset.openStyleMaterials, "materials");
+
       const openReview = event.target.closest("[data-open-review]");
       if (openReview) {
         state.selectedStyleId = openReview.dataset.openReview;
@@ -2520,21 +2563,25 @@
       if (tool === "zoom") {
         state.lightboxZoomIndex = (state.lightboxZoomIndex + 1) % 4;
         state.lightboxTool = state.lightboxZoomIndex ? "zoom" : "";
+        if (!state.lightboxZoomIndex) state.lightboxPan = { x: 0, y: 0 };
       } else {
         state.lightboxTool = state.lightboxTool === tool ? "" : tool;
       }
       updateLightboxToolState();
     });
     $("#lightbox-stage").addEventListener("pointerdown", (event) => {
+      if (beginLightboxPan(event)) return;
       if (beginTextDrag(event)) return;
       beginAnnotation(event);
       addTextAnnotation(event);
     });
     $("#lightbox-stage").addEventListener("pointermove", (event) => {
+      if (moveLightboxPan(event)) return;
       if (moveTextAnnotation(event)) return;
       moveAnnotation(event);
     });
     document.addEventListener("pointerup", () => {
+      endLightboxPan();
       endTextDrag();
       endAnnotation();
     });

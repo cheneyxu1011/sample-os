@@ -968,12 +968,20 @@ textarea:focus {
   transition: transform 160ms ease;
   transform-origin: center center;
   --lightbox-zoom: 1;
+  --lightbox-pan-x: 0px;
+  --lightbox-pan-y: 0px;
 }
 
 .lightbox-annotator.zoomed {
   max-width: none;
   max-height: none;
-  transform: scale(var(--lightbox-zoom));
+  transform: translate(var(--lightbox-pan-x), var(--lightbox-pan-y)) scale(var(--lightbox-zoom));
+  cursor: grab;
+  touch-action: none;
+}
+
+.lightbox-annotator.zoomed.is-panning {
+  cursor: grabbing;
 }
 
 .lightbox-stage img,
@@ -998,7 +1006,7 @@ textarea:focus {
 
 .annotation-layer polyline {
   fill: none;
-  stroke: #ff453a;
+  stroke: #ffd60a;
   stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1032,6 +1040,14 @@ textarea:focus {
 .lightbox-annotator[data-tool="draw"],
 .lightbox-annotator[data-tool="text"] {
   cursor: crosshair;
+}
+
+.lightbox-annotator.zoomed[data-tool="zoom"] {
+  cursor: grab;
+}
+
+.lightbox-annotator.zoomed[data-tool="zoom"].is-panning {
+  cursor: grabbing;
 }
 
 .lightbox-caption {

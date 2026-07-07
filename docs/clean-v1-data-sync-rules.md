@@ -277,7 +277,7 @@ Until those fields exist, deleting media should remove or hide only the Supabase
 Style cover uploads must be globally recognizable across the style form, review header, review media list, and pipeline cards.
 
 - New uploads should label style cover files with the `style_cover` category.
-- Pipeline cards should use `编辑` as the style maintenance entry. The style modal must separate `编辑` and `款式资料` into tabs instead of mixing basic fields and the document library in one long page.
+- Pipeline cards should keep clear actions: `编辑`, `打开评审`, `款式资料`, and `删除`. The style modal must separate `编辑` and `款式资料` into tabs instead of mixing basic fields and the document library in one long page.
 - The `款式资料` tab is the shared document library for all customer materials before and after review, including customer references, measurement tables, tech packs, BOM files, customer comments, and other attachments.
 - The UI and snapshot API must also recognize older Chinese labels such as `款式主图`, `款式图`, and `样衣正面图` as style cover media.
 - Review media and style cover media share the same `sample_media` source, but the cover slot must filter by category instead of taking any random uploaded image.
@@ -286,6 +286,7 @@ Style cover uploads must be globally recognizable across the style form, review 
 - Review image annotations must be saved as shared data, not local-only UI state. Clean V1 stores lightbox draw/text annotations in `audit_events` with `entity_type = media` and `action = media_annotations`, keyed by `sample_media.id`.
 - Image review tools must support practical review actions: zoom levels `1x / 3x / 5x / 10x`, visible pen strokes, draggable text notes, delete selected note, undo latest annotation, and explicit save to shared data.
 - After saving image annotations, the UI must immediately update the current media item and then reload `snapshot-p0` to verify persistence. If the saved media cannot be found, show a readable error instead of silently pretending the annotation synced.
+- Zoomed image review must allow hand-drag panning so reviewers can inspect details at `3x / 5x / 10x`. Annotation coordinates must be calculated from the rendered image bounds, not from the outer lightbox container.
 
 ## Role Owner Rules
 
