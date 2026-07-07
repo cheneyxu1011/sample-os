@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sample OS Clean V1</title>
+    <title>Sample OS</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -13,7 +13,7 @@
           <div class="brand-mark">SO</div>
           <div>
             <strong>Sample OS</strong>
-            <span>Clean V1 / Supabase</span>
+            <span>样衣评审系统</span>
           </div>
         </div>
         <nav class="nav" aria-label="主导航">
@@ -23,21 +23,21 @@
           <button class="nav-item" type="button" data-view="settings">设置</button>
         </nav>
         <div class="side-metrics">
-          <span>数据源</span>
+          <span>数据状态</span>
           <strong id="source-label">连接中</strong>
-          <small id="source-time">等待 Supabase snapshot</small>
+          <small id="source-time">正在加载数据</small>
         </div>
       </aside>
 
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Clean V1 / S3 上传 / Supabase 同步</p>
+            <p class="eyebrow">样衣开发 / 评审 / 寄样放行</p>
             <h1 id="view-title">开发流水线</h1>
           </div>
           <div class="top-actions">
-            <button class="primary-button" type="button" id="new-style-button">新建款式</button>
-            <button class="secondary-button" type="button" id="reload-data">刷新数据</button>
+            <button class="primary-button view-action" type="button" id="new-style-button" data-hide-on="calendar settings">新建款式</button>
+            <button class="secondary-button view-action" type="button" id="reload-data" data-hide-on="calendar settings">刷新数据</button>
             <div class="status-stack" aria-live="polite">
               <div class="status-pill" id="risk-pill">风险：读取中</div>
               <div class="status-pill" id="release-pill">放行：读取中</div>
@@ -51,13 +51,33 @@
           <div class="section-head">
             <div>
               <h2>开发流水线</h2>
-              <p>从 Supabase snapshot 渲染款式和当前 Gate。</p>
+              <p>按款式阶段、预计寄样日期和当前风险查看开发进度。</p>
             </div>
           </div>
           <div id="pipeline-list" class="pipeline-list skeleton">正在加载...</div>
         </section>
 
         <section class="view" id="review-view" data-title="样衣评审">
+          <section class="panel review-filter-panel">
+            <div class="panel-head">
+              <div>
+                <h2>查找样衣评审</h2>
+                <p>按品牌或款号切换到对应款式的评审记录。</p>
+              </div>
+            </div>
+            <div class="review-filter">
+              <label>品牌
+                <select id="review-brand-filter"></select>
+              </label>
+              <label>款号
+                <input id="review-style-filter" type="search" placeholder="输入款号或款式名称" />
+              </label>
+              <label>匹配款式
+                <select id="review-style-select"></select>
+              </label>
+              <button class="secondary-button" type="button" id="review-filter-clear">清空</button>
+            </div>
+          </section>
           <div id="review-summary" class="style-summary skeleton">正在加载评审...</div>
 
           <div class="grid review-grid">
@@ -65,7 +85,7 @@
               <div class="panel-head">
                 <div>
                   <h2>部门评审</h2>
-                  <p>保存后写入 Supabase review_department_reviews。</p>
+                  <p>记录各部门评审意见，作为寄样放行依据。</p>
                 </div>
               </div>
               <div id="department-cards" class="department-grid"></div>
@@ -74,8 +94,8 @@
             <section class="panel">
               <div class="panel-head">
                 <div>
-                  <h2>S3 媒体</h2>
-                  <p>文件进 S3，metadata 进 Supabase。</p>
+                  <h2>评审媒体</h2>
+                  <p>上传照片、视频和资料，便于评审复核。</p>
                 </div>
               </div>
               <div class="upload-actions">
@@ -193,6 +213,16 @@
           </section>
 
           <div class="grid settings-grid">
+            <section class="panel brand-panel">
+              <div class="panel-head">
+                <div>
+                  <h2>品牌管理</h2>
+                  <p>维护样衣评审可选品牌。</p>
+                </div>
+                <button class="secondary-button" type="button" id="add-brand">新增品牌</button>
+              </div>
+              <div id="brand-list" class="brand-list"></div>
+            </section>
             <section class="panel gate-panel">
               <h2>Gate 负责人</h2>
               <dl id="owner-list" class="setting-list"></dl>
@@ -208,15 +238,6 @@
             <section class="panel issue-rule-panel">
               <h2>问题等级规则</h2>
               <ul id="rule-list" class="rule-list"></ul>
-            </section>
-            <section class="panel wide">
-              <h2>数据同步规则</h2>
-              <ol class="sync-rules">
-                <li>页面加载和关键写入后重新拉取 /api/sampleos/snapshot-p0。</li>
-                <li>评审、Issue、位置和放行状态只通过 /api/sampleos/sync 写入。</li>
-                <li>媒体文件上传 S3，Supabase 只保存 sample_media 元数据。</li>
-                <li>寄样放行状态由逾期、负责人、资料、部门评审、阻塞 Issue、最终审批共同计算。</li>
-              </ol>
             </section>
           </div>
         </section>
@@ -235,9 +256,9 @@
       <form class="modal-card" id="style-form">
         <div class="modal-head">
           <div>
-            <span>开发入口 / 款式资料初始化</span>
-            <h2>新建样衣评审款式</h2>
-            <p>请先录入款式基础信息和开发资料</p>
+            <span id="style-modal-kicker">开发入口 / 款式资料初始化</span>
+            <h2 id="style-modal-title">新建样衣评审款式</h2>
+            <p id="style-modal-subtitle">请先录入款式基础信息和开发资料</p>
           </div>
           <button class="modal-close" type="button" id="style-modal-close" aria-label="关闭">×</button>
         </div>
@@ -293,7 +314,7 @@
           <section class="modal-section material-section">
             <div>
               <h3>款式资料</h3>
-              <p>先创建 style record，再上传资料到 S3 并绑定 style_id。</p>
+              <p>主图和开发资料会归档到当前款式，便于后续评审查看。</p>
             </div>
             <div class="material-grid">
               <label class="material-upload cover-upload">

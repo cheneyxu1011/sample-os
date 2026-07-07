@@ -4,11 +4,14 @@
     selectedStyleId: null,
     selectedFiles: [],
     styleInitFiles: {},
+    editingStyleId: null,
     lightboxIndex: -1,
     uploading: false,
     touchStartX: null,
     loading: false,
-    settingsTab: "templates"
+    settingsTab: "templates",
+    reviewBrandFilter: "",
+    reviewStyleFilter: ""
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -81,6 +84,12 @@
     blocked_by_preparation: "禁止寄样：评审资料未齐全",
     overdue_pending_confirm: "寄样日期已逾期，需重新确认"
   };
+
+  const defaultBrands = [
+    { id: "supreme", name: "SUPREME", aliases: [] },
+    { id: "descente", name: "迪桑特", aliases: ["DESCENTE"] },
+    { id: "salomon", name: "萨洛蒙", aliases: ["SALOMON"] }
+  ];
 
   const roleTemplates = [
     { id: "business_pm", name: "Business PM / 业务负责人", type: "评审角色", stages: ["开发准备", "样衣评审"], responsibility: "确认客户邮件、TP、BOM、Comment、颜色、辅料、交期、寄样目的是否一致", permissions: ["发起开发", "补充资料", "提交意见", "创建 Issue", "申请寄样"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["顾瑶", "顾永宏"] },
@@ -335,7 +344,7 @@
   }
 
   function uploadLabel(category, file) {
-    return `[${category}] ${fileCategoryLabels[category] || category} · ${file.name}`;
+    return `${fileCategoryLabels[category] || "评审资料"} · ${file.name}`;
   }
 
   function routeStatus(style) {
@@ -366,6 +375,71 @@
     return `<div class="meta"><span>${esc(label)}</span><strong>${esc(value || "未设置")}</strong></div>`;
   }
 
+  function roadmapStatus(index, currentIndex, finalApproved) {
+    if (finalApproved) return "complete";
+    if (index < currentIndex) return "complete";
+    if (index === currentIndex) return "current";
+    return "pending";
+  }
+
+  function roadmapNodes(style, sample, review, issues, shipment) {
+    const blockers = (issues || []).filter(isBlocking);
+    const finalApproved = isFinalApproved(review) || shipment.release === "ready_to_send";
+    const gateIndexMap = {
+      business_input: 0,
+      preparation_gate: 1,
+      sample_dispatch_gate: 2,
+      sample_making_gate: 3,
+      sample_review_gate: 4,
+      final_approval_gate: 7
+    };
+    const currentIndex = finalApproved ? 8 : (gateIndexMap[style?.currentGate] ?? (sample ? 4 : 0));
+    const gateOwner = textOwner(style, review, "gateOwner", "大前");
+    const prepDone = !preparationIncomplete(style, sample);
+    const reviewDone = review && !departmentReviewIncomplete(review);
+    const issueText = `${issues.length} 个 Issue${blockers.length ? `，${blockers.length} 个阻塞` : ""}`;
+    const decisionRisk = ["blocked_by_issue", "blocked_by_department_review", "blocked_by_owner_missing", "blocked_by_preparation", "overdue_pending_confirm"].includes(shipment.release);
+
+    const nodes = [
+      { label: "建立款式", desc: style?.styleNo ? "已完成" : "待建立", tip: "款式基础资料已经建立" },
+      { label: "前期准备", desc: prepDone ? "王部长确认" : "资料待补齐", tip: prepDone ? "准备资料已满足评审要求" : "需要补齐工艺单、BOM、客户资料等" },
+      { label: "派发打样", desc: sample ? "已派发" : "待派发", tip: "资料确认后派发到对应打样路线" },
+      { label: "打样完成", desc: sample?.location || style?.sampleLocation || "待入库", tip: "样衣完成后进入样衣间或当前所在位置" },
+      { label: "样衣评审", desc: `${gateOwner}负责`, tip: "点击进入样衣评审页", action: "review" },
+      { label: "问题归属", desc: issueText, tip: "点击查看质量闸口问题", action: "issues" },
+      { label: "整改复验", desc: blockers.length ? "待处理" : reviewDone ? "待复核" : "未开始", tip: "阻塞问题需整改完成并复核关闭", action: "issues" },
+      { label: "寄样决策", desc: finalApproved ? "可寄样" : "待判断", tip: "点击查看评审结论与最终放行", action: "final" }
+    ];
+
+    return nodes.map((node, index) => {
+      let status = roadmapStatus(index, currentIndex, finalApproved);
+      if (blockers.length && index >= 5) status = "risk";
+      if (!blockers.length && decisionRisk && index === 7) status = "risk";
+      return { ...node, status };
+    });
+  }
+
+  function renderRoadmap(style, sample, review, issues, shipment) {
+    const nodes = roadmapNodes(style, sample, review, issues, shipment);
+    return `
+      <div class="gate-roadmap" aria-label="开发路线图">
+        <div class="roadmap-head">
+          <strong>开发路线图</strong>
+          <span>${esc(gateLabel(style.currentGate))} · ${esc(statusLabels[review?.status] || review?.status || "进行中")}</span>
+        </div>
+        <div class="roadmap-track">
+          ${nodes.map((node, index) => `
+            <button class="roadmap-node ${esc(node.status)}" type="button" title="${esc(`${node.label}：${node.desc}`)}" data-roadmap-action="${esc(node.action || "")}" data-roadmap-style="${esc(style.id)}">
+              <span class="roadmap-dot">${node.status === "complete" ? "✓" : node.status === "risk" ? "!" : ""}</span>
+              <span class="roadmap-label">${esc(index + 1)}. ${esc(node.label)}</span>
+              <small>${esc(node.desc)}</small>
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
   function styleCard(style, includeAction) {
     const sample = state.data?.samples?.find((item) => item.styleId === style.id);
     const review = state.data?.reviews?.find((item) => item.styleId === style.id || item.sampleId === sample?.id);
@@ -393,7 +467,7 @@
             <h2>${esc(style.styleName)}</h2>
             <span class="badge ${status}">${esc(releaseLabels[shipment.release] || shipment.release)}</span>
           </div>
-          <p>${esc(style.brand)} / ${esc(style.styleNo)} <small class="system-id">系统 ID：${esc(style.externalRef || style.id)}</small></p>
+          <p>${esc(style.brand)} / ${esc(style.styleNo)}</p>
           ${!includeAction ? `<div class="status-strip">
             <span class="${esc(shipment.tone)}">当前风险状态：${esc(shipment.risk)}</span>
             <span class="${esc(shipment.tone)}">寄样放行状态：${esc(releaseLabels[shipment.release] || shipment.release)}</span>
@@ -417,9 +491,11 @@
             ${meta("Final Approver", textOwner(style, review, "finalApprover", "杨总"))}
             ${meta("下一步", shipment.nextStep)}
           </div>
+          ${includeAction ? renderRoadmap(style, sample, review, issues, shipment) : ""}
         </div>
         ${includeAction ? `
           <div class="pipeline-actions">
+            <button class="secondary-button" type="button" data-edit-style="${esc(style.id)}">编辑资料</button>
             <button class="secondary-button" type="button" data-open-prep="${esc(style.id)}">准备材料</button>
             <button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>
             <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
@@ -452,7 +528,58 @@
       : '<div class="empty">暂无款式数据。</div>';
   }
 
+  function configuredBrands() {
+    const raw = state.data?.settings?.brands;
+    if (Array.isArray(raw) && raw.length) {
+      return raw.map((brand, index) => (
+        typeof brand === "string"
+          ? { id: `brand_${index}`, name: brand, aliases: [] }
+          : { id: brand.id || `brand_${index}`, name: brand.name || brand.label || "", aliases: brand.aliases || [] }
+      )).filter((brand) => brand.name);
+    }
+    return defaultBrands;
+  }
+
+  function styleMatchesReviewFilter(style) {
+    const brand = state.reviewBrandFilter;
+    const query = state.reviewStyleFilter.trim().toLowerCase();
+    const matchesBrand = !brand || style.brand === brand;
+    const haystack = [style.styleNo, style.styleName, style.brand].join(" ").toLowerCase();
+    return matchesBrand && (!query || haystack.includes(query));
+  }
+
+  function filteredReviewStyles() {
+    return (state.data?.styleList || []).filter(styleMatchesReviewFilter);
+  }
+
+  function ensureSelectedStyleVisible() {
+    const filtered = filteredReviewStyles();
+    if (!filtered.length) return;
+    if (!filtered.some((style) => style.id === state.selectedStyleId)) {
+      state.selectedStyleId = filtered[0].id;
+    }
+  }
+
+  function renderReviewFilter() {
+    const styles = state.data?.styleList || [];
+    const brands = Array.from(new Set([...configuredBrands().map((brand) => brand.name), ...styles.map((style) => style.brand).filter(Boolean)]));
+    const brandSelect = $("#review-brand-filter");
+    const styleInput = $("#review-style-filter");
+    const styleSelect = $("#review-style-select");
+    if (!brandSelect || !styleInput || !styleSelect) return;
+
+    brandSelect.innerHTML = `<option value="">全部品牌</option>${brands.map((brand) => `<option value="${esc(brand)}" ${state.reviewBrandFilter === brand ? "selected" : ""}>${esc(brand)}</option>`).join("")}`;
+    styleInput.value = state.reviewStyleFilter;
+    const filtered = filteredReviewStyles();
+    styleSelect.innerHTML = filtered.length
+      ? filtered.map((style) => `<option value="${esc(style.id)}" ${state.selectedStyleId === style.id ? "selected" : ""}>${esc(style.brand)} ${esc(style.styleNo)} / ${esc(style.styleName)}</option>`).join("")
+      : `<option value="">没有匹配款式</option>`;
+    styleSelect.disabled = !filtered.length;
+  }
+
   function renderReviewSummary() {
+    ensureSelectedStyleVisible();
+    renderReviewFilter();
     const style = currentStyle();
     $("#review-summary").classList.remove("skeleton");
     $("#review-summary").innerHTML = style ? styleCard(style, false) : '<div class="empty">暂无评审数据。</div>';
@@ -658,6 +785,16 @@
       ["打样路线", 2]
     ].map(([label, value]) => `<article><strong>${esc(value)}</strong><span>${esc(label)}</span></article>`).join("");
 
+    $("#brand-list").innerHTML = configuredBrands().map((brand) => `
+      <article>
+        <div>
+          <strong>${esc(brand.name)}</strong>
+          <small>${brand.aliases?.length ? `英文 / 别名：${esc(brand.aliases.join(" / "))}` : "暂无别名"}</small>
+        </div>
+        <button type="button">编辑</button>
+      </article>
+    `).join("");
+
     $("#owner-list").innerHTML = owners.map(([label, value, duty]) => `
       <div>
         <dt>${esc(label)}</dt>
@@ -757,17 +894,17 @@
       const data = await requestJson("/api/sampleos/snapshot-p0", { method: "GET" });
       state.data = data;
       state.selectedStyleId = state.selectedStyleId || data.currentStyleId || data.styleList?.[0]?.id || null;
-      $("#source-label").textContent = data.source?.kind || "supabase";
+      $("#source-label").textContent = "已加载";
       $("#source-time").textContent = data.source?.loadedAt ? `加载于 ${new Date(data.source.loadedAt).toLocaleString()}` : "已加载";
       renderAll();
     } catch (error) {
       console.error("读取 Supabase snapshot 失败", { error });
-      showMessage(`无法读取 Supabase snapshot：${error.message}`);
+      showMessage(`暂时无法加载数据：${error.message}`);
       $("#source-label").textContent = "连接失败";
       state.data = state.data || {};
       renderSettings();
       updateStatus();
-      $("#pipeline-list").innerHTML = "无法连接数据源，请确认 Vercel 环境变量和 Supabase 可用。";
+      $("#pipeline-list").innerHTML = "暂时无法加载款式数据，请稍后重试。";
     } finally {
       state.loading = false;
     }
@@ -869,15 +1006,9 @@
     }
   }
 
-  async function createStyleFromForm(form) {
+  function stylePayloadFromForm(form) {
     const fields = new FormData(form);
-    const errors = validateStyleForm(form);
-    const firstError = Object.values(errors)[0];
-    if (firstError) {
-      $("#style-create-status").textContent = `创建失败：${firstError}`;
-      return showMessage(`创建失败：${firstError}`);
-    }
-    const payload = {
+    return {
       styleNo: String(fields.get("styleNo") || "").trim(),
       brand: String(fields.get("brand") || "").trim(),
       styleName: String(fields.get("styleName") || "").trim(),
@@ -902,18 +1033,56 @@
       quantity: 1,
       highRisk: false
     };
+  }
+
+  async function createStyleFromForm(form) {
+    const errors = validateStyleForm(form);
+    const firstError = Object.values(errors)[0];
+    const editing = Boolean(state.editingStyleId);
+    if (firstError) {
+      $("#style-create-status").textContent = `${editing ? "保存" : "创建"}失败：${firstError}`;
+      return showMessage(`${editing ? "保存" : "创建"}失败：${firstError}`);
+    }
+    const payload = stylePayloadFromForm(form);
     const submit = $("#style-create-submit");
     submit.disabled = true;
-    submit.textContent = "正在创建款式...";
-    $("#style-create-status").textContent = "正在创建款式...";
+    submit.textContent = editing ? "正在保存资料..." : "正在创建款式...";
+    $("#style-create-status").textContent = editing ? "正在保存资料..." : "正在创建款式...";
     try {
+      if (editing) {
+        const style = styleById(state.editingStyleId);
+        const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
+        const review = state.data?.reviews?.find((item) => item.styleId === style?.id || item.sampleId === sample?.id);
+        if (!style || !isUuid(style.id)) throw new Error("当前款式尚未保存，无法编辑资料");
+        const response = await syncData("updateStyleInfo", {
+          styleId: style.id,
+          sampleId: sample?.id || null,
+          reviewId: review?.id || null,
+          ...payload
+        });
+        const result = response.result || {};
+        await uploadFilesForCreatedStyle(state.styleInitFiles, {
+          styleId: result.styleId || style.id,
+          sampleId: result.sampleId || sample?.id,
+          reviewId: result.reviewId || review?.id,
+          styleExternalRef: style.externalRef || null,
+          sampleExternalRef: sample?.externalRef || null,
+          reviewExternalRef: review?.externalRef || null
+        });
+        await loadSnapshot();
+        state.selectedStyleId = style.id;
+        renderAll();
+        closeStyleModal();
+        showMessage("款式资料已保存。", "ok");
+        return;
+      }
       const response = await requestJson("/api/sampleos/create-style-fast", {
         method: "POST",
         body: JSON.stringify(payload)
       });
       const result = response.result || {};
       if (!isUuid(result.styleId) || !isUuid(result.sampleId) || !isUuid(result.reviewId)) {
-        throw new Error("style_id 未生成");
+        throw new Error("款式保存记录未生成");
       }
       await uploadFilesForCreatedStyle(state.styleInitFiles, {
         styleId: result.styleId,
@@ -930,19 +1099,19 @@
       showMessage(result.existing ? "该款号已存在，已打开现有款式。" : "款式创建成功，已进入评审页面", "ok");
       switchView("review");
     } catch (error) {
-      console.error("创建款式失败", { payload, selectedFiles: state.styleInitFiles, error });
-      $("#style-create-status").textContent = `创建失败：${error.message}`;
-      showMessage(`创建失败：${error.message}`);
+      console.error(`${editing ? "保存" : "创建"}款式失败`, { payload, selectedFiles: state.styleInitFiles, error });
+      $("#style-create-status").textContent = `${editing ? "保存" : "创建"}失败：${error.message}`;
+      showMessage(`${editing ? "保存" : "创建"}失败：${error.message}`);
     } finally {
       submit.disabled = false;
-      submit.textContent = "创建款式";
+      submit.textContent = editing ? "保存资料" : "创建款式";
     }
   }
 
   async function deleteStyle(styleId) {
     if (!isUuid(styleId)) return showMessage("只能删除已保存到数据库的真实款式。");
     const style = styleById(styleId);
-    if (!window.confirm(`确认删除 ${style?.styleNo || "该款式"}？关联样衣、评审、问题、媒体 metadata 会一起清理。`)) return;
+    if (!window.confirm(`确认删除 ${style?.styleNo || "该款式"}？关联样衣、评审、问题和媒体记录会一起清理。`)) return;
     try {
       await requestJson("/api/sampleos/delete-style-fast", {
         method: "POST",
@@ -1084,9 +1253,9 @@
       };
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) resolve();
-        else reject(new Error(`S3 上传失败：${xhr.status}`));
+        else reject(new Error(`文件上传失败：${xhr.status}`));
       };
-      xhr.onerror = () => reject(new Error("S3 上传失败：网络错误"));
+      xhr.onerror = () => reject(new Error("文件上传失败：网络错误"));
       xhr.send(file);
     });
   }
@@ -1149,7 +1318,7 @@
       state.selectedFiles = [];
       $$("[data-media-upload-input]").forEach((input) => { input.value = ""; });
       $("#media-preview").innerHTML = "";
-      $("#upload-status").textContent = "上传成功，已同步到 Supabase。";
+      $("#upload-status").textContent = "上传成功，已保存。";
       await loadSnapshot();
     } catch (error) {
       console.error("上传评审媒体失败", { files: state.selectedFiles, error });
@@ -1197,6 +1366,10 @@
     $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
     $$(".view").forEach((view) => view.classList.toggle("active", view.id === `${viewName}-view`));
     $("#view-title").textContent = $(`#${viewName}-view`).dataset.title;
+    $$(".view-action").forEach((button) => {
+      const hiddenViews = String(button.dataset.hideOn || "").split(/\s+/).filter(Boolean);
+      button.hidden = hiddenViews.includes(viewName);
+    });
     if (window.location.hash !== `#${viewName}`) {
       window.history.replaceState(null, "", `#${viewName}`);
     }
@@ -1208,7 +1381,53 @@
     if (viewName) switchView(viewName);
   }
 
-  function openStyleModal() {
+  function fillStyleForm(style) {
+    const form = $("#style-form");
+    const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
+    const review = state.data?.reviews?.find((item) => item.styleId === style?.id || item.sampleId === sample?.id);
+    const owners = style?.owners || style?.profile?.owners || {};
+    const values = {
+      styleNo: style?.styleNo || "",
+      styleName: style?.styleName || "",
+      brand: style?.brand || "萨洛蒙",
+      season: style?.season || "SS27",
+      customer: style?.customer || style?.profile?.customer || "",
+      route: style?.route || "normal",
+      samplePhase: style?.samplePhase || sample?.samplePhase || "second_sample",
+      sampleLocation: sample?.location || style?.sampleLocation || "样衣间",
+      plannedShipDate: dateOnly(plannedDate(style, sample)),
+      customerDeadline: dateOnly(style?.customerDeadline || style?.profile?.customerDeadline),
+      customerCommentSource: style?.customerCommentSource || style?.profile?.customerCommentSource || "",
+      reviewObjective: style?.reviewObjective || style?.profile?.reviewObjective || "确认质量与工艺问题责任人，判断是否可寄样",
+      businessOwner: owners.businessOwner || "",
+      sampleOwner: owners.sampleOwner || "",
+      gateOwner: owners.gateOwner || textOwner(style, review, "gateOwner", ""),
+      finalApprover: owners.finalApprover || textOwner(style, review, "finalApprover", "杨总"),
+      patternOwner: owners.patternOwner || "",
+      processOwner: owners.processOwner || "",
+      qcOwner: owners.qcOwner || "",
+      bondingOwner: owners.bondingOwner || ""
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      if (form.elements[name]) form.elements[name].value = value || "";
+    });
+  }
+
+  function setStyleModalMode(mode, style = null) {
+    const editing = mode === "edit";
+    state.editingStyleId = editing ? style?.id : null;
+    $("#style-modal-kicker").textContent = editing ? "款式资料维护" : "开发入口 / 款式资料初始化";
+    $("#style-modal-title").textContent = editing ? "编辑款式资料" : "新建样衣评审款式";
+    $("#style-modal-subtitle").textContent = editing ? "补充款式基础信息、责任人和开发资料" : "请先录入款式基础信息和开发资料";
+    $("#style-create-submit").textContent = editing ? "保存资料" : "创建款式";
+    $("#style-create-status").textContent = "";
+    $("#style-cover-preview").innerHTML = "暂无主图";
+  }
+
+  function openStyleModal(styleId = null) {
+    const style = styleId ? styleById(styleId) : null;
+    setStyleModalMode(style ? "edit" : "create", style);
+    if (style) fillStyleForm(style);
     $("#style-modal").hidden = false;
     document.body.style.overflow = "hidden";
   }
@@ -1221,9 +1440,10 @@
     $("#style-form").samplePhase.value = "second_sample";
     $("#style-form").sampleLocation.value = "样衣间";
     $("#style-form").finalApprover.value = "杨总";
+    $("#style-form").reviewObjective.value = "确认质量与工艺问题责任人，判断是否可寄样";
     state.styleInitFiles = {};
-    $("#style-cover-preview").innerHTML = "暂无主图";
-    $("#style-create-status").textContent = "";
+    state.editingStyleId = null;
+    setStyleModalMode("create");
     setFieldErrors($("#style-form"), {});
     document.body.style.overflow = "";
   }
@@ -1240,10 +1460,31 @@
     document.body.style.overflow = "";
   }
 
+  function jumpToReviewSection(styleId, selector) {
+    if (styleId) state.selectedStyleId = styleId;
+    renderAll();
+    switchView("review");
+    window.requestAnimationFrame(() => {
+      const target = selector ? document.querySelector(selector) : document.querySelector("#review-view");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   function bindEvents() {
     document.addEventListener("click", (event) => {
       const nav = event.target.closest("[data-view]");
       if (nav) switchView(nav.dataset.view);
+
+      const roadmapNode = event.target.closest("[data-roadmap-action]");
+      if (roadmapNode) {
+        const action = roadmapNode.dataset.roadmapAction;
+        if (action === "review") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, "#review-summary");
+        if (action === "issues") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, ".issue-panel");
+        if (action === "final") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, ".final-approval-panel");
+      }
+
+      const editStyle = event.target.closest("[data-edit-style]");
+      if (editStyle) openStyleModal(editStyle.dataset.editStyle);
 
       const openReview = event.target.closest("[data-open-review]");
       if (openReview) {
@@ -1257,7 +1498,7 @@
         state.selectedStyleId = prepButton.dataset.openPrep;
         renderAll();
         switchView("settings");
-        showMessage("准备材料清单已保存在 snapshot 的 preparationChecklist 中，后续可在这里展开完整准备页。", "ok");
+        showMessage("准备材料清单后续会在这里展开完整准备页。", "ok");
       }
 
       const deleteStyleButton = event.target.closest("[data-delete-style]");
@@ -1288,8 +1529,9 @@
       if (openMediaButton) openMediaLightbox(openMediaButton.dataset.openMedia);
     });
 
-    $("#new-style-button").addEventListener("click", openStyleModal);
+    $("#new-style-button").addEventListener("click", () => openStyleModal());
     $("#add-person").addEventListener("click", () => showMessage("新增人员入口已保留；当前版本先聚焦固定角色分配。", "ok"));
+    $("#add-brand").addEventListener("click", () => showMessage("新增品牌入口已保留；当前品牌先使用 SUPREME、迪桑特、萨洛蒙。", "ok"));
     $("#assign-role-top").addEventListener("click", () => openAssignmentModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
     $("#style-modal-cancel").addEventListener("click", closeStyleModal);
@@ -1312,6 +1554,27 @@
     });
 
     $("#reload-data").addEventListener("click", loadSnapshot);
+    $("#review-brand-filter").addEventListener("change", (event) => {
+      state.reviewBrandFilter = event.currentTarget.value;
+      ensureSelectedStyleVisible();
+      renderAll();
+    });
+    $("#review-style-filter").addEventListener("input", (event) => {
+      state.reviewStyleFilter = event.currentTarget.value;
+      ensureSelectedStyleVisible();
+      renderAll();
+    });
+    $("#review-style-select").addEventListener("change", (event) => {
+      if (!event.currentTarget.value) return;
+      state.selectedStyleId = event.currentTarget.value;
+      renderAll();
+    });
+    $("#review-filter-clear").addEventListener("click", () => {
+      state.reviewBrandFilter = "";
+      state.reviewStyleFilter = "";
+      ensureSelectedStyleVisible();
+      renderAll();
+    });
     $("#lightbox-close").addEventListener("click", closeMediaLightbox);
     $("#lightbox-prev").addEventListener("click", () => moveLightbox(-1));
     $("#lightbox-next").addEventListener("click", () => moveLightbox(1));

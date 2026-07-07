@@ -88,6 +88,11 @@ function issueEvidenceNote(body) {
   return `${evidence}||owner:${ownerRef}||verifier:${verifierRef}`;
 }
 
+function textOrNull(value) {
+  const text = String(value || "").trim();
+  return text || null;
+}
+
 async function firstOrg(supabase) {
   const { data, error } = await supabase
     .from("organizations")
@@ -402,6 +407,139 @@ async function createStyle(supabase, orgId, body) {
   return { styleId: style.id, sampleId: sample.id, reviewId: review.id };
 }
 
+async function updateStyleInfo(supabase, orgId, body) {
+  const styleId = await resolveEntityId(supabase, orgId, "styles", body.styleId);
+  if (!styleId) throw new Error("styleId is required");
+  const now = new Date().toISOString();
+  const gateOwnerId = profileIdOrNull(body.gateOwnerId || body.reviewOwnerId);
+  const finalApproverId = profileIdOrNull(body.finalApproverId);
+
+  const stylePayload = {
+    style_no: textOrNull(body.styleNo),
+    brand: textOrNull(body.brand) || "未指定品牌",
+    season: textOrNull(body.season),
+    style_name: textOrNull(body.styleName),
+    route: body.route || "normal",
+    sample_phase: body.samplePhase || "first_sample",
+    planned_ship_date: body.plannedShipDate || null,
+    gate_owner_id: gateOwnerId,
+    final_approver_id: finalApproverId,
+    updated_at: now,
+  };
+  if (!stylePayload.style_no || !stylePayload.style_name) throw new Error("款号和款式名称不能为空");
+
+  const { data: style, error: styleError } = await supabase
+    .from("styles")
+    .update(stylePayload)
+    .eq("org_id", orgId)
+    .eq("id", styleId)
+    .select("id, external_ref")
+    .single();
+  if (styleError) throw syncError("update styles", styleError, { styleId, stylePayload });
+
+  let sampleId = body.sampleId ? await resolveEntityId(supabase, orgId, "samples", body.sampleId) : null;
+  if (!sampleId) {
+    const { data: sample, error: sampleFindError } = await supabase
+      .from("samples")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("style_id", styleId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (sampleFindError) throw syncError("find sample for style update", sampleFindError, { styleId });
+    sampleId = sample?.id || null;
+  }
+  if (sampleId) {
+    const { error: sampleError } = await supabase
+      .from("samples")
+      .update({
+        sample_phase: body.samplePhase || "first_sample",
+        version_name: body.versionName || body.samplePhase || "first_sample",
+        location: body.sampleLocation || "未设置",
+        planned_ship_date: body.plannedShipDate || null,
+        updated_at: now,
+      })
+      .eq("org_id", orgId)
+      .eq("id", sampleId);
+    if (sampleError) throw syncError("update samples", sampleError, { sampleId });
+  }
+
+  let reviewId = body.reviewId ? await resolveEntityId(supabase, orgId, "reviews", body.reviewId) : null;
+  if (!reviewId && sampleId) {
+    const { data: review, error: reviewFindError } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("style_id", styleId)
+      .eq("sample_id", sampleId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (reviewFindError) throw syncError("find review for style update", reviewFindError, { styleId, sampleId });
+    reviewId = review?.id || null;
+  }
+  if (reviewId) {
+    const { error: reviewError } = await supabase
+      .from("reviews")
+      .update({ gate_owner_id: gateOwnerId, final_approver_id: finalApproverId, updated_at: now })
+      .eq("org_id", orgId)
+      .eq("id", reviewId);
+    if (reviewError) throw syncError("update reviews", reviewError, { reviewId });
+  }
+
+  const profileDetail = {
+    customer: textOrNull(body.customer),
+    customerDeadline: textOrNull(body.customerDeadline),
+    customerCommentSource: textOrNull(body.customerCommentSource),
+    reviewObjective: textOrNull(body.reviewObjective),
+    owners: {
+      businessOwner: textOrNull(body.businessOwner),
+      sampleOwner: textOrNull(body.sampleOwner),
+      gateOwner: textOrNull(body.gateOwner),
+      finalApprover: textOrNull(body.finalApprover) || "杨总",
+      patternOwner: textOrNull(body.patternOwner),
+      processOwner: textOrNull(body.processOwner),
+      qcOwner: textOrNull(body.qcOwner),
+      bondingOwner: textOrNull(body.bondingOwner),
+    },
+    styleId,
+    sampleId,
+    reviewId,
+  };
+
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from("audit_events")
+    .select("id, detail")
+    .eq("org_id", orgId)
+    .eq("entity_type", "style")
+    .eq("entity_id", styleId)
+    .eq("action", "style_profile")
+    .maybeSingle();
+  if (existingProfileError) throw syncError("check style profile audit", existingProfileError, { styleId });
+
+  if (existingProfile?.id) {
+    const detail = {
+      ...(existingProfile.detail || {}),
+      ...profileDetail,
+      owners: { ...(existingProfile.detail?.owners || {}), ...profileDetail.owners },
+    };
+    const { error } = await supabase.from("audit_events").update({ detail }).eq("id", existingProfile.id);
+    if (error) throw syncError("update style profile audit", error, { styleId });
+  } else {
+    const { error } = await supabase.from("audit_events").insert({
+      org_id: orgId,
+      entity_type: "style",
+      entity_id: styleId,
+      action: "style_profile",
+      detail: profileDetail,
+    });
+    if (error) throw syncError("insert style profile audit", error, { styleId });
+  }
+
+  return { styleId: style.id, sampleId, reviewId };
+}
+
 async function deleteStyle(supabase, orgId, body) {
   if (!body.styleId) throw new Error("styleId is required");
   const { error } = await supabase
@@ -603,6 +741,7 @@ export default async function handler(req, res) {
       issueStatus: updateIssueStatus,
       createIssue,
       createStyle,
+      updateStyleInfo,
       deleteStyle,
       createPerson,
       createWorker,
