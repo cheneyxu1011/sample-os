@@ -709,6 +709,45 @@ async function updateMediaLabel(supabase, orgId, body) {
   return { mediaId, label };
 }
 
+async function updateMediaAnnotations(supabase, orgId, body) {
+  const mediaId = String(body.mediaId || "").trim();
+  const annotations = Array.isArray(body.annotations) ? body.annotations : [];
+  if (!mediaId) throw new Error("mediaId is required");
+
+  const detail = {
+    annotations,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const { data: existing, error: existingError } = await supabase
+    .from("audit_events")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("entity_type", "media")
+    .eq("entity_id", mediaId)
+    .eq("action", "media_annotations")
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  if (existing?.id) {
+    const { error } = await supabase
+      .from("audit_events")
+      .update({ detail })
+      .eq("id", existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("audit_events").insert({
+      org_id: orgId,
+      entity_type: "media",
+      entity_id: mediaId,
+      action: "media_annotations",
+      detail,
+    });
+    if (error) throw error;
+  }
+  return { mediaId, annotations };
+}
+
 async function deleteMedia(supabase, orgId, body) {
   const mediaId = String(body.mediaId || "").trim();
   if (!mediaId) throw new Error("mediaId is required");
@@ -753,6 +792,7 @@ export default async function handler(req, res) {
       updateGateRule,
       updateSetting,
       updateMediaLabel,
+      updateMediaAnnotations,
       deleteMedia,
     };
     const action = handlers[body.action];

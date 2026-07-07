@@ -7,6 +7,10 @@
     editingPersonId: null,
     editingBrandId: null,
     lightboxIndex: -1,
+    lightboxTool: "",
+    lightboxZoomed: false,
+    lightboxDraftAnnotations: [],
+    drawingAnnotation: null,
     uploading: false,
     touchStartX: null,
     loading: false,
@@ -1704,12 +1708,113 @@
     const item = mediaList[state.lightboxIndex];
     if (!item?.url) return;
     const isVideo = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/");
+    state.lightboxDraftAnnotations = JSON.parse(JSON.stringify(item.annotations || []));
+    state.drawingAnnotation = null;
+    state.lightboxTool = "";
+    state.lightboxZoomed = false;
     $("#lightbox-stage").innerHTML = isVideo
       ? `<video src="${esc(item.url)}" controls autoplay></video>`
-      : `<img src="${esc(item.url)}" alt="${esc(item.label || item.fileName)}" />`;
+      : `
+        <div class="lightbox-annotator" id="lightbox-annotator">
+          <img src="${esc(item.url)}" alt="${esc(item.label || item.fileName)}" draggable="false" />
+          <svg class="annotation-layer" id="annotation-layer" viewBox="0 0 1 1" preserveAspectRatio="none"></svg>
+          <div class="annotation-text-layer" id="annotation-text-layer"></div>
+        </div>
+      `;
     $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · ${state.lightboxIndex + 1}/${mediaList.length}`;
     $("#lightbox-prev").disabled = mediaList.length <= 1;
     $("#lightbox-next").disabled = mediaList.length <= 1;
+    $("#lightbox-tools").hidden = isVideo;
+    updateLightboxToolState();
+    renderAnnotations();
+  }
+
+  function updateLightboxToolState() {
+    $$("[data-lightbox-tool]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.lightboxTool === state.lightboxTool);
+    });
+    const annotator = $("#lightbox-annotator");
+    if (annotator) {
+      annotator.classList.toggle("zoomed", state.lightboxZoomed);
+      annotator.dataset.tool = state.lightboxTool || "";
+    }
+  }
+
+  function renderAnnotations() {
+    const svg = $("#annotation-layer");
+    const textLayer = $("#annotation-text-layer");
+    if (!svg || !textLayer) return;
+    svg.innerHTML = state.lightboxDraftAnnotations
+      .filter((item) => item.type === "draw" && item.points?.length > 1)
+      .map((item) => {
+        const [first, ...rest] = item.points;
+        const d = `M ${first.x} ${first.y} ${rest.map((point) => `L ${point.x} ${point.y}`).join(" ")}`;
+        return `<path d="${esc(d)}" vector-effect="non-scaling-stroke"></path>`;
+      }).join("");
+    textLayer.innerHTML = state.lightboxDraftAnnotations
+      .filter((item) => item.type === "text" && item.text)
+      .map((item) => `<span style="left:${Number(item.x) * 100}%;top:${Number(item.y) * 100}%">${esc(item.text)}</span>`)
+      .join("");
+  }
+
+  function lightboxPoint(event) {
+    const annotator = $("#lightbox-annotator");
+    if (!annotator) return null;
+    const rect = annotator.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+    };
+  }
+
+  function beginAnnotation(event) {
+    if (state.lightboxTool !== "draw") return;
+    const point = lightboxPoint(event);
+    if (!point) return;
+    event.preventDefault();
+    state.drawingAnnotation = { type: "draw", points: [point] };
+    state.lightboxDraftAnnotations.push(state.drawingAnnotation);
+    renderAnnotations();
+  }
+
+  function moveAnnotation(event) {
+    if (state.lightboxTool !== "draw" || !state.drawingAnnotation) return;
+    const point = lightboxPoint(event);
+    if (!point) return;
+    event.preventDefault();
+    state.drawingAnnotation.points.push(point);
+    renderAnnotations();
+  }
+
+  function endAnnotation() {
+    state.drawingAnnotation = null;
+  }
+
+  function addTextAnnotation(event) {
+    if (state.lightboxTool !== "text") return;
+    const point = lightboxPoint(event);
+    if (!point) return;
+    const text = window.prompt("输入图片备注");
+    if (!text?.trim()) return;
+    state.lightboxDraftAnnotations.push({ type: "text", x: point.x, y: point.y, text: text.trim() });
+    renderAnnotations();
+  }
+
+  async function saveLightboxAnnotations() {
+    const item = reviewMediaList()[state.lightboxIndex];
+    if (!item?.id) return;
+    try {
+      await syncData("updateMediaAnnotations", {
+        mediaId: item.id,
+        annotations: state.lightboxDraftAnnotations
+      });
+      $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · 备注已保存`;
+      await loadSnapshot();
+    } catch (error) {
+      console.error("保存图片备注失败", { mediaId: item.id, error });
+      showMessage(`保存图片备注失败：${error.message}`);
+    }
   }
 
   function openMediaLightbox(mediaId) {
@@ -1725,6 +1830,10 @@
   function closeMediaLightbox() {
     $("#media-lightbox").hidden = true;
     state.lightboxIndex = -1;
+    state.lightboxTool = "";
+    state.lightboxZoomed = false;
+    state.lightboxDraftAnnotations = [];
+    state.drawingAnnotation = null;
     $("#lightbox-stage").innerHTML = "";
     $("#lightbox-caption").textContent = "";
     document.body.style.overflow = "";
@@ -2231,6 +2340,25 @@
     $("#lightbox-close").addEventListener("click", closeMediaLightbox);
     $("#lightbox-prev").addEventListener("click", () => moveLightbox(-1));
     $("#lightbox-next").addEventListener("click", () => moveLightbox(1));
+    $("#lightbox-save-annotations").addEventListener("click", saveLightboxAnnotations);
+    $("#lightbox-tools").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-lightbox-tool]");
+      if (!button) return;
+      const tool = button.dataset.lightboxTool;
+      if (tool === "zoom") {
+        state.lightboxZoomed = !state.lightboxZoomed;
+        state.lightboxTool = state.lightboxZoomed ? "zoom" : "";
+      } else {
+        state.lightboxTool = state.lightboxTool === tool ? "" : tool;
+      }
+      updateLightboxToolState();
+    });
+    $("#lightbox-stage").addEventListener("pointerdown", (event) => {
+      beginAnnotation(event);
+      addTextAnnotation(event);
+    });
+    $("#lightbox-stage").addEventListener("pointermove", moveAnnotation);
+    document.addEventListener("pointerup", endAnnotation);
     $("#media-lightbox").addEventListener("click", (event) => {
       if (event.target.id === "media-lightbox") closeMediaLightbox();
     });
@@ -2240,9 +2368,11 @@
       if (event.key === "ArrowRight") moveLightbox(1);
     });
     $("#media-lightbox").addEventListener("touchstart", (event) => {
+      if (state.lightboxTool) return;
       state.touchStartX = event.touches?.[0]?.clientX ?? null;
     }, { passive: true });
     $("#media-lightbox").addEventListener("touchend", (event) => {
+      if (state.lightboxTool) return;
       if (state.touchStartX === null) return;
       const endX = event.changedTouches?.[0]?.clientX ?? state.touchStartX;
       const delta = endX - state.touchStartX;

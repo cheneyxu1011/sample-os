@@ -281,6 +281,7 @@ Style cover uploads must be globally recognizable across the style form, review 
 - Review media and style cover media share the same `sample_media` source, but the cover slot must filter by category instead of taking any random uploaded image.
 - Review photo/video uploads should start immediately after file selection. Do not require a second "upload selected files" confirmation.
 - Uploaded media names must be editable from the media card and saved back to Supabase `sample_media.label` while preserving the hidden category prefix.
+- Review image annotations must be saved as shared data, not local-only UI state. Clean V1 stores lightbox draw/text annotations in `audit_events` with `entity_type = media` and `action = media_annotations`, keyed by `sample_media.id`.
 
 ## Role Owner Rules
 

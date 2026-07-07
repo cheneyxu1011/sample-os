@@ -66,7 +66,7 @@ export default async function handler(req, res) {
   try {
     const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
     const org = await firstOrg(supabase);
-    const [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult, auditEventsResult] = await Promise.all([
+    const [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult, auditEventsResult, mediaAuditEventsResult] = await Promise.all([
       supabase.from("profiles").select("*").eq("org_id", org.id),
       supabase.from("departments").select("*").eq("org_id", org.id),
       supabase.from("styles").select("*").eq("org_id", org.id).order("planned_ship_date", { ascending: true, nullsFirst: false }),
@@ -79,9 +79,10 @@ export default async function handler(req, res) {
       supabase.from("sample_workers").select("*").eq("org_id", org.id).order("created_at", { ascending: true }),
       supabase.from("sample_settings").select("*").eq("org_id", org.id),
       supabase.from("audit_events").select("*").eq("org_id", org.id).eq("entity_type", "style").in("action", ["sample_variants", "preparation_checklist", "style_profile"]).order("created_at", { ascending: true }),
+      supabase.from("audit_events").select("*").eq("org_id", org.id).eq("entity_type", "media").eq("action", "media_annotations").order("created_at", { ascending: true }),
     ]);
 
-    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult, auditEventsResult];
+    const results = [profilesResult, departmentsResult, stylesResult, samplesResult, reviewsResult, departmentReviewsResult, issuesResult, mediaResult, peopleResult, workersResult, settingsResult, auditEventsResult, mediaAuditEventsResult];
     const firstError = results.find((result) => result.error)?.error;
     if (firstError) throw firstError;
 
@@ -97,6 +98,7 @@ export default async function handler(req, res) {
     const workers = workersResult.data || [];
     const settings = settingsResult.data || [];
     const auditEvents = auditEventsResult.data || [];
+    const mediaAuditEvents = mediaAuditEventsResult.data || [];
 
     const settingsMap = Object.fromEntries(settings.map((item) => [item.key, item.value]));
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
@@ -107,6 +109,7 @@ export default async function handler(req, res) {
     const variantAuditMap = new Map();
     const preparationChecklistMap = new Map();
     const styleProfileMap = new Map();
+    const mediaAnnotationMap = new Map();
     const s3 = process.env.AWS_REGION ? new S3Client({ region: process.env.AWS_REGION }) : null;
 
     auditEvents.forEach((event) => {
@@ -114,6 +117,9 @@ export default async function handler(req, res) {
       if (event.action === "sample_variants") variantAuditMap.set(event.entity_id, event.detail || {});
       if (event.action === "preparation_checklist") preparationChecklistMap.set(event.entity_id, event.detail || {});
       if (event.action === "style_profile") styleProfileMap.set(event.entity_id, event.detail || {});
+    });
+    mediaAuditEvents.forEach((event) => {
+      if (event.entity_id) mediaAnnotationMap.set(event.entity_id, event.detail || {});
     });
     issues.forEach((issue) => {
       if (!issue.review_id) return;
@@ -134,6 +140,7 @@ export default async function handler(req, res) {
           mimeType: item.mime_type,
           byteSize: item.byte_size,
           uploadedAt: cleanDateTime(item.created_at),
+          annotations: mediaAnnotationMap.get(item.id)?.annotations || [],
           url: await mediaAccessUrl(s3, item),
         };
       }));

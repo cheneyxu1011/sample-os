@@ -945,6 +945,7 @@ textarea:focus {
   gap: 12px;
   padding: 32px;
   background: rgba(7, 17, 21, 0.86);
+  overflow: auto;
 }
 
 .media-lightbox[hidden] {
@@ -959,6 +960,21 @@ textarea:focus {
   place-items: center;
 }
 
+.lightbox-annotator {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 84vh;
+  transition: transform 160ms ease;
+  transform-origin: center center;
+}
+
+.lightbox-annotator.zoomed {
+  max-width: none;
+  max-height: none;
+  transform: scale(1.65);
+}
+
 .lightbox-stage img,
 .lightbox-stage video {
   max-width: 100%;
@@ -968,11 +984,85 @@ textarea:focus {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
 }
 
+.lightbox-annotator img {
+  display: block;
+}
+
+.annotation-layer,
+.annotation-text-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.annotation-layer path {
+  fill: none;
+  stroke: #ff453a;
+  stroke-width: 0.008;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.annotation-text-layer span {
+  position: absolute;
+  max-width: 220px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: #1d1d1f;
+  background: rgba(255, 214, 10, 0.9);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  transform: translate(-2px, -100%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.lightbox-annotator[data-tool="draw"],
+.lightbox-annotator[data-tool="text"] {
+  cursor: crosshair;
+}
+
 .lightbox-caption {
   max-width: min(1120px, 94vw);
   color: #fff;
   font-weight: 750;
   text-align: center;
+}
+
+.lightbox-tools {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform: translateX(-50%);
+}
+
+.lightbox-tools[hidden] {
+  display: none;
+}
+
+.lightbox-tools button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 10px;
+  color: #fff;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.lightbox-tools button:hover,
+.lightbox-tools button.active {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .lightbox-close {
