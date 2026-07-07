@@ -1254,6 +1254,34 @@ textarea:focus {
   resize: vertical;
 }
 
+.style-modal-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f5f5f7;
+}
+
+.style-modal-tabs button {
+  min-height: 34px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.style-modal-tabs button.active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: var(--shadow-soft);
+}
+
 .material-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

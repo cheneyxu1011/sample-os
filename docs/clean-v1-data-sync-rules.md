@@ -277,8 +277,8 @@ Until those fields exist, deleting media should remove or hide only the Supabase
 Style cover uploads must be globally recognizable across the style form, review header, review media list, and pipeline cards.
 
 - New uploads should label style cover files with the `style_cover` category.
-- Pipeline cards should use one unified `款式资料` entry for style material maintenance. Do not split the same workflow into separate `编辑资料` and `准备材料` buttons.
-- `款式资料` is the shared document library for all customer materials before and after review, including customer references, measurement tables, tech packs, BOM files, customer comments, and other attachments.
+- Pipeline cards should use `编辑` as the style maintenance entry. The style modal must separate `编辑` and `款式资料` into tabs instead of mixing basic fields and the document library in one long page.
+- The `款式资料` tab is the shared document library for all customer materials before and after review, including customer references, measurement tables, tech packs, BOM files, customer comments, and other attachments.
 - The UI and snapshot API must also recognize older Chinese labels such as `款式主图`, `款式图`, and `样衣正面图` as style cover media.
 - Review media and style cover media share the same `sample_media` source, but the cover slot must filter by category instead of taking any random uploaded image.
 - Review photo/video uploads should start immediately after file selection. Do not require a second "upload selected files" confirmation.

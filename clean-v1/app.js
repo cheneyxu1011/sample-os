@@ -784,7 +784,7 @@
         </div>
         ${includeAction ? `
           <div class="pipeline-actions">
-            <button class="secondary-button" type="button" data-open-style-materials="${esc(style.id)}">款式资料</button>
+            <button class="secondary-button" type="button" data-open-style-editor="${esc(style.id)}">编辑</button>
             <button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>
             <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
           </div>
@@ -2236,7 +2236,17 @@
     $("#style-cover-preview").innerHTML = "暂无主图";
   }
 
-  function openStyleModal(styleId = null) {
+  function setStyleModalTab(tab = "edit") {
+    const activeTab = tab === "materials" ? "materials" : "edit";
+    $$("[data-style-modal-tab]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.styleModalTab === activeTab);
+    });
+    $$("[data-style-tab-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.styleTabPanel !== activeTab;
+    });
+  }
+
+  function openStyleModal(styleId = null, tab = "edit") {
     const style = styleId ? styleById(styleId) : null;
     setStyleModalMode(style ? "edit" : "create", style);
     if (style) {
@@ -2248,6 +2258,7 @@
         finalApprover: "杨总"
       });
     }
+    setStyleModalTab(tab);
     $("#style-modal").hidden = false;
     document.body.style.overflow = "hidden";
   }
@@ -2264,6 +2275,7 @@
     state.styleInitFiles = {};
     state.editingStyleId = null;
     setStyleModalMode("create");
+    setStyleModalTab("edit");
     setFieldErrors($("#style-form"), {});
     document.body.style.overflow = "";
   }
@@ -2314,8 +2326,8 @@
         if (action === "final") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, ".final-approval-panel");
       }
 
-      const styleMaterialsButton = event.target.closest("[data-open-style-materials]");
-      if (styleMaterialsButton) openStyleModal(styleMaterialsButton.dataset.openStyleMaterials);
+      const styleEditorButton = event.target.closest("[data-open-style-editor]");
+      if (styleEditorButton) openStyleModal(styleEditorButton.dataset.openStyleEditor, "edit");
 
       const openReview = event.target.closest("[data-open-review]");
       if (openReview) {
@@ -2407,6 +2419,9 @@
     $("#add-brand").addEventListener("click", () => openBrandModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
     $("#style-modal-cancel").addEventListener("click", closeStyleModal);
+    $$("[data-style-modal-tab]").forEach((button) => {
+      button.addEventListener("click", () => setStyleModalTab(button.dataset.styleModalTab));
+    });
     $("#style-modal").addEventListener("click", (event) => {
       if (event.target.id === "style-modal") closeStyleModal();
     });

@@ -272,8 +272,12 @@
           </div>
           <button class="modal-close" type="button" id="style-modal-close" aria-label="关闭">×</button>
         </div>
+        <div class="style-modal-tabs" role="tablist" aria-label="款式维护">
+          <button type="button" class="active" data-style-modal-tab="edit">编辑</button>
+          <button type="button" data-style-modal-tab="materials">款式资料</button>
+        </div>
         <div class="style-create-layout">
-          <section class="modal-section">
+          <section class="modal-section" data-style-tab-panel="edit">
             <h3>基础信息</h3>
             <div class="modal-grid basic-info-grid">
               <label>款号<input name="styleNo" data-required-message="请输入款号" required /><small data-field-error="styleNo"></small></label>
@@ -307,7 +311,7 @@
             </div>
           </section>
 
-          <section class="modal-section">
+          <section class="modal-section" data-style-tab-panel="edit">
             <div class="owner-section-head">
               <div>
                 <h3>责任人</h3>
@@ -321,7 +325,7 @@
             </div>
           </section>
 
-          <section class="modal-section material-section">
+          <section class="modal-section material-section" data-style-tab-panel="materials" hidden>
             <div>
               <h3>款式资料</h3>
               <p>归档客户前后资料、款式主图、尺寸表、工艺单、BOM 和修改意见，便于后续评审查看。</p>
