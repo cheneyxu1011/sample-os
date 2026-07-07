@@ -1592,17 +1592,17 @@ textarea:focus {
 .inline-add {
   align-items: center;
   display: inline-grid;
-  grid-template-columns: minmax(150px, 220px) 48px;
+  grid-template-columns: minmax(150px, 220px) 58px;
   gap: 6px;
   margin-left: 4px;
 }
 
 .people-editor .inline-add {
-  grid-template-columns: minmax(170px, 240px) 48px;
+  grid-template-columns: minmax(170px, 240px) 58px;
 }
 
 .permission-editor .inline-add {
-  grid-template-columns: minmax(150px, 210px) 48px;
+  grid-template-columns: minmax(150px, 210px) 58px;
 }
 
 .inline-add input,
@@ -1638,10 +1638,12 @@ textarea:focus {
   border-radius: 8px;
   color: var(--accent);
   cursor: pointer;
+  font-size: 12px;
   font-weight: 750;
   min-height: 32px;
   padding: 5px 9px;
-  width: 48px;
+  white-space: nowrap;
+  width: 58px;
 }
 
 .person-assignment-table {
