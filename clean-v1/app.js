@@ -783,8 +783,7 @@
         </div>
         ${includeAction ? `
           <div class="pipeline-actions">
-            <button class="secondary-button" type="button" data-edit-style="${esc(style.id)}">编辑资料</button>
-            <button class="secondary-button" type="button" data-open-prep="${esc(style.id)}">准备材料</button>
+            <button class="secondary-button" type="button" data-open-style-materials="${esc(style.id)}">款式资料</button>
             <button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>
             <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
           </div>
@@ -2187,7 +2186,7 @@
     state.editingStyleId = editing ? style?.id : null;
     $("#style-modal-kicker").textContent = editing ? "款式资料维护" : "开发入口 / 款式资料初始化";
     $("#style-modal-title").textContent = editing ? "编辑款式资料" : "新建样衣评审款式";
-    $("#style-modal-subtitle").textContent = editing ? "补充款式基础信息、责任人和开发资料" : "请先录入款式基础信息和开发资料";
+    $("#style-modal-subtitle").textContent = editing ? "维护款式基础信息、责任人和客户前后资料" : "请先录入款式基础信息和开发资料";
     $("#style-create-submit").textContent = editing ? "保存资料" : "创建款式";
     $("#style-create-status").textContent = "";
     $("#style-cover-preview").innerHTML = "暂无主图";
@@ -2271,22 +2270,14 @@
         if (action === "final") jumpToReviewSection(roadmapNode.dataset.roadmapStyle, ".final-approval-panel");
       }
 
-      const editStyle = event.target.closest("[data-edit-style]");
-      if (editStyle) openStyleModal(editStyle.dataset.editStyle);
+      const styleMaterialsButton = event.target.closest("[data-open-style-materials]");
+      if (styleMaterialsButton) openStyleModal(styleMaterialsButton.dataset.openStyleMaterials);
 
       const openReview = event.target.closest("[data-open-review]");
       if (openReview) {
         state.selectedStyleId = openReview.dataset.openReview;
         renderAll();
         switchView("review");
-      }
-
-      const prepButton = event.target.closest("[data-open-prep]");
-      if (prepButton) {
-        state.selectedStyleId = prepButton.dataset.openPrep;
-        renderAll();
-        switchView("settings");
-        showMessage("准备材料清单后续会在这里展开完整准备页。", "ok");
       }
 
       const deleteStyleButton = event.target.closest("[data-delete-style]");
