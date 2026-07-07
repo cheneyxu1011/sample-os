@@ -70,8 +70,10 @@ If a feature cannot yet be fully persisted or shared, the UI must make that limi
 Role templates are fixed business roles. People are the configurable resource.
 
 - Do not create a new role just because a new employee is added.
-- People must be maintained in the settings person library before they are selected during style creation.
-- People assignment must persist through `sample_people` and reload through `snapshot-p0`.
+- People can be maintained in the settings person library before they are selected during style creation.
+- Role template cards are the primary place to assign or remove people for a role.
+- Role template cards must allow editing key permissions, final release permission, exception release permission, and current assigned people.
+- Role template edits must persist through `sample_settings.key = roleTemplates` and reload through `snapshot-p0`.
 - Style creation owner fields must use configured people dropdowns, not free-text inputs.
 - Owner dropdowns must filter by role, brand scope, route scope, and enabled status.
 - Default fallback people are allowed only to keep the workflow usable before settings are fully configured.

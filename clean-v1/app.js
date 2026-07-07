@@ -115,6 +115,15 @@
     { id: "document_controller", name: "Document Controller / 资料版本管理员", type: "流程角色", stages: ["资料管理"], responsibility: "维护 TP、BOM、纸样、客户 Comment 资料版本", permissions: ["上传资料", "标记资料版本", "作废旧版本", "创建资料不一致 Issue"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [] }
   ];
 
+  const hiddenRoleTemplateIds = new Set([
+    "sample_dispatcher",
+    "preparation_gate_owner",
+    "xinchangjiang_dispatcher",
+    "final_approver",
+    "shipment_owner",
+    "document_controller"
+  ]);
+
   const defaultUsers = [
     { id: "default_guyao", name: "顾瑶", department: "业务部", enabled: true, role: "business_pm", scope: ["萨洛蒙", "样衣评审"] },
     { id: "default_guyonghong", name: "顾永宏", department: "业务部", enabled: true, role: "business_pm", scope: ["萨洛蒙", "样衣评审"] },
@@ -217,14 +226,49 @@
   }
 
   function roleById(roleId) {
-    return roleTemplates.find((role) => role.id === roleId);
+    return activeRoleTemplates().find((role) => role.id === roleId) || roleTemplates.find((role) => role.id === roleId);
+  }
+
+  function hasConfiguredRoleTemplates() {
+    return Array.isArray(state.data?.settings?.roleTemplates);
+  }
+
+  function activeRoleTemplates() {
+    const configured = state.data?.settings?.roleTemplates;
+    const source = Array.isArray(configured) && configured.length ? configured : roleTemplates;
+    return source
+      .filter((role) => !hiddenRoleTemplateIds.has(role.id))
+      .map((role) => ({
+        ...role,
+        stages: Array.isArray(role.stages) ? role.stages : [],
+        permissions: Array.isArray(role.permissions) ? role.permissions : [],
+        people: Array.isArray(role.people) ? role.people : []
+      }));
+  }
+
+  function serializeRoleTemplates(templates = activeRoleTemplates()) {
+    return templates.map((role) => ({
+      id: role.id,
+      name: role.name,
+      type: role.type,
+      stages: role.stages || [],
+      responsibility: role.responsibility || "",
+      permissions: role.permissions || [],
+      reviewDefault: role.reviewDefault || "否",
+      finalRelease: role.finalRelease || "否",
+      exceptionRelease: role.exceptionRelease || "否",
+      people: role.people || []
+    }));
   }
 
   function assignedRolesForUser(user) {
+    if (hasConfiguredRoleTemplates()) {
+      return activeRoleTemplates().filter((role) => role.people.includes(user.name));
+    }
     const ids = userRoleIds(user);
-    const explicit = roleTemplates.filter((role) => ids.includes(role.id));
+    const explicit = activeRoleTemplates().filter((role) => ids.includes(role.id));
     if (explicit.length) return explicit;
-    return roleTemplates.filter((role) => role.people.includes(user.name));
+    return activeRoleTemplates().filter((role) => role.people.includes(user.name));
   }
 
   function assignedUsersForRole(roleId) {
@@ -873,6 +917,7 @@
   function renderSettings() {
     const data = state.data || {};
     const users = allUsers();
+    const templates = activeRoleTemplates();
     const gateRules = data.gateRules || {};
     const ownerOrDefault = (userId, fallback) => {
       if (!userId) return fallback;
@@ -885,7 +930,7 @@
       ["Final Approver", ownerOrDefault(gateRules.finalApprover, "杨总"), "例外放行、重大争议裁决"]
     ];
     $("#settings-stats").innerHTML = [
-      ["系统角色", roleTemplates.length],
+      ["系统角色", templates.length],
       ["Gate 负责人", 5],
       ["例外审批人", 1],
       ["打样路线", 2]
@@ -908,10 +953,10 @@
       </div>
     `).join("");
 
-    $("#role-template-view").hidden = state.settingsTab !== "templates";
-    $("#person-assignment-view").hidden = state.settingsTab !== "assignments";
-    $$(".settings-role-tabs button").forEach((button) => button.classList.toggle("active", button.dataset.settingsTab === state.settingsTab));
-    $("#role-template-view").innerHTML = roleTemplates.map((role) => `
+    $("#role-template-view").innerHTML = templates.map((role) => {
+      const assignedPeople = role.people?.length ? role.people : assignedUsersForRole(role.id).map((person) => person.name);
+      const availablePeople = users.filter((user) => !assignedPeople.includes(user.name));
+      return `
       <article class="role-template-card">
         <header>
           <div>
@@ -922,35 +967,38 @@
         </header>
         <p>${esc(role.responsibility)}</p>
         <dl>
-          <div><dt>关键权限</dt><dd>${role.permissions.map((item) => `<i>${esc(item)}</i>`).join("")}</dd></div>
-          <div><dt>最终放行</dt><dd>${esc(role.finalRelease)}</dd></div>
-          <div><dt>例外放行</dt><dd>${esc(role.exceptionRelease)}</dd></div>
-          <div><dt>当前分配人员</dt><dd>${assignedUsersForRole(role.id).length ? assignedUsersForRole(role.id).map((person) => `<i>${esc(person.name)}</i>`).join("") : "<em>未分配</em>"}</dd></div>
+          <div>
+            <dt>关键权限</dt>
+            <dd class="editable-chip-list">
+              ${role.permissions.length ? role.permissions.map((item, index) => `<button type="button" data-role-remove-permission="${esc(role.id)}" data-index="${index}">${esc(item)} ×</button>`).join("") : "<em>未设置</em>"}
+              <span class="inline-add"><input data-role-permission-input="${esc(role.id)}" placeholder="新增权限" /><button type="button" data-role-add-permission="${esc(role.id)}">添加</button></span>
+            </dd>
+          </div>
+          <div>
+            <dt>最终放行</dt>
+            <dd><select data-role-final-release="${esc(role.id)}"><option ${role.finalRelease === "否" ? "selected" : ""}>否</option><option ${role.finalRelease === "是" ? "selected" : ""}>是</option><option ${role.finalRelease === "仅例外放行" ? "selected" : ""}>仅例外放行</option></select></dd>
+          </div>
+          <div>
+            <dt>例外放行</dt>
+            <dd><select data-role-exception-release="${esc(role.id)}"><option ${role.exceptionRelease === "否" ? "selected" : ""}>否</option><option ${role.exceptionRelease === "是" ? "selected" : ""}>是</option></select></dd>
+          </div>
+          <div>
+            <dt>当前分配人员</dt>
+            <dd class="editable-chip-list">
+              ${assignedPeople.length ? assignedPeople.map((person) => `<button type="button" data-role-remove-person="${esc(role.id)}" data-person="${esc(person)}">${esc(person)} ×</button>`).join("") : "<em>未分配</em>"}
+              <span class="inline-add">
+                <select data-role-person-select="${esc(role.id)}">
+                  <option value="">选择人员</option>
+                  ${availablePeople.map((person) => `<option value="${esc(person.name)}">${esc(person.name)} / ${esc(person.department || "未设置")}</option>`).join("")}
+                </select>
+                <button type="button" data-role-add-person="${esc(role.id)}">添加</button>
+              </span>
+            </dd>
+          </div>
         </dl>
       </article>
-    `).join("");
-
-    $("#person-assignment-view").innerHTML = `
-      <div class="people-row people-head"><strong>人员姓名</strong><span>所属部门</span><em>已分配角色</em><small>适用品牌 / 路线</small><div>关键权限</div><span>状态</span><div>操作</div></div>
-      ${users.map((user) => {
-        const assigned = assignedRolesForUser(user);
-        const permissions = Array.from(new Set(assigned.flatMap((role) => role.permissions))).slice(0, 4);
-        const scopes = user.scope?.length ? user.scope : ["萨洛蒙", user.isFinalApprover ? "例外放行" : "样衣评审"];
-        return `<div class="people-row">
-          <strong>${esc(user.name)}</strong>
-          <span>${esc(user.department || "未设置")}</span>
-          <em>${esc(assigned.map(roleShortName).join(" / ") || "未分配固定角色")}</em>
-          <small>${esc(scopes.join(" / "))}</small>
-          <div class="permission-tags">${permissions.length ? permissions.map((item) => `<i>${esc(item)}</i>`).join("") : "<i>待分配</i>"}</div>
-          <span class="badge ${user.enabled ? "ok" : "pending"}">${user.enabled ? "启用" : "停用"}</span>
-          <div class="row-actions-inline">
-            <button type="button" data-open-assignment="${esc(user.id)}">分配角色</button>
-            <button type="button" data-edit-person="${esc(user.id)}">编辑人员</button>
-            <button type="button">停用</button>
-          </div>
-        </div>`;
-      }).join("")}
     `;
+    }).join("");
 
     const rules = data.settings?.issueLevelRules || data.issueLevelRules || {
       minor: { label: "轻微", shipmentRule: "不阻止寄样，只记录" },
@@ -967,26 +1015,12 @@
     ].map(([title, text]) => `<article><strong>${esc(title)}</strong><p>${esc(text)}</p></article>`).join("");
     const locations = data.settings?.sampleLocations || ["开发车间", "样衣间", "新长江", "已寄出", "待返修"];
     $("#location-list").innerHTML = locations.map((item) => `<span>${esc(item)}</span>`).join("");
-    renderAssignmentModalOptions();
-  }
-
-  function renderAssignmentModalOptions(personId) {
-    const users = allUsers();
-    const selectedUser = users.find((user) => user.id === personId) || users[0] || null;
-    const selectedRoleIds = new Set(selectedUser ? assignedRolesForUser(selectedUser).map((role) => role.id) : []);
-    const selectedScopes = new Set(selectedUser ? userScopes(selectedUser) : []);
-    $("#assignment-person").innerHTML = users.map((user) => `<option value="${esc(user.id)}" ${personId === user.id ? "selected" : ""}>${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("");
-    $("#assignment-role-list").innerHTML = roleTemplates.map((role) => `
-      <label><input type="checkbox" name="roleIds" value="${esc(role.id)}" ${selectedRoleIds.has(role.id) ? "checked" : ""}><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
-    `).join("");
-    const scopes = ["萨洛蒙", "SUPREME", "迪桑特", "普通打样", "压胶 / 新长江", "样衣评审", "例外放行"];
-    $("#assignment-scope-list").innerHTML = scopes.map((scope) => `<label><input type="checkbox" name="scope" value="${esc(scope)}" ${selectedScopes.has(scope) ? "checked" : ""}><span>${esc(scope)}</span></label>`).join("");
   }
 
   function renderPersonModalOptions(person = null) {
     const selectedRoleIds = new Set(person ? assignedRolesForUser(person).map((role) => role.id) : []);
     const selectedScopes = new Set(person ? userScopes(person) : ["样衣评审"]);
-    $("#person-role-list").innerHTML = roleTemplates.map((role) => `
+    $("#person-role-list").innerHTML = activeRoleTemplates().map((role) => `
       <label><input type="checkbox" name="roleIds" value="${esc(role.id)}" ${selectedRoleIds.has(role.id) ? "checked" : ""}><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
     `).join("");
     const scopes = ["萨洛蒙", "SUPREME", "迪桑特", "普通打样", "压胶 / 新长江", "样衣评审", "例外放行", "全部品牌", "全部路线"];
@@ -1036,34 +1070,30 @@
     }
   }
 
-  async function saveAssignmentFromForm(form) {
-    const fields = new FormData(form);
-    const person = allUsers().find((user) => user.id === fields.get("person"));
-    if (!person) return showMessage("请选择人员");
-    const roleIds = fields.getAll("roleIds").map(String);
-    const scope = fields.getAll("scope").map(String);
-    const permissions = Array.from(new Set(roleIds.flatMap((roleId) => roleById(roleId)?.permissions || [])));
+  async function saveRoleTemplates(templates, message = "角色模板已保存") {
     try {
-      await syncData("createPerson", {
-        id: person.isDefaultUser ? undefined : person.id,
-        name: person.name,
-        department: person.department || "",
-        role: roleIds.join(","),
-        currentResponsibility: roleIds.map((roleId) => roleShortName(roleById(roleId))).filter(Boolean).join(" / "),
-        reviewResponsibility: fields.get("reviewParticipant") === "是" ? "参与样衣评审" : "",
-        permissions,
-        scope,
-        enabled: person.enabled !== false,
-        isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
-        isFinalApprover: roleIds.includes("final_approver")
+      await syncData("updateSetting", {
+        key: "roleTemplates",
+        value: serializeRoleTemplates(templates)
       });
-      closeAssignmentModal();
       await loadSnapshot();
-      showMessage("角色分配已保存，创建款式时会按条件筛选人员。", "ok");
+      showMessage(message, "ok");
     } catch (error) {
-      console.error("保存角色分配失败", { person, roleIds, scope, error });
-      showMessage(`保存角色分配失败：${error.message}`);
+      console.error("保存角色模板失败", { templates, error });
+      showMessage(`保存角色模板失败：${error.message}`);
     }
+  }
+
+  function updateRoleTemplate(roleId, updater, message) {
+    const templates = activeRoleTemplates().map((role) => {
+      if (role.id !== roleId) return role;
+      const next = { ...role, permissions: [...(role.permissions || [])], people: [...(role.people || [])] };
+      updater(next);
+      next.permissions = Array.from(new Set(next.permissions.map((item) => String(item).trim()).filter(Boolean)));
+      next.people = Array.from(new Set(next.people.map((item) => String(item).trim()).filter(Boolean)));
+      return next;
+    });
+    saveRoleTemplates(templates, message);
   }
 
   function renderAll() {
@@ -1647,18 +1677,6 @@
     document.body.style.overflow = "";
   }
 
-  function openAssignmentModal(personId) {
-    renderAssignmentModalOptions(personId);
-    $("#assignment-modal").hidden = false;
-    document.body.style.overflow = "hidden";
-  }
-
-  function closeAssignmentModal() {
-    $("#assignment-modal").hidden = true;
-    $("#assignment-form").reset();
-    document.body.style.overflow = "";
-  }
-
   function openPersonModal(personId = null) {
     const person = personId ? allUsers().find((user) => user.id === personId) : null;
     state.editingPersonId = person?.id || null;
@@ -1727,17 +1745,40 @@
       const deleteStyleButton = event.target.closest("[data-delete-style]");
       if (deleteStyleButton) deleteStyle(deleteStyleButton.dataset.deleteStyle);
 
-      const settingsTab = event.target.closest("[data-settings-tab]");
-      if (settingsTab) {
-        state.settingsTab = settingsTab.dataset.settingsTab;
-        renderSettings();
-      }
-
-      const assignmentButton = event.target.closest("[data-open-assignment]");
-      if (assignmentButton) openAssignmentModal(assignmentButton.dataset.openAssignment);
-
       const editPersonButton = event.target.closest("[data-edit-person]");
       if (editPersonButton) openPersonModal(editPersonButton.dataset.editPerson);
+
+      const removePermissionButton = event.target.closest("[data-role-remove-permission]");
+      if (removePermissionButton) {
+        const roleId = removePermissionButton.dataset.roleRemovePermission;
+        const index = Number(removePermissionButton.dataset.index);
+        updateRoleTemplate(roleId, (role) => role.permissions.splice(index, 1), "关键权限已删除");
+      }
+
+      const addPermissionButton = event.target.closest("[data-role-add-permission]");
+      if (addPermissionButton) {
+        const roleId = addPermissionButton.dataset.roleAddPermission;
+        const input = document.querySelector(`[data-role-permission-input="${CSS.escape(roleId)}"]`);
+        const value = input?.value?.trim();
+        if (value) updateRoleTemplate(roleId, (role) => role.permissions.push(value), "关键权限已添加");
+      }
+
+      const removePersonButton = event.target.closest("[data-role-remove-person]");
+      if (removePersonButton) {
+        const roleId = removePersonButton.dataset.roleRemovePerson;
+        const person = removePersonButton.dataset.person;
+        updateRoleTemplate(roleId, (role) => {
+          role.people = role.people.filter((item) => item !== person);
+        }, "分配人员已移除");
+      }
+
+      const addPersonButton = event.target.closest("[data-role-add-person]");
+      if (addPersonButton) {
+        const roleId = addPersonButton.dataset.roleAddPerson;
+        const select = document.querySelector(`[data-role-person-select="${CSS.escape(roleId)}"]`);
+        const person = select?.value;
+        if (person) updateRoleTemplate(roleId, (role) => role.people.push(person), "分配人员已添加");
+      }
 
       const saveDepartmentButton = event.target.closest("[data-save-department]");
       if (saveDepartmentButton) saveDepartment(Number(saveDepartmentButton.dataset.saveDepartment));
@@ -1758,7 +1799,6 @@
     $("#new-style-button").addEventListener("click", () => openStyleModal());
     $("#add-person").addEventListener("click", () => openPersonModal());
     $("#add-brand").addEventListener("click", () => showMessage("新增品牌入口已保留；当前品牌先使用 SUPREME、迪桑特、萨洛蒙。", "ok"));
-    $("#assign-role-top").addEventListener("click", () => openAssignmentModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
     $("#style-modal-cancel").addEventListener("click", closeStyleModal);
     $("#style-modal").addEventListener("click", (event) => {
@@ -1779,15 +1819,19 @@
       event.preventDefault();
       savePersonFromForm(event.currentTarget);
     });
-    $("#assignment-modal-close").addEventListener("click", closeAssignmentModal);
-    $("#assignment-modal-cancel").addEventListener("click", closeAssignmentModal);
-    $("#assignment-modal").addEventListener("click", (event) => {
-      if (event.target.id === "assignment-modal") closeAssignmentModal();
-    });
-    $("#assignment-person").addEventListener("change", (event) => renderAssignmentModalOptions(event.currentTarget.value));
-    $("#assignment-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      saveAssignmentFromForm(event.currentTarget);
+    document.addEventListener("change", (event) => {
+      const finalRelease = event.target.closest("[data-role-final-release]");
+      if (finalRelease) {
+        updateRoleTemplate(finalRelease.dataset.roleFinalRelease, (role) => {
+          role.finalRelease = finalRelease.value;
+        }, "最终放行权限已更新");
+      }
+      const exceptionRelease = event.target.closest("[data-role-exception-release]");
+      if (exceptionRelease) {
+        updateRoleTemplate(exceptionRelease.dataset.roleExceptionRelease, (role) => {
+          role.exceptionRelease = exceptionRelease.value;
+        }, "例外放行权限已更新");
+      }
     });
 
     $("#reload-data").addEventListener("click", loadSnapshot);

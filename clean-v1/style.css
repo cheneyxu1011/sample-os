@@ -1557,6 +1557,54 @@ textarea:focus {
   font-style: normal;
 }
 
+.editable-chip-list {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.editable-chip-list > button {
+  background: rgba(0, 113, 227, 0.1);
+  border: 0;
+  border-radius: 999px;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 5px 8px;
+}
+
+.inline-add {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.inline-add input,
+.inline-add select,
+.role-template-card select {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  min-height: 32px;
+  padding: 5px 9px;
+}
+
+.inline-add button {
+  background: rgba(0, 113, 227, 0.1);
+  border: 1px solid rgba(0, 113, 227, 0.12);
+  border-radius: 8px;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 750;
+  min-height: 32px;
+  padding: 5px 9px;
+}
+
 .person-assignment-table {
   display: grid;
   gap: 8px;
