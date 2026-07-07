@@ -149,6 +149,119 @@ async function getOrCreateReview(supabase, orgId, style, sample, body, now) {
   return data;
 }
 
+async function ensureDepartment(supabase, orgId, name) {
+  const departmentName = name || "未指定部门";
+  const { data: existing, error: existingError } = await supabase
+    .from("departments")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("name", departmentName)
+    .maybeSingle();
+  if (existingError) throw syncError("check department", existingError, { departmentName });
+  if (existing?.id) return existing.id;
+
+  const { data, error } = await supabase
+    .from("departments")
+    .insert({ org_id: orgId, name: departmentName })
+    .select("id")
+    .single();
+  if (error) throw syncError("insert department", error, { departmentName });
+  return data.id;
+}
+
+async function ensureDefaultDepartmentReviews(supabase, orgId, review, now) {
+  const defaults = [
+    { department: "业务部", role: "业务负责人", focusTags: ["客户需求", "技术包/物料清单", "寄样需求"] },
+    { department: "打版组", role: "版型评审员", focusTags: ["版型", "尺寸", "纸样一致"] },
+    { department: "品质部", role: "质量评审员", focusTags: ["外观", "历史问题", "测试/复验"] },
+    { department: "工艺部", role: "工艺评审员", focusTags: ["工艺可行", "压胶稳定", "技术包一致"] },
+    { department: "IE 部", role: "IE 评审员", focusTags: ["工时", "瓶颈", "量产产能"] },
+    { department: "打样部", role: "打样反馈人", focusTags: ["打样异常", "资料清晰", "制作困难"] },
+  ];
+
+  for (const item of defaults) {
+    const departmentId = await ensureDepartment(supabase, orgId, item.department);
+    const { data: existing, error: existingError } = await supabase
+      .from("review_department_reviews")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("review_id", review.id)
+      .eq("department_id", departmentId)
+      .maybeSingle();
+    if (existingError) throw syncError("check default department review", existingError, { reviewId: review.id, department: item.department });
+    if (existing?.id) continue;
+
+    const { error } = await supabase.from("review_department_reviews").insert({
+      org_id: orgId,
+      review_id: review.id,
+      department_id: departmentId,
+      role_name: item.role,
+      status: "pending",
+      opinion: "",
+      focus_tags: item.focusTags,
+      reviewed_at: null,
+      created_at: now,
+    });
+    if (error) throw syncError("insert default department review", error, { reviewId: review.id, department: item.department });
+  }
+}
+
+async function ensurePreparationChecklist(supabase, orgId, style, body) {
+  const { data: existing, error: existingError } = await supabase
+    .from("audit_events")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("entity_type", "style")
+    .eq("entity_id", style.id)
+    .eq("action", "preparation_checklist")
+    .maybeSingle();
+  if (existingError) throw syncError("check preparation checklist", existingError, { styleId: style.id });
+  if (existing?.id) return;
+
+  const items = [
+    { id: "customer_info", label: "客户信息", done: Boolean(body.brand && body.styleNo) },
+    { id: "tech_pack", label: "技术包 / 款式资料", done: false },
+    { id: "bom", label: "面辅料 / BOM", done: false },
+    { id: "sample_route", label: "打样路线", done: Boolean(body.route) },
+    { id: "ship_date", label: "预计寄样日期", done: Boolean(body.plannedShipDate) },
+  ];
+
+  const { error } = await supabase.from("audit_events").insert({
+    org_id: orgId,
+    entity_type: "style",
+    entity_id: style.id,
+    action: "preparation_checklist",
+    detail: { items },
+  });
+  if (error) throw syncError("insert preparation checklist", error, { styleId: style.id, items });
+}
+
+async function ensureSampleVariantsAudit(supabase, orgId, style, body) {
+  const sampleVariants = Array.isArray(body.sampleVariants) ? body.sampleVariants : [];
+  if (!sampleVariants.length) return;
+
+  const { data: existing, error: existingError } = await supabase
+    .from("audit_events")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("entity_type", "style")
+    .eq("entity_id", style.id)
+    .eq("action", "sample_variants")
+    .maybeSingle();
+  if (existingError) throw syncError("check sample variants audit", existingError, { styleId: style.id });
+  if (existing?.id) return;
+
+  const quantity = sampleVariants.reduce((sum, item) => sum + Math.max(1, Number(item?.quantity || 1)), 0) || Math.max(1, Number(body.quantity || 1));
+  const { error } = await supabase.from("audit_events").insert({
+    org_id: orgId,
+    entity_type: "style",
+    entity_id: style.id,
+    action: "sample_variants",
+    detail: { sampleVariants, quantity },
+  });
+  if (error) throw syncError("insert sample variants audit", error, { styleId: style.id, sampleVariants });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("allow", "POST");
@@ -164,6 +277,9 @@ export default async function handler(req, res) {
     const { style, existing } = await getOrCreateStyle(supabase, org.id, body, now);
     const sample = await getOrCreateSample(supabase, org.id, style, body, now);
     const review = await getOrCreateReview(supabase, org.id, style, sample, body, now);
+    await ensureDefaultDepartmentReviews(supabase, org.id, review, now);
+    await ensurePreparationChecklist(supabase, org.id, style, body);
+    await ensureSampleVariantsAudit(supabase, org.id, style, body);
     return json(res, 200, {
       ok: true,
       result: {

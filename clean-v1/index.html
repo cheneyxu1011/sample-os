@@ -36,6 +36,7 @@
             <h1 id="view-title">开发流水线</h1>
           </div>
           <div class="top-actions">
+            <button class="primary-button" type="button" id="new-style-button">新建款式</button>
             <button class="secondary-button" type="button" id="reload-data">刷新数据</button>
             <div class="status-pill" id="blocking-pill">读取中</div>
           </div>
@@ -74,12 +75,18 @@
                   <p>文件进 S3，metadata 进 Supabase。</p>
                 </div>
               </div>
-              <label class="upload-box">
-                <input id="media-upload" type="file" accept="image/*,video/*" multiple />
-                <span>选择图片或视频</span>
-                <small>选择后先本地预览，再点击上传到 S3</small>
-              </label>
+              <div class="upload-actions">
+                <label class="upload-choice">
+                  <input data-media-upload-input type="file" accept="image/*" multiple />
+                  <span>上传照片</span>
+                </label>
+                <label class="upload-choice">
+                  <input data-media-upload-input type="file" accept="video/*" multiple />
+                  <span>上传视频</span>
+                </label>
+              </div>
               <button class="primary-button full" type="button" id="upload-selected" disabled>上传所选文件</button>
+              <div class="upload-status" id="upload-status" role="status"></div>
               <div id="media-preview" class="media-preview"></div>
               <h3 class="subhead">已上传</h3>
               <div id="uploaded-media" class="uploaded-media"></div>
@@ -167,6 +174,47 @@
       <div class="lightbox-stage" id="lightbox-stage"></div>
       <button class="lightbox-nav lightbox-next" type="button" id="lightbox-next" aria-label="下一个">›</button>
       <div class="lightbox-caption" id="lightbox-caption"></div>
+    </div>
+
+    <div class="modal" id="style-modal" hidden>
+      <form class="modal-card" id="style-form">
+        <div class="modal-head">
+          <div>
+            <span>开发入口</span>
+            <h2>新建款式</h2>
+          </div>
+          <button class="modal-close" type="button" id="style-modal-close" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-grid">
+          <label>款号<input name="styleNo" required /></label>
+          <label>品牌<input name="brand" required value="萨洛蒙" /></label>
+          <label>款式名称<input name="styleName" required /></label>
+          <label>季节<input name="season" value="SS27" /></label>
+          <label>路线
+            <select name="route">
+              <option value="normal">普通款式</option>
+              <option value="bonding_xinchangjiang">压胶路线</option>
+              <option value="outsourced">外发款式</option>
+              <option value="rudong_factory">如东工厂款式</option>
+            </select>
+          </label>
+          <label>样品阶段
+            <select name="samplePhase">
+              <option value="first_sample">一次样</option>
+              <option value="second_sample">二次样</option>
+              <option value="third_sample">三次样</option>
+              <option value="sms">SMS / 销售样</option>
+              <option value="pp">PP / 产前样</option>
+            </select>
+          </label>
+          <label>样衣位置<input name="sampleLocation" value="样衣间" /></label>
+          <label>预计寄样日期<input name="plannedShipDate" type="date" /></label>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" id="style-modal-cancel">取消</button>
+          <button class="primary-button" type="submit">保存到 Supabase</button>
+        </div>
+      </form>
     </div>
 
     <script src="./app.js"></script>

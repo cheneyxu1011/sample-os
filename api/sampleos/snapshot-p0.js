@@ -1,3 +1,5 @@
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createClient } from "@supabase/supabase-js";
 
 function json(res, status, body) {
@@ -24,6 +26,15 @@ function parseIssueEvidenceNote(note) {
     if (index > 0) meta[part.slice(0, index)] = part.slice(index + 1) || null;
   });
   return meta;
+}
+
+async function mediaAccessUrl(s3, item) {
+  if (!s3 || !item.s3_bucket || !item.s3_object_key) return null;
+  const command = new GetObjectCommand({
+    Bucket: item.s3_bucket,
+    Key: item.s3_object_key,
+  });
+  return getSignedUrl(s3, command, { expiresIn: 900 });
 }
 
 async function firstOrg(supabase) {
@@ -84,6 +95,7 @@ export default async function handler(req, res) {
     const reviewIssueMap = new Map();
     const variantAuditMap = new Map();
     const preparationChecklistMap = new Map();
+    const s3 = process.env.AWS_REGION ? new S3Client({ region: process.env.AWS_REGION }) : null;
 
     auditEvents.forEach((event) => {
       if (!event.entity_id) return;
@@ -95,9 +107,9 @@ export default async function handler(req, res) {
       reviewIssueMap.set(issue.review_id, [...(reviewIssueMap.get(issue.review_id) || []), issue.id]);
     });
 
-    const samplePayload = samples.map((sample) => {
+    const samplePayload = await Promise.all(samples.map(async (sample) => {
       const review = sampleReviewMap.get(sample.id);
-      const mediaList = media.filter((item) => item.sample_id === sample.id).map((item) => ({
+      const mediaList = await Promise.all(media.filter((item) => item.sample_id === sample.id).map(async (item) => ({
         id: item.id,
         label: item.label || "已上传文件",
         fileName: item.s3_object_key?.split("/").pop() || item.label || "已上传文件",
@@ -105,8 +117,8 @@ export default async function handler(req, res) {
         mimeType: item.mime_type,
         byteSize: item.byte_size,
         uploadedAt: cleanDateTime(item.created_at),
-        url: null,
-      }));
+        url: await mediaAccessUrl(s3, item),
+      })));
       return {
         id: sample.id,
         externalRef: sample.external_ref,
@@ -124,7 +136,7 @@ export default async function handler(req, res) {
         reviewId: review?.id || null,
         plannedShipDate: sample.planned_ship_date || "",
       };
-    });
+    }));
 
     const payload = {
       currentStyleId: styles[0]?.id || null,

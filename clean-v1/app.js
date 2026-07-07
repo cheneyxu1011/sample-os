@@ -4,6 +4,8 @@
     selectedStyleId: null,
     selectedFiles: [],
     lightboxIndex: -1,
+    uploading: false,
+    touchStartX: null,
     loading: false
   };
 
@@ -28,6 +30,17 @@
     closed: "已关闭",
     reviewing: "评审中"
   };
+
+  const routeLabels = {
+    normal: "普通款式",
+    bonding_xinchangjiang: "压胶路线",
+    outsourced: "外发款式",
+    rudong_factory: "如东工厂款式"
+  };
+
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+  }
 
   function esc(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -78,13 +91,13 @@
 
   function currentSample() {
     const style = currentStyle();
-    return state.data?.samples?.find((sample) => sample.styleId === style?.id) || state.data?.samples?.[0] || null;
+    return state.data?.samples?.find((sample) => sample.styleId === style?.id) || null;
   }
 
   function currentReview() {
     const style = currentStyle();
     const sample = currentSample();
-    return state.data?.reviews?.find((review) => review.styleId === style?.id || review.sampleId === sample?.id) || state.data?.reviews?.[0] || null;
+    return state.data?.reviews?.find((review) => review.styleId === style?.id || review.sampleId === sample?.id) || null;
   }
 
   function currentIssues() {
@@ -96,8 +109,30 @@
     ));
   }
 
+  function reviewMediaList() {
+    return (currentSample()?.mediaList || []).filter((item) => item.label !== "款式图");
+  }
+
   function isBlocking(issue) {
     return issue.status !== "closed" && (issue.shipmentBlocking || issue.level === "major" || issue.level === "critical");
+  }
+
+  function routeLabel(style) {
+    return state.data?.settings?.routeRules?.[style.route]?.label || routeLabels[style.route] || style.route || "路线未设";
+  }
+
+  function routeStatus(style) {
+    const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id);
+    const blockers = issues.filter(isBlocking);
+    const review = state.data?.reviews?.find((item) => item.styleId === style.id);
+    if (review?.exceptionRequest?.approvalStatus === "待审批") return { label: "等待例外放行", tone: "amber" };
+    if (blockers.length) return { label: "阻止寄样", tone: "red" };
+    if (style.currentGate === "preparation_gate" || style.riskStatus === "approaching_due" || /准备闸口/.test(style.blockerSummary || "")) {
+      return { label: "准备闸口未完成", tone: "neutral" };
+    }
+    if (review?.status === "reviewing" || style.currentGate === "sample_review_gate") return { label: "评审中", tone: "neutral" };
+    if (review?.finalDecision === "ship" || (!blockers.length && review)) return { label: "可以寄样", tone: "green" };
+    return { label: "状态未设", tone: "neutral" };
   }
 
   function userName(id) {
@@ -120,15 +155,16 @@
     const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
     const blockers = issues.filter(isBlocking);
     const status = blockers.length ? "blocked" : "ok";
-    const styleImage = sample?.mediaList?.find((item) => item.label === "款式图" && item.url)
-      || sample?.mediaList?.find((item) => item.mediaKind === "photo" && item.url);
+    const routeState = routeStatus(style);
+    const styleImage = sample?.mediaList?.find((item) => item.label === "款式图" && item.url);
     const visual = includeAction ? "" : `
       <div class="style-visual">
-        <label class="style-image-upload">
+        <label class="style-image-upload ${styleImage?.url ? "has-image" : ""}">
           <input type="file" accept="image/*" data-style-image-upload />
           ${styleImage?.url
             ? `<img src="${esc(styleImage.url)}" alt="款式图" />`
-            : '<span class="style-image-empty"><strong>上传款式图</strong><small>点击选择图片</small></span>'}
+            : '<span class="style-image-empty"><strong>款式图</strong><small>专门上传通道</small></span>'}
+          <span class="style-image-action">${styleImage?.url ? "更换款式图" : "上传款式图"}</span>
         </label>
       </div>
     `;
@@ -141,6 +177,12 @@
             <span class="badge ${status}">${blockers.length ? `${blockers.length} 个阻塞 Issue` : "可寄样"}</span>
           </div>
           <p>${esc(style.brand)} / ${esc(style.styleNo)} / ${esc(style.externalRef || style.id)}</p>
+          ${includeAction ? `
+            <div class="mobile-pipeline-summary">
+              <div><strong>${esc(style.styleNo || "未填款号")}</strong><span>${esc(style.brand || "未填品牌")}</span></div>
+              <div class="route-tags"><i>${esc(routeLabel(style))}</i><i class="${esc(routeState.tone)}">${esc(routeState.label)}</i></div>
+            </div>
+          ` : ""}
           <div class="meta-grid">
             ${meta("季节", style.season)}
             ${meta("当前 Gate", style.currentGate)}
@@ -152,7 +194,13 @@
             ${meta("下一步", style.nextAction || style.blockerSummary)}
           </div>
         </div>
-        ${includeAction ? `<button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>` : ""}
+        ${includeAction ? `
+          <div class="pipeline-actions">
+            <button class="secondary-button" type="button" data-open-prep="${esc(style.id)}">准备材料</button>
+            <button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>
+            <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
+          </div>
+        ` : ""}
       </article>
     `;
   }
@@ -220,8 +268,7 @@
   }
 
   function renderMedia() {
-    const sample = currentSample();
-    const mediaList = sample?.mediaList || [];
+    const mediaList = reviewMediaList();
     $("#uploaded-media").innerHTML = mediaList.length ? mediaList.map((item) => {
       const media = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/")
         ? `<video src="${esc(item.url || "")}" controls muted></video>`
@@ -358,7 +405,7 @@
     showMessage("");
     $("#source-label").textContent = "连接中";
     try {
-      const data = await requestJson("/api/sampleos/snapshot", { method: "GET" });
+      const data = await requestJson("/api/sampleos/snapshot-p0", { method: "GET" });
       state.data = data;
       state.selectedStyleId = state.selectedStyleId || data.currentStyleId || data.styleList?.[0]?.id || null;
       $("#source-label").textContent = data.source?.kind || "supabase";
@@ -428,6 +475,56 @@
     }
   }
 
+  async function createStyleFromForm(form) {
+    const fields = new FormData(form);
+    const payload = {
+      styleNo: String(fields.get("styleNo") || "").trim(),
+      brand: String(fields.get("brand") || "").trim(),
+      styleName: String(fields.get("styleName") || "").trim(),
+      season: String(fields.get("season") || "").trim(),
+      route: String(fields.get("route") || "normal"),
+      samplePhase: String(fields.get("samplePhase") || "first_sample"),
+      sampleLocation: String(fields.get("sampleLocation") || "样衣间").trim(),
+      plannedShipDate: String(fields.get("plannedShipDate") || ""),
+      versionName: String(fields.get("samplePhase") || "first_sample"),
+      quantity: 1,
+      highRisk: false
+    };
+    if (!payload.styleNo || !payload.brand || !payload.styleName) return showMessage("款号、品牌、款式名称必须填写。");
+    try {
+      const response = await requestJson("/api/sampleos/create-style-fast", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      const result = response.result || {};
+      await loadSnapshot();
+      state.selectedStyleId = result.styleId || state.selectedStyleId;
+      renderAll();
+      closeStyleModal();
+      showMessage(result.message || "款式已保存到 Supabase。", "ok");
+      switchView(result.existing ? "review" : "pipeline");
+    } catch (error) {
+      showMessage(`款式保存失败：${error.message}`);
+    }
+  }
+
+  async function deleteStyle(styleId) {
+    if (!isUuid(styleId)) return showMessage("只能删除已保存到数据库的真实款式。");
+    const style = styleById(styleId);
+    if (!window.confirm(`确认删除 ${style?.styleNo || "该款式"}？关联样衣、评审、问题、媒体 metadata 会一起清理。`)) return;
+    try {
+      await requestJson("/api/sampleos/delete-style-fast", {
+        method: "POST",
+        body: JSON.stringify({ styleId })
+      });
+      if (state.selectedStyleId === styleId) state.selectedStyleId = null;
+      await loadSnapshot();
+      showMessage("款式已删除。", "ok");
+    } catch (error) {
+      showMessage(`删除款式失败：${error.message}`);
+    }
+  }
+
   async function closeIssue(issueId) {
     try {
       await syncData("issueStatus", { issueId, status: "closed" });
@@ -447,8 +544,7 @@
   }
 
   function renderLightboxMedia() {
-    const sample = currentSample();
-    const mediaList = sample?.mediaList || [];
+    const mediaList = reviewMediaList();
     const item = mediaList[state.lightboxIndex];
     if (!item?.url) return;
     const isVideo = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/");
@@ -461,8 +557,7 @@
   }
 
   function openMediaLightbox(mediaId) {
-    const sample = currentSample();
-    const mediaList = sample?.mediaList || [];
+    const mediaList = reviewMediaList();
     const index = mediaList.findIndex((media) => media.id === mediaId);
     if (index < 0) return;
     state.lightboxIndex = index;
@@ -480,8 +575,7 @@
   }
 
   function moveLightbox(direction) {
-    const sample = currentSample();
-    const mediaList = sample?.mediaList || [];
+    const mediaList = reviewMediaList();
     if ($("#media-lightbox").hidden || mediaList.length <= 1) return;
     state.lightboxIndex = (state.lightboxIndex + direction + mediaList.length) % mediaList.length;
     renderLightboxMedia();
@@ -503,12 +597,22 @@
   }
 
   async function putToS3(file, presigned) {
-    const response = await fetch(presigned.uploadUrl, {
-      method: presigned.method || "PUT",
-      headers: presigned.headers || {},
-      body: file
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(presigned.method || "PUT", presigned.uploadUrl, true);
+      Object.entries(presigned.headers || {}).forEach(([name, value]) => xhr.setRequestHeader(name, value));
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
+        const percent = Math.round((event.loaded / event.total) * 100);
+        $("#upload-status").textContent = `上传中：${file.name} ${percent}%`;
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`S3 上传失败：${xhr.status}`));
+      };
+      xhr.onerror = () => reject(new Error("S3 上传失败：网络错误"));
+      xhr.send(file);
     });
-    if (!response.ok) throw new Error(`S3 上传失败：${response.status}`);
   }
 
   async function completeUpload(file, presigned) {
@@ -537,13 +641,18 @@
   }
 
   async function uploadSelectedFiles() {
+    if (state.uploading) return;
     const style = currentStyle();
     const sample = currentSample();
     const review = currentReview();
-    if (!style || !sample) return showMessage("缺少当前款式或样衣，不能上传。");
+    if (!style || !sample || !review || !isUuid(style.id) || !isUuid(sample.id) || !isUuid(review.id)) {
+      return showMessage("当前款式尚未保存到数据库，无法上传媒体。");
+    }
     if (!state.selectedFiles.length) return;
+    state.uploading = true;
     $("#upload-selected").disabled = true;
     $("#upload-selected").textContent = "上传中...";
+    $("#upload-status").textContent = `准备上传 ${state.selectedFiles.length} 个文件...`;
     try {
       for (const file of state.selectedFiles) {
         const context = {
@@ -552,19 +661,22 @@
           reviewId: review?.id || null,
           styleExternalRef: style.externalRef,
           sampleExternalRef: sample.externalRef,
-        reviewExternalRef: review?.externalRef || null
+          reviewExternalRef: review?.externalRef || null
         };
         const presigned = await createUpload(file, context);
         await putToS3(file, presigned);
         await completeUpload(file, presigned);
       }
       state.selectedFiles = [];
-      $("#media-upload").value = "";
+      $$("[data-media-upload-input]").forEach((input) => { input.value = ""; });
       $("#media-preview").innerHTML = "";
+      $("#upload-status").textContent = "上传成功，已同步到 Supabase。";
       await loadSnapshot();
     } catch (error) {
+      $("#upload-status").textContent = `上传失败：${error.message}`;
       showMessage(`上传失败：${error.message}`);
     } finally {
+      state.uploading = false;
       $("#upload-selected").textContent = "上传所选文件";
       $("#upload-selected").disabled = !state.selectedFiles.length;
     }
@@ -574,7 +686,10 @@
     const style = currentStyle();
     const sample = currentSample();
     const review = currentReview();
-    if (!file || !style || !sample) return showMessage("缺少当前款式或样衣，不能上传款式图。");
+    if (!file) return;
+    if (!style || !sample || !review || !isUuid(style.id) || !isUuid(sample.id) || !isUuid(review.id)) {
+      return showMessage("当前款式尚未保存到数据库，无法上传媒体。");
+    }
     try {
       const context = {
         styleId: style.id,
@@ -601,6 +716,20 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openStyleModal() {
+    $("#style-modal").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeStyleModal() {
+    $("#style-modal").hidden = true;
+    $("#style-form").reset();
+    $("#style-form").brand.value = "萨洛蒙";
+    $("#style-form").season.value = "SS27";
+    $("#style-form").sampleLocation.value = "样衣间";
+    document.body.style.overflow = "";
+  }
+
   function bindEvents() {
     document.addEventListener("click", (event) => {
       const nav = event.target.closest("[data-view]");
@@ -612,6 +741,17 @@
         renderAll();
         switchView("review");
       }
+
+      const prepButton = event.target.closest("[data-open-prep]");
+      if (prepButton) {
+        state.selectedStyleId = prepButton.dataset.openPrep;
+        renderAll();
+        switchView("settings");
+        showMessage("准备材料清单已保存在 snapshot 的 preparationChecklist 中，后续可在这里展开完整准备页。", "ok");
+      }
+
+      const deleteStyleButton = event.target.closest("[data-delete-style]");
+      if (deleteStyleButton) deleteStyle(deleteStyleButton.dataset.deleteStyle);
 
       const saveDepartmentButton = event.target.closest("[data-save-department]");
       if (saveDepartmentButton) saveDepartment(Number(saveDepartmentButton.dataset.saveDepartment));
@@ -626,6 +766,17 @@
       if (openMediaButton) openMediaLightbox(openMediaButton.dataset.openMedia);
     });
 
+    $("#new-style-button").addEventListener("click", openStyleModal);
+    $("#style-modal-close").addEventListener("click", closeStyleModal);
+    $("#style-modal-cancel").addEventListener("click", closeStyleModal);
+    $("#style-modal").addEventListener("click", (event) => {
+      if (event.target.id === "style-modal") closeStyleModal();
+    });
+    $("#style-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      createStyleFromForm(event.currentTarget);
+    });
+
     $("#reload-data").addEventListener("click", loadSnapshot);
     $("#lightbox-close").addEventListener("click", closeMediaLightbox);
     $("#lightbox-prev").addEventListener("click", () => moveLightbox(-1));
@@ -638,15 +789,35 @@
       if (event.key === "ArrowLeft") moveLightbox(-1);
       if (event.key === "ArrowRight") moveLightbox(1);
     });
+    $("#media-lightbox").addEventListener("touchstart", (event) => {
+      state.touchStartX = event.touches?.[0]?.clientX ?? null;
+    }, { passive: true });
+    $("#media-lightbox").addEventListener("touchend", (event) => {
+      if (state.touchStartX === null) return;
+      const endX = event.changedTouches?.[0]?.clientX ?? state.touchStartX;
+      const delta = endX - state.touchStartX;
+      state.touchStartX = null;
+      if (Math.abs(delta) < 40) return;
+      moveLightbox(delta > 0 ? -1 : 1);
+    }, { passive: true });
 
     $("#issue-form").addEventListener("submit", (event) => {
       event.preventDefault();
       createIssueFromForm(event.currentTarget);
     });
 
-    $("#media-upload").addEventListener("change", (event) => {
-      state.selectedFiles = Array.from(event.target.files || []);
+    document.addEventListener("change", (event) => {
+      const mediaInput = event.target.closest("[data-media-upload-input]");
+      if (!mediaInput) return;
+      const seen = new Set();
+      state.selectedFiles = Array.from(mediaInput.files || []).filter((file) => {
+        const key = `${file.name}:${file.size}:${file.lastModified}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       $("#upload-selected").disabled = !state.selectedFiles.length;
+      $("#upload-status").textContent = state.selectedFiles.length ? `已选择 ${state.selectedFiles.length} 个文件，等待上传。` : "";
       $("#media-preview").innerHTML = state.selectedFiles.map((file) => {
         const url = URL.createObjectURL(file);
         const media = file.type.startsWith("video/")

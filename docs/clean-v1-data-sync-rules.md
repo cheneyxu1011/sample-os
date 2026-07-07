@@ -27,7 +27,7 @@ The browser must not store permanent business data except short-lived UI state.
 ## Read Flow
 
 1. Page loads.
-2. Browser calls `GET /api/sampleos/snapshot`.
+2. Browser calls `GET /api/sampleos/snapshot-p0`.
 3. The returned payload is stored in frontend `state.data`.
 4. All views render from `state.data`.
 5. If loading fails, the page shows a visible connection error instead of falling back to stale hidden data.
@@ -57,7 +57,39 @@ Existing backend actions available for later expansion:
 - `updateMediaLabel`
 - `deleteMedia`
 
-After every successful write, Clean V1 reloads `GET /api/sampleos/snapshot` and lets the server response replace local UI state.
+After every successful write, Clean V1 reloads `GET /api/sampleos/snapshot-p0` and lets the server response replace local UI state.
+
+## P0 Persistence Rules
+
+Clean V1 must preserve the P0 data loop that has already been verified online.
+
+Current canonical P0 endpoints:
+
+- `GET /api/sampleos/snapshot-p0`
+- `POST /api/sampleos/create-style-fast`
+- `POST /api/sampleos/delete-style-fast`
+
+New style creation must:
+
+- check duplicate styles by `org_id + style_no`
+- open the existing style instead of inserting a duplicate
+- show `该款号已存在，已打开现有款式。`
+- create or backfill `styles`, `samples`, `reviews`
+- create or backfill default department review rows
+- create or backfill preparation checklist audit data
+- never create a `LOCAL` style in the real workflow
+
+Uploads must require real Supabase IDs:
+
+- `style.id`
+- `sample.id`
+- `review.id`
+
+If any of those IDs is missing or not a UUID, the UI must show:
+
+`当前款式尚未保存到数据库，无法上传媒体。`
+
+Style deletion must use `delete-style-fast` so related samples, reviews, issues, media metadata, and audit events are cleaned together.
 
 ## Upload Flow
 
@@ -67,7 +99,7 @@ After every successful write, Clean V1 reloads `GET /api/sampleos/snapshot` and 
 4. Browser uploads the file directly to S3 using the returned signed URL.
 5. Browser calls `POST /api/media/complete-upload`.
 6. Backend inserts one `sample_media` metadata row.
-7. Browser reloads `GET /api/sampleos/snapshot`.
+7. Browser reloads `GET /api/sampleos/snapshot-p0`.
 
 Supabase must never store photo or video binary content.
 
