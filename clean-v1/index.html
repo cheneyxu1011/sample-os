@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sample OS Clean V1</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SO</div>
+          <div>
+            <strong>Sample OS</strong>
+            <span>Clean V1 / Supabase</span>
+          </div>
+        </div>
+        <nav class="nav" aria-label="主导航">
+          <button class="nav-item active" type="button" data-view="pipeline">开发流水线</button>
+          <button class="nav-item" type="button" data-view="review">样衣评审</button>
+          <button class="nav-item" type="button" data-view="calendar">样衣日历</button>
+          <button class="nav-item" type="button" data-view="settings">设置</button>
+        </nav>
+        <div class="side-metrics">
+          <span>数据源</span>
+          <strong id="source-label">连接中</strong>
+          <small id="source-time">等待 Supabase snapshot</small>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Clean V1 / S3 上传 / Supabase 同步</p>
+            <h1 id="view-title">开发流水线</h1>
+          </div>
+          <div class="top-actions">
+            <button class="secondary-button" type="button" id="reload-data">刷新数据</button>
+            <div class="status-pill" id="blocking-pill">读取中</div>
+          </div>
+        </header>
+
+        <div class="banner" id="message-banner" hidden></div>
+
+        <section class="view active" id="pipeline-view" data-title="开发流水线">
+          <div class="section-head">
+            <div>
+              <h2>开发流水线</h2>
+              <p>从 Supabase snapshot 渲染款式和当前 Gate。</p>
+            </div>
+          </div>
+          <div id="pipeline-list" class="pipeline-list skeleton">正在加载...</div>
+        </section>
+
+        <section class="view" id="review-view" data-title="样衣评审">
+          <div id="review-summary" class="style-summary skeleton">正在加载评审...</div>
+
+          <div class="grid review-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>部门评审</h2>
+                  <p>保存后写入 Supabase review_department_reviews。</p>
+                </div>
+              </div>
+              <div id="department-cards" class="department-grid"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>S3 媒体</h2>
+                  <p>文件进 S3，metadata 进 Supabase。</p>
+                </div>
+              </div>
+              <label class="upload-box">
+                <input id="media-upload" type="file" accept="image/*,video/*" multiple />
+                <span>选择图片或视频</span>
+                <small>选择后先本地预览，再点击上传到 S3</small>
+              </label>
+              <button class="primary-button full" type="button" id="upload-selected" disabled>上传所选文件</button>
+              <div id="media-preview" class="media-preview"></div>
+              <h3 class="subhead">已上传</h3>
+              <div id="uploaded-media" class="uploaded-media"></div>
+            </section>
+          </div>
+
+          <section class="panel issue-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Issue</h2>
+                <p>重大 / 严重 Issue 会阻止寄样。</p>
+              </div>
+            </div>
+            <form id="issue-form" class="issue-form">
+              <input name="title" placeholder="新增 Issue 标题" required />
+              <select name="level">
+                <option value="normal">一般</option>
+                <option value="minor">轻微</option>
+                <option value="major">重大</option>
+                <option value="critical">严重</option>
+              </select>
+              <input name="department" placeholder="来源部门" value="品质部" />
+              <button class="primary-button" type="submit">新增 Issue</button>
+            </form>
+            <div id="issue-list" class="issue-list"></div>
+          </section>
+        </section>
+
+        <section class="view" id="calendar-view" data-title="样衣日历">
+          <div class="section-head">
+            <div>
+              <h2>样衣日历</h2>
+              <p>按预计寄样日期聚合样衣。</p>
+            </div>
+          </div>
+          <div id="calendar-list" class="calendar-list"></div>
+        </section>
+
+        <section class="view" id="settings-view" data-title="设置">
+          <div class="grid settings-grid">
+            <section class="panel">
+              <h2>Gate 负责人</h2>
+              <dl id="owner-list" class="setting-list"></dl>
+            </section>
+            <section class="panel">
+              <h2>问题等级规则</h2>
+              <ul id="rule-list" class="rule-list"></ul>
+            </section>
+            <section class="panel wide">
+              <h2>数据同步规则</h2>
+              <ol class="sync-rules">
+                <li>页面加载和关键写入后重新拉取 /api/sampleos/snapshot。</li>
+                <li>评审、Issue、位置和放行状态只通过 /api/sampleos/sync 写入。</li>
+                <li>媒体文件上传 S3，Supabase 只保存 sample_media 元数据。</li>
+                <li>重大和严重未关闭 Issue 默认阻止寄样。</li>
+              </ol>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
