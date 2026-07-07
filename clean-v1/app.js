@@ -311,7 +311,8 @@
 
   function assignedRolesForUser(user) {
     if (hasConfiguredRoleTemplates()) {
-      return activeRoleTemplates().filter((role) => role.people.includes(user.name));
+      const ids = userRoleIds(user);
+      return activeRoleTemplates().filter((role) => role.people.includes(user.name) || ids.includes(role.id));
     }
     const ids = userRoleIds(user);
     const explicit = activeRoleTemplates().filter((role) => ids.includes(role.id));
@@ -1186,7 +1187,10 @@
     `).join("");
 
     $("#role-template-view").innerHTML = templates.map((role) => {
-      const assignedPeople = role.people?.length ? role.people : assignedUsersForRole(role.id).map((person) => person.name);
+      const assignedPeople = Array.from(new Set([
+        ...(role.people || []),
+        ...assignedUsersForRole(role.id).map((person) => person.name)
+      ].filter(Boolean)));
       const availablePeople = users.filter((user) => !assignedPeople.includes(user.name));
       return `
       <article class="role-template-card">
@@ -1298,6 +1302,32 @@
     };
   }
 
+  function personPayloadWithRoles(user, roleIds) {
+    const permissions = Array.from(new Set(roleIds.flatMap((roleId) => roleById(roleId)?.permissions || [])));
+    return {
+      id: user.isDefaultUser ? undefined : user.id,
+      name: user.name,
+      department: user.department || "",
+      role: roleIds.join(","),
+      currentResponsibility: roleIds.map((roleId) => roleShortName(roleById(roleId))).filter(Boolean).join(" / "),
+      reviewResponsibility: roleIds.some((roleId) => roleById(roleId)?.reviewDefault === "是") ? "参与样衣评审" : "",
+      permissions,
+      scope: userScopes(user),
+      enabled: user.enabled !== false,
+      isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
+      isFinalApprover: roleIds.includes("final_approver")
+    };
+  }
+
+  async function syncPersonRoleRecord(personName, roleId, shouldInclude) {
+    const user = allUsers().find((item) => item.name === personName);
+    if (!user || user.isDefaultUser) return;
+    const roleIds = new Set(userRoleIds(user));
+    if (shouldInclude) roleIds.add(roleId);
+    else roleIds.delete(roleId);
+    await syncData("createPerson", personPayloadWithRoles(user, Array.from(roleIds)));
+  }
+
   async function savePersonFromForm(form) {
     const basePerson = state.editingPersonId ? allUsers().find((user) => user.id === state.editingPersonId) : null;
     const payload = personPayloadFromForm(form, basePerson);
@@ -1310,10 +1340,11 @@
     $("#person-save-status").textContent = "正在保存人员...";
     try {
       await syncData("createPerson", payload);
+      await syncPersonRoleTemplates(payload.name, userRoleIds(payload));
       $("#person-save-status").textContent = "人员已保存";
       closePersonModal();
       await loadSnapshot();
-      showMessage("人员已保存，负责人下拉已更新。", "ok");
+      showMessage("人员已保存，角色模板和负责人下拉已同步。", "ok");
     } catch (error) {
       console.error("保存人员失败", { payload, error });
       $("#person-save-status").textContent = `保存失败：${error.message}`;
@@ -1412,6 +1443,19 @@
     }
   }
 
+  async function syncPersonRoleTemplates(personName, roleIds) {
+    const selectedRoleIds = new Set(roleIds);
+    const templates = activeRoleTemplates().map((role) => {
+      const people = new Set((role.people || []).filter((name) => name !== personName));
+      if (selectedRoleIds.has(role.id)) people.add(personName);
+      return { ...role, people: Array.from(people) };
+    });
+    await syncData("updateSetting", {
+      key: "roleTemplates",
+      value: serializeRoleTemplates(templates)
+    });
+  }
+
   function updateRoleTemplate(roleId, updater, message) {
     const templates = activeRoleTemplates().map((role) => {
       if (role.id !== roleId) return role;
@@ -1421,7 +1465,7 @@
       next.people = Array.from(new Set(next.people.map((item) => String(item).trim()).filter(Boolean)));
       return next;
     });
-    saveRoleTemplates(templates, message);
+    return saveRoleTemplates(templates, message);
   }
 
   function renderAll() {
@@ -2258,7 +2302,7 @@
   }
 
   function bindEvents() {
-    document.addEventListener("click", (event) => {
+    document.addEventListener("click", async (event) => {
       const nav = event.target.closest("[data-view]");
       if (nav) switchView(nav.dataset.view);
 
@@ -2311,9 +2355,11 @@
       if (removePersonButton) {
         const roleId = removePersonButton.dataset.roleRemovePerson;
         const person = removePersonButton.dataset.person;
-        updateRoleTemplate(roleId, (role) => {
+        await updateRoleTemplate(roleId, (role) => {
           role.people = role.people.filter((item) => item !== person);
         }, "分配人员已移除");
+        await syncPersonRoleRecord(person, roleId, false);
+        await loadSnapshot();
       }
 
       const addPersonButton = event.target.closest("[data-role-add-person]");
@@ -2321,7 +2367,11 @@
         const roleId = addPersonButton.dataset.roleAddPerson;
         const select = document.querySelector(`[data-role-person-select="${CSS.escape(roleId)}"]`);
         const person = select?.value;
-        if (person) updateRoleTemplate(roleId, (role) => role.people.push(person), "分配人员已添加");
+        if (person) {
+          await updateRoleTemplate(roleId, (role) => role.people.push(person), "分配人员已添加");
+          await syncPersonRoleRecord(person, roleId, true);
+          await loadSnapshot();
+        }
       }
 
       const saveDepartmentButton = event.target.closest("[data-save-department]");

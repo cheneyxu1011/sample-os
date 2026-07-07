@@ -296,6 +296,7 @@ New and edit style forms must read owners from the shared role template configur
 - Owner selections are saved as `roleOwners` and mirrored to legacy owner fields such as `businessOwner`, `gateOwner`, `qcOwner`, and `bondingOwner` for compatibility.
 - Any future owner-related feature must verify the pipeline card, review header, department cards, settings role templates, and refresh-after-save path all read the same owner data.
 - Department review cards must resolve reviewer names from the current style `roleOwners` before falling back to `review_department_reviews.reviewer_id`. Creating a style should also seed department review rows with matching reviewer IDs when the selected person exists in `sample_people`.
+- Saving or assigning a person must update both `sample_people` and `sample_settings.roleTemplates`. The people library, role template cards, style owner selectors, and review department cards must not maintain separate unsynced role membership.
 
 ## Security Rules
 
