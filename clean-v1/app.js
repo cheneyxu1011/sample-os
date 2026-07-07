@@ -3,6 +3,7 @@
     data: null,
     selectedStyleId: null,
     selectedFiles: [],
+    lightboxIndex: -1,
     loading: false
   };
 
@@ -119,8 +120,21 @@
     const issues = (state.data?.issues || []).filter((issue) => issue.styleId === style.id || issue.sampleId === sample?.id || issue.reviewId === review?.id);
     const blockers = issues.filter(isBlocking);
     const status = blockers.length ? "blocked" : "ok";
+    const styleImage = sample?.mediaList?.find((item) => item.label === "款式图" && item.url)
+      || sample?.mediaList?.find((item) => item.mediaKind === "photo" && item.url);
+    const visual = includeAction ? "" : `
+      <div class="style-visual">
+        <label class="style-image-upload">
+          <input type="file" accept="image/*" data-style-image-upload />
+          ${styleImage?.url
+            ? `<img src="${esc(styleImage.url)}" alt="款式图" />`
+            : '<span class="style-image-empty"><strong>上传款式图</strong><small>点击选择图片</small></span>'}
+        </label>
+      </div>
+    `;
     return `
-      <article class="style-card">
+      <article class="style-card ${includeAction ? "" : "with-visual"}">
+        ${visual}
         <div class="style-card-main">
           <div class="style-title">
             <h2>${esc(style.styleName)}</h2>
@@ -432,24 +446,45 @@
     }
   }
 
-  function openMediaLightbox(mediaId) {
+  function renderLightboxMedia() {
     const sample = currentSample();
-    const item = sample?.mediaList?.find((media) => media.id === mediaId);
+    const mediaList = sample?.mediaList || [];
+    const item = mediaList[state.lightboxIndex];
     if (!item?.url) return;
     const isVideo = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/");
     $("#lightbox-stage").innerHTML = isVideo
       ? `<video src="${esc(item.url)}" controls autoplay></video>`
       : `<img src="${esc(item.url)}" alt="${esc(item.label || item.fileName)}" />`;
-    $("#lightbox-caption").textContent = item.label || item.fileName || "媒体预览";
+    $("#lightbox-caption").textContent = `${item.label || item.fileName || "媒体预览"} · ${state.lightboxIndex + 1}/${mediaList.length}`;
+    $("#lightbox-prev").disabled = mediaList.length <= 1;
+    $("#lightbox-next").disabled = mediaList.length <= 1;
+  }
+
+  function openMediaLightbox(mediaId) {
+    const sample = currentSample();
+    const mediaList = sample?.mediaList || [];
+    const index = mediaList.findIndex((media) => media.id === mediaId);
+    if (index < 0) return;
+    state.lightboxIndex = index;
+    renderLightboxMedia();
     $("#media-lightbox").hidden = false;
     document.body.style.overflow = "hidden";
   }
 
   function closeMediaLightbox() {
     $("#media-lightbox").hidden = true;
+    state.lightboxIndex = -1;
     $("#lightbox-stage").innerHTML = "";
     $("#lightbox-caption").textContent = "";
     document.body.style.overflow = "";
+  }
+
+  function moveLightbox(direction) {
+    const sample = currentSample();
+    const mediaList = sample?.mediaList || [];
+    if ($("#media-lightbox").hidden || mediaList.length <= 1) return;
+    state.lightboxIndex = (state.lightboxIndex + direction + mediaList.length) % mediaList.length;
+    renderLightboxMedia();
   }
 
   async function createUpload(file, context) {
@@ -460,7 +495,7 @@
         ...context,
         mediaKind,
         fileName: file.name,
-        label: file.name,
+        label: context.label || file.name,
         mimeType: file.type || "application/octet-stream",
         byteSize: file.size
       })
@@ -517,7 +552,7 @@
           reviewId: review?.id || null,
           styleExternalRef: style.externalRef,
           sampleExternalRef: sample.externalRef,
-          reviewExternalRef: review?.externalRef || null
+        reviewExternalRef: review?.externalRef || null
         };
         const presigned = await createUpload(file, context);
         await putToS3(file, presigned);
@@ -532,6 +567,30 @@
     } finally {
       $("#upload-selected").textContent = "上传所选文件";
       $("#upload-selected").disabled = !state.selectedFiles.length;
+    }
+  }
+
+  async function uploadStyleImage(file) {
+    const style = currentStyle();
+    const sample = currentSample();
+    const review = currentReview();
+    if (!file || !style || !sample) return showMessage("缺少当前款式或样衣，不能上传款式图。");
+    try {
+      const context = {
+        styleId: style.id,
+        sampleId: sample.id,
+        reviewId: review?.id || null,
+        styleExternalRef: style.externalRef,
+        sampleExternalRef: sample.externalRef,
+        reviewExternalRef: review?.externalRef || null,
+        label: "款式图"
+      };
+      const presigned = await createUpload(file, context);
+      await putToS3(file, presigned);
+      await completeUpload(file, presigned);
+      await loadSnapshot();
+    } catch (error) {
+      showMessage(`款式图上传失败：${error.message}`);
     }
   }
 
@@ -569,11 +628,15 @@
 
     $("#reload-data").addEventListener("click", loadSnapshot);
     $("#lightbox-close").addEventListener("click", closeMediaLightbox);
+    $("#lightbox-prev").addEventListener("click", () => moveLightbox(-1));
+    $("#lightbox-next").addEventListener("click", () => moveLightbox(1));
     $("#media-lightbox").addEventListener("click", (event) => {
       if (event.target.id === "media-lightbox") closeMediaLightbox();
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !$("#media-lightbox").hidden) closeMediaLightbox();
+      if (event.key === "ArrowLeft") moveLightbox(-1);
+      if (event.key === "ArrowRight") moveLightbox(1);
     });
 
     $("#issue-form").addEventListener("submit", (event) => {
@@ -594,6 +657,12 @@
     });
 
     $("#upload-selected").addEventListener("click", uploadSelectedFiles);
+    document.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-style-image-upload]");
+      if (!input) return;
+      uploadStyleImage(input.files?.[0]);
+      input.value = "";
+    });
   }
 
   bindEvents();

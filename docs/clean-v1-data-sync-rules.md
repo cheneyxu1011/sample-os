@@ -125,3 +125,13 @@ Recommended rollout:
 4. Verify Issue create and close.
 5. Verify S3 upload and media display.
 6. Change the root redirect from `/clean-v0/` to `/clean-v1/`.
+
+## Push Summary Rule
+
+After every code or document change that is ready to commit, Codex must provide a concise push summary for GitHub Desktop.
+
+The summary should include:
+
+- one short commit title
+- a brief bullet list of changed behavior
+- any deployment or verification note the user should know before pushing
