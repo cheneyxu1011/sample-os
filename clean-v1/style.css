@@ -82,8 +82,7 @@ button {
   font-weight: 900;
 }
 
-.brand span,
-.side-metrics small {
+.brand span {
   display: block;
   color: var(--muted);
   margin-top: 3px;
@@ -110,27 +109,6 @@ button {
 .nav-item:hover {
   color: var(--accent);
   background: var(--dark-2);
-}
-
-.side-metrics {
-  margin-top: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-
-.side-metrics span {
-  color: #a9bac2;
-  font-size: 12px;
-}
-
-.side-metrics strong {
-  display: block;
-  margin-top: 6px;
 }
 
 .main {
@@ -248,7 +226,6 @@ h3 {
 .department-grid,
 .issue-list,
 .calendar-list,
-.media-preview,
 .uploaded-media {
   display: grid;
   gap: 14px;
@@ -863,7 +840,14 @@ textarea:focus {
   font-weight: 750;
 }
 
-.media-preview,
+.upload-status[data-tone="success"] {
+  color: var(--ok);
+}
+
+.upload-status[data-tone="error"] {
+  color: var(--warn);
+}
+
 .uploaded-media {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 14px;
@@ -925,6 +909,30 @@ textarea:focus {
   color: var(--muted);
   margin-top: 6px;
   word-break: break-word;
+}
+
+.media-name-field {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.media-name-field span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.media-name-field input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .media-lightbox {
@@ -1839,10 +1847,6 @@ textarea:focus {
     justify-content: center;
   }
 
-  .side-metrics {
-    display: none;
-  }
-
   .nav {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -1886,7 +1890,6 @@ textarea:focus {
   .role-template-grid,
   .assignment-role-list,
   .department-grid,
-  .media-preview,
   .uploaded-media,
   .upload-actions,
   .material-grid,

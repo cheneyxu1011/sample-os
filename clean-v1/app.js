@@ -2,7 +2,6 @@
   const state = {
     data: null,
     selectedStyleId: null,
-    selectedFiles: [],
     styleInitFiles: {},
     editingStyleId: null,
     editingPersonId: null,
@@ -580,6 +579,18 @@
     return label.replace(/^\[[a-z_]+\]\s*/i, "").replace(/^[a-z_]+:\s*/i, "") || item?.fileName || "已上传文件";
   }
 
+  function mediaNameForEdit(item) {
+    const category = categoryFromLabel(item);
+    const categoryLabel = fileCategoryLabels[category];
+    const label = readableMediaLabel(item);
+    return categoryLabel ? label.replace(new RegExp(`^${categoryLabel}\\s*·\\s*`), "") : label;
+  }
+
+  function labelWithCategory(item, name) {
+    const category = categoryFromLabel(item);
+    return category ? `[${category}] ${name}` : name;
+  }
+
   function isStyleCoverMedia(item) {
     const category = categoryFromLabel(item);
     const label = String(item?.label || "");
@@ -987,11 +998,16 @@
       const media = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/")
         ? `<video src="${esc(item.url || "")}" controls muted></video>`
         : `<img src="${esc(item.url || "")}" alt="${esc(item.label || item.fileName)}" />`;
+      const category = categoryFromLabel(item);
       return `
         <article class="media-card">
           <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(item.label || item.fileName)}">×</button>
           <button class="media-open" type="button" data-open-media="${esc(item.id)}" aria-label="放大查看 ${esc(item.label || item.fileName)}">${media}</button>
-          <small>${esc(readableMediaLabel(item))} · ${esc(item.uploadedAt || "")}</small>
+          <label class="media-name-field">
+            <span>名称</span>
+            <input data-media-label-input="${esc(item.id)}" value="${esc(mediaNameForEdit(item))}" />
+          </label>
+          <small>${esc(fileCategoryLabels[category] || "评审媒体")} · ${esc(item.uploadedAt || "")}</small>
         </article>
       `;
     }).join("") : '<div class="empty">暂无已上传媒体。</div>';
@@ -1395,18 +1411,14 @@
   async function loadSnapshot() {
     state.loading = true;
     showMessage("");
-    $("#source-label").textContent = "连接中";
     try {
       const data = await requestJson("/api/sampleos/snapshot-p0", { method: "GET" });
       state.data = data;
       state.selectedStyleId = state.selectedStyleId || data.currentStyleId || data.styleList?.[0]?.id || null;
-      $("#source-label").textContent = "已加载";
-      $("#source-time").textContent = data.source?.loadedAt ? `加载于 ${new Date(data.source.loadedAt).toLocaleString()}` : "已加载";
       renderAll();
     } catch (error) {
       console.error("读取 Supabase snapshot 失败", { error });
       showMessage(`暂时无法加载数据：${error.message}`);
-      $("#source-label").textContent = "连接失败";
       state.data = state.data || {};
       renderSettings();
       updateStatus();
@@ -1601,7 +1613,7 @@
       showMessage(result.existing ? "该款号已存在，已打开现有款式。" : "款式创建成功，已进入评审页面", "ok");
       switchView("review");
     } catch (error) {
-      console.error(`${editing ? "保存" : "创建"}款式失败`, { payload, selectedFiles: state.styleInitFiles, error });
+      console.error(`${editing ? "保存" : "创建"}款式失败`, { payload, styleInitFiles: state.styleInitFiles, error });
       $("#style-create-status").textContent = `${editing ? "保存" : "创建"}失败：${error.message}`;
       showMessage(`${editing ? "保存" : "创建"}失败：${error.message}`);
     } finally {
@@ -1787,7 +1799,7 @@
     });
   }
 
-  async function uploadSelectedFiles() {
+  async function uploadMediaFiles(files) {
     if (state.uploading) return;
     const style = currentStyle();
     const sample = currentSample();
@@ -1795,13 +1807,17 @@
     if (!style || !sample || !review || !isUuid(style.id) || !isUuid(sample.id) || !isUuid(review.id)) {
       return showMessage("当前款式尚未保存到数据库，无法上传媒体。");
     }
-    if (!state.selectedFiles.length) return;
+    const uploadFiles = Array.from(files || []).filter(Boolean);
+    if (!uploadFiles.length) return;
     state.uploading = true;
-    $("#upload-selected").disabled = true;
-    $("#upload-selected").textContent = "上传中...";
-    $("#upload-status").textContent = `准备上传 ${state.selectedFiles.length} 个文件...`;
+    $("#upload-status").dataset.tone = "";
+    $("#upload-status").textContent = `准备上传 ${uploadFiles.length} 个文件...`;
     try {
-      for (const file of state.selectedFiles) {
+      let index = 0;
+      for (const file of uploadFiles) {
+        index += 1;
+        $("#upload-status").dataset.tone = "";
+        $("#upload-status").textContent = `正在上传 ${index}/${uploadFiles.length}：${file.name}`;
         const context = {
           styleId: style.id,
           sampleId: sample.id,
@@ -1817,19 +1833,39 @@
         await putToS3(file, presigned);
         await completeUpload(file, presigned);
       }
-      state.selectedFiles = [];
       $$("[data-media-upload-input]").forEach((input) => { input.value = ""; });
-      $("#media-preview").innerHTML = "";
-      $("#upload-status").textContent = "上传成功，已保存。";
+      $("#upload-status").dataset.tone = "success";
+      $("#upload-status").textContent = "✓ 上传成功，已保存。";
       await loadSnapshot();
     } catch (error) {
-      console.error("上传评审媒体失败", { files: state.selectedFiles, error });
+      console.error("上传评审媒体失败", { files: uploadFiles, error });
+      $("#upload-status").dataset.tone = "error";
       $("#upload-status").textContent = `上传失败：${error.message}`;
       showMessage(`上传失败：${error.message}`);
     } finally {
       state.uploading = false;
-      $("#upload-selected").textContent = "上传所选文件";
-      $("#upload-selected").disabled = !state.selectedFiles.length;
+    }
+  }
+
+  async function saveMediaLabel(input) {
+    const mediaId = input?.dataset.mediaLabelInput;
+    const item = reviewMediaList().find((media) => media.id === mediaId);
+    const name = String(input?.value || "").trim();
+    if (!mediaId || !item || !name) return;
+    const nextLabel = labelWithCategory(item, name);
+    if (nextLabel === item.label) return;
+    input.disabled = true;
+    try {
+      await syncData("updateMediaLabel", { mediaId, label: nextLabel });
+      $("#upload-status").dataset.tone = "success";
+      $("#upload-status").textContent = "媒体名称已保存。";
+      await loadSnapshot();
+    } catch (error) {
+      console.error("保存媒体名称失败", { mediaId, name, error });
+      $("#upload-status").dataset.tone = "error";
+      $("#upload-status").textContent = `名称保存失败：${error.message}`;
+      showMessage(`名称保存失败：${error.message}`);
+      input.disabled = false;
     }
   }
 
@@ -2090,6 +2126,18 @@
       if (openMediaButton) openMediaLightbox(openMediaButton.dataset.openMedia);
     });
 
+    document.addEventListener("focusout", (event) => {
+      const input = event.target.closest("[data-media-label-input]");
+      if (input) saveMediaLabel(input);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const input = event.target.closest("[data-media-label-input]");
+      if (!input || event.key !== "Enter") return;
+      event.preventDefault();
+      input.blur();
+    });
+
     $("#new-style-button").addEventListener("click", () => openStyleModal());
     $("#add-person").addEventListener("click", () => openPersonModal());
     $("#add-brand").addEventListener("click", () => openBrandModal());
@@ -2212,21 +2260,13 @@
       const mediaInput = event.target.closest("[data-media-upload-input]");
       if (!mediaInput) return;
       const seen = new Set();
-      state.selectedFiles = Array.from(mediaInput.files || []).filter((file) => {
+      const files = Array.from(mediaInput.files || []).filter((file) => {
         const key = `${file.name}:${file.size}:${file.lastModified}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
-      $("#upload-selected").disabled = !state.selectedFiles.length;
-      $("#upload-status").textContent = state.selectedFiles.length ? `已选择 ${state.selectedFiles.length} 个文件，等待上传。` : "";
-      $("#media-preview").innerHTML = state.selectedFiles.map((file) => {
-        const url = URL.createObjectURL(file);
-        const media = file.type.startsWith("video/")
-          ? `<video src="${url}" controls muted></video>`
-          : `<img src="${url}" alt="${esc(file.name)}" />`;
-        return `<article class="media-card">${media}<small>${esc(file.name)}</small></article>`;
-      }).join("");
+      uploadMediaFiles(files);
     });
 
     document.addEventListener("change", (event) => {
@@ -2245,7 +2285,6 @@
       }
     });
 
-    $("#upload-selected").addEventListener("click", uploadSelectedFiles);
     $("#final-approve").addEventListener("click", () => submitFinalDecision("approve_to_send"));
     $("#final-hold").addEventListener("click", () => submitFinalDecision("hold_shipment"));
     document.addEventListener("change", (event) => {

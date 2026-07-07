@@ -279,6 +279,8 @@ Style cover uploads must be globally recognizable across the style form, review 
 - New uploads should label style cover files with the `style_cover` category.
 - The UI and snapshot API must also recognize older Chinese labels such as `款式主图`, `款式图`, and `样衣正面图` as style cover media.
 - Review media and style cover media share the same `sample_media` source, but the cover slot must filter by category instead of taking any random uploaded image.
+- Review photo/video uploads should start immediately after file selection. Do not require a second "upload selected files" confirmation.
+- Uploaded media names must be editable from the media card and saved back to Supabase `sample_media.label` while preserving the hidden category prefix.
 
 ## Role Owner Rules
 
