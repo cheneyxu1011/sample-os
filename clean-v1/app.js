@@ -35,6 +35,7 @@
     calendarMineOnly: false,
     calendarFiltersOpen: true,
     calendarMonthOpen: false,
+    selectedReviewTaskKeyByStyle: {},
     optionalDepartmentRoleIdsByStyle: {}
   };
 
@@ -642,7 +643,18 @@
     return roleOwnerNames(style, "quality_reviewer")[0] || "大前";
   }
 
+  function reviewTaskKey(row, index = 0) {
+    return row?.roleId || row?.id || `${row?.department || "department"}_${index}`;
+  }
+
+  function selectedReviewTaskKey(style = currentStyle()) {
+    return state.selectedReviewTaskKeyByStyle[style?.id || ""] || "";
+  }
+
   function myDepartmentRow(rows, style, review) {
+    const selectedKey = selectedReviewTaskKey(style);
+    const selectedRow = selectedKey ? rows.find((row, index) => reviewTaskKey(row, index) === selectedKey) : null;
+    if (selectedRow) return selectedRow;
     const me = currentReviewerName(style, review);
     const preferred = rows.find((row) => row.roleId === "quality_reviewer" && departmentReviewerNames(row, style).includes(me));
     return preferred || rows.find((row) => departmentReviewerNames(row, style).includes(me)) || rows[0] || null;
@@ -1463,22 +1475,27 @@
     renderMyReviewTask(rows, style, review);
     const optional = optionalDepartmentRoles(review);
     const me = currentReviewerName(style, review);
+    const activeRow = myDepartmentRow(rows, style, review);
+    const activeKey = reviewTaskKey(activeRow, rows.indexOf(activeRow));
     const cards = rows.length ? rows.map((row, index) => {
       const role = roleForDepartmentRow(row);
       const reviewers = departmentReviewerNames(row, style);
       const isMine = reviewers.includes(me);
+      const rowKey = reviewTaskKey(row, index);
+      const isActiveTask = rowKey === activeKey;
+      const isPendingReview = row.status === "pending" && !row.opinion;
       const submitted = ["pass", "needs_improvement", "fail"].includes(row.status);
       const draft = row.opinion && row.status === "pending";
       const issueCount = issueCountForDepartment(row.department);
       return `
-        <details class="department-progress-card" data-department-index="${index}" data-role-id="${esc(row.roleId || "")}" ${isMine ? "open" : ""}>
+        <details class="department-progress-card ${isPendingReview ? "pending-review" : ""}" data-department-index="${index}" data-role-id="${esc(row.roleId || "")}" ${isActiveTask || isMine ? "open" : ""}>
           <summary>
             <span>
               <strong>${esc(row.department)}</strong>
               <small>${esc(row.role || roleShortName(role) || "评审员")} ${reviewerChips(reviewers)}</small>
             </span>
             <span class="department-progress-meta">
-              <i>${esc(isMine ? "当前评审" : draft ? "已保存草稿" : statusLabels[row.status] || row.status)}</i>
+              <i class="${isPendingReview ? "pending-review-chip" : ""}">${esc(isActiveTask ? "当前评审" : draft ? "已保存草稿" : statusLabels[row.status] || row.status)}</i>
               <i>${esc(issueCount ? `${issueCount} 个 Issue` : "0 个 Issue")}</i>
             </span>
           </summary>
@@ -1518,12 +1535,31 @@
     const row = myDepartmentRow(rows, style, review);
     const index = row ? rows.indexOf(row) : -1;
     const container = $("#my-review-task");
+    const filter = $("#reviewer-task-filter");
     const gateBox = $("#gate-owner-card");
     if (!container || !gateBox) return;
     if (!row) {
+      if (filter) filter.innerHTML = "";
       container.innerHTML = '<div class="empty">当前没有匹配到你的评审任务。</div>';
       gateBox.innerHTML = "";
       return;
+    }
+    if (filter) {
+      const currentKey = reviewTaskKey(row, index);
+      filter.innerHTML = `
+        <label>
+          <span>选择评审人</span>
+          <select id="reviewer-task-select">
+            ${rows.map((item, itemIndex) => {
+              const names = departmentReviewerNames(item, style);
+              const role = item.role || roleShortName(roleForDepartmentRow(item)) || "评审员";
+              const people = names.length ? names.join("、") : "未指定";
+              const key = reviewTaskKey(item, itemIndex);
+              return `<option value="${esc(key)}" ${key === currentKey ? "selected" : ""}>${esc(role)} / ${esc(people)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+      `;
     }
     const reviewers = departmentReviewerNames(row, style);
     const statusText = row.opinion && row.status === "pending" ? "已保存草稿" : (statusLabels[row.status] || "待提交");
@@ -3268,6 +3304,14 @@
     document.addEventListener("change", (event) => {
       const mediaPart = event.target.closest("[data-media-part-select]");
       if (mediaPart) saveMediaPart(mediaPart);
+    });
+
+    document.addEventListener("change", (event) => {
+      const reviewerTaskSelect = event.target.closest("#reviewer-task-select");
+      if (!reviewerTaskSelect) return;
+      const styleKey = currentStyle()?.id || "";
+      state.selectedReviewTaskKeyByStyle[styleKey] = reviewerTaskSelect.value;
+      renderDepartments();
     });
 
     $("#new-style-button").addEventListener("click", () => openStyleModal());

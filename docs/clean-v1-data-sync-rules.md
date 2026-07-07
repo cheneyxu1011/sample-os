@@ -327,6 +327,7 @@ New and edit style forms must read owners from the shared role template configur
 - Department review cards must be generated from default review role templates, not only from existing `review_department_reviews` rows. If a default role such as Business PM, Sample Feedback Owner, or Sample Review Gate Owner has assigned people, every assigned person must appear on the review card as a blue chip.
 - Role template responsibility/focus text is the source for department review textarea placeholder guidance. Review cards should show the role-specific checking prompt before falling back to generic department text.
 - Optional/on-demand review roles must stay collapsed under the department review area and can be added to the current style review temporarily. Once the added optional card is saved, it must persist through Supabase like other department review rows.
+- The "我的评审任务" reviewer selector must be generated from the same department review rows and role-owner data used by the department progress cards. It may switch the current UI focus, but it must not maintain a separate unsynced reviewer list.
 
 ## New Feature Sync Rules
 
