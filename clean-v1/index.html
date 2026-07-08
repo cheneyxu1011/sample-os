@@ -6,21 +6,26 @@
     <title>Sample OS</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body>
+  <body class="sidebar-expanded">
     <div class="app-shell">
+      <button class="mobile-menu-button" type="button" id="mobile-menu-button" aria-label="打开导航" aria-expanded="false">☰</button>
+      <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">SO</div>
-          <div>
+          <div class="brand-copy">
             <strong>Sample OS</strong>
             <span>样衣评审系统</span>
           </div>
+          <button class="sidebar-toggle" type="button" id="sidebar-toggle" aria-label="收起侧栏" title="收起侧栏">‹</button>
         </div>
         <nav class="nav" aria-label="主导航">
-          <button class="nav-item active" type="button" data-view="pipeline">开发流水线</button>
-          <button class="nav-item" type="button" data-view="review">样衣评审</button>
-          <button class="nav-item" type="button" data-view="calendar">样衣日历</button>
-          <button class="nav-item" type="button" data-view="settings">设置</button>
+          <button class="nav-item active" type="button" data-view="pipeline" title="开发流水线"><span class="nav-icon">P</span><span class="nav-label">开发流水线</span></button>
+          <button class="nav-item" type="button" data-view="review" title="样衣评审"><span class="nav-icon">R</span><span class="nav-label">样衣评审</span></button>
+          <button class="nav-item" type="button" data-view="calendar" title="样衣日历"><span class="nav-icon">C</span><span class="nav-label">样衣日历</span></button>
+          <button class="nav-item" type="button" data-view="settings" title="设置"><span class="nav-icon">S</span><span class="nav-label">设置</span></button>
+          <button class="nav-item disabled" type="button" disabled title="转大货交接"><span class="nav-icon">H</span><span class="nav-label">转大货交接</span></button>
+          <button class="nav-item disabled" type="button" disabled title="沟通入口"><span class="nav-icon">M</span><span class="nav-label">沟通入口</span></button>
         </nav>
       </aside>
 
@@ -84,8 +89,19 @@
             <section class="panel review-media-panel">
               <div class="panel-head">
                 <div>
+                  <h2>款式资料</h2>
+                  <p>评审前请先查看客户资料、尺寸表、BOM、工艺单和修改意见，再填写评审意见。</p>
+                </div>
+                <button class="secondary-button compact-button" type="button" id="toggle-style-documents">展开资料</button>
+              </div>
+              <div id="style-document-status" class="document-status"></div>
+              <div id="style-document-folders" class="document-folder-grid"></div>
+              <div id="style-document-files" class="document-file-browser" hidden></div>
+
+              <div class="panel-head">
+                <div>
                   <h2>评审媒体</h2>
-                  <p>先看主图和当前证据，再填写自己的评审意见。</p>
+                  <p>这里记录样衣实物照片、视频和问题证据，可作为 Issue 证据。</p>
                 </div>
               </div>
               <div id="media-focus" class="media-focus"></div>
@@ -320,6 +336,20 @@
       <div class="lightbox-caption" id="lightbox-caption"></div>
     </div>
 
+    <div class="file-preview-modal" id="file-preview-modal" hidden>
+      <button class="lightbox-close" type="button" id="file-preview-close" aria-label="关闭预览">×</button>
+      <div class="file-preview-card">
+        <div class="file-preview-head">
+          <div>
+            <span id="file-preview-type">文件预览</span>
+            <h2 id="file-preview-title">已上传文件</h2>
+          </div>
+          <a class="secondary-button compact-button" id="file-preview-download" href="#" download>下载</a>
+        </div>
+        <div class="file-preview-stage" id="file-preview-stage"></div>
+      </div>
+    </div>
+
     <div class="modal" id="style-modal" hidden>
       <form class="modal-card" id="style-form">
         <div class="modal-head">
@@ -402,6 +432,7 @@
               <label class="material-upload"><input type="file" accept="image/*,.pdf,.doc,.docx" data-style-init-file="customer_comments" multiple /><span>客户修改意见</span><small>反馈截图或文档</small></label>
               <label class="material-upload"><input type="file" data-style-init-file="other" multiple /><span>其他附件</span><small>补充资料</small></label>
             </div>
+            <div id="style-material-file-list" class="modal-document-files"></div>
             <div class="upload-status" id="style-create-status" role="status"></div>
           </section>
         </div>

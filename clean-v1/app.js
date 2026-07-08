@@ -35,12 +35,18 @@
     calendarMineOnly: false,
     calendarFiltersOpen: true,
     calendarMonthOpen: false,
+    documentsExpandedByStyle: {},
+    localStyleDocumentsByStyle: {},
+    localReviewMediaByStyle: {},
+    activePreviewFile: null,
     selectedReviewTaskKeyByStyle: {},
     optionalDepartmentRoleIdsByStyle: {}
   };
 
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+  const sidebarStorageKey = "sampleOSSidebarCollapsed";
+  let sidebarPreferenceSet = false;
 
   const levelLabels = {
     minor: "轻微",
@@ -115,6 +121,32 @@
     other: "其他附件",
     review_media: "评审媒体"
   };
+
+  const styleDocumentCategories = [
+    { id: "style_cover", required: true },
+    { id: "customer_reference", required: true },
+    { id: "measurement_table", required: true },
+    { id: "tech_pack", required: false },
+    { id: "bom", required: true },
+    { id: "customer_comments", required: false },
+    { id: "other", required: false }
+  ];
+
+  const styleDocumentCategoryIds = new Set(styleDocumentCategories.map((item) => item.id));
+
+  const reviewMediaCategoryIds = new Set([
+    "review_media",
+    "front",
+    "back",
+    "side",
+    "collar",
+    "cuff",
+    "hem",
+    "bonding_seam",
+    "pocket",
+    "overall_video",
+    "problem_video"
+  ]);
 
   const mediaPartLabels = {
     front: "正面",
@@ -516,8 +548,88 @@
     ));
   }
 
+  function currentStyleKey() {
+    return currentStyle()?.id || state.editingStyleId || "__draft__";
+  }
+
+  function localStyleDocuments(styleId = currentStyleKey()) {
+    return state.localStyleDocumentsByStyle[styleId] || [];
+  }
+
+  function localReviewMedia(styleId = currentStyleKey()) {
+    return state.localReviewMediaByStyle[styleId] || [];
+  }
+
+  function canonicalFileType(item = {}) {
+    const mime = String(item.mimeType || item.fileType || "");
+    const name = String(item.fileName || item.name || item.label || "").toLowerCase();
+    if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|avif|heic)$/.test(name)) return "image";
+    if (mime.startsWith("video/") || /\.(mp4|mov|webm|m4v)$/.test(name)) return "video";
+    if (mime.includes("pdf") || /\.pdf$/.test(name)) return "pdf";
+    if (/spreadsheet|excel|csv/.test(mime) || /\.(xls|xlsx|csv)$/.test(name)) return "excel";
+    if (/word|document/.test(mime) || /\.(doc|docx)$/.test(name)) return "word";
+    return "file";
+  }
+
+  function fileTypeLabel(item = {}) {
+    const labels = { image: "图片", video: "视频", pdf: "PDF", excel: "Excel", word: "Word", file: "附件" };
+    return labels[canonicalFileType(item)] || "附件";
+  }
+
+  function fileIcon(item = {}) {
+    const icons = { image: "IMG", video: "VID", pdf: "PDF", excel: "XLS", word: "DOC", file: "FILE" };
+    return icons[canonicalFileType(item)] || "FILE";
+  }
+
+  function formatFileSize(size) {
+    const value = Number(size || 0);
+    if (!value) return "大小未知";
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  function shortDate(value) {
+    const text = dateText(value);
+    return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(5, 10) : text;
+  }
+
+  function normalizeUploadedFile(item, fallback = {}) {
+    const category = item.category || categoryFromLabel(item) || fallback.category || "other";
+    return {
+      id: String(item.id || fallback.id || `file_${Date.now()}`),
+      styleId: item.styleId || fallback.styleId || "",
+      reviewId: item.reviewId || fallback.reviewId || "",
+      category,
+      fileName: item.fileName || mediaNameForEdit(item) || "已上传文件",
+      fileType: item.fileType || item.mimeType || "",
+      mimeType: item.mimeType || item.fileType || "",
+      fileSize: item.fileSize || item.size || 0,
+      url: item.url || "",
+      uploadedBy: item.uploadedBy || fallback.uploadedBy || "大前",
+      uploadedAt: item.uploadedAt || fallback.uploadedAt || "",
+      isMainImage: Boolean(item.isMainImage || category === "style_cover"),
+      source: item.source || fallback.source || "snapshot",
+      raw: item
+    };
+  }
+
+  function styleDocumentList(style = currentStyle(), sample = currentSample()) {
+    const snapshotDocs = (sample?.mediaList || [])
+      .map((item) => normalizeUploadedFile(item, { styleId: style?.id || "", uploadedBy: item.uploadedBy || "系统" }))
+      .filter((item) => styleDocumentCategoryIds.has(item.category));
+    const localDocs = localStyleDocuments(style?.id || currentStyleKey());
+    return [...snapshotDocs, ...localDocs];
+  }
+
   function reviewMediaList() {
-    return (currentSample()?.mediaList || []).filter((item) => !isStyleCoverMedia(item));
+    const style = currentStyle();
+    const sample = currentSample();
+    const review = currentReview();
+    const snapshotMedia = (sample?.mediaList || [])
+      .map((item) => normalizeUploadedFile(item, { styleId: style?.id || "", reviewId: review?.id || "", uploadedBy: item.uploadedBy || "系统" }))
+      .filter((item) => !styleDocumentCategoryIds.has(item.category) && (reviewMediaCategoryIds.has(item.category) || !isStyleCoverMedia(item)));
+    return [...snapshotMedia, ...localReviewMedia(style?.id || currentStyleKey())];
   }
 
   function isBlocking(issue) {
@@ -914,10 +1026,16 @@
   }
 
   function hasMediaCategory(sample, category) {
-    return (sample?.mediaList || []).some((item) => categoryFromLabel(item) === category);
+    const style = state.data?.styleList?.find((item) => item.id === sample?.styleId) || currentStyle();
+    return styleDocumentList(style, sample).some((item) => item.category === category);
   }
 
   function preparationIncomplete(style, sample) {
+    const documents = styleDocumentList(style, sample);
+    const missingRequired = styleDocumentCategories
+      .filter((item) => item.required)
+      .some((item) => !documents.some((doc) => doc.category === item.id));
+    if (missingRequired) return true;
     const rows = style?.preparationChecklist || [];
     if (rows.length) {
       return rows.some((item) => {
@@ -930,7 +1048,7 @@
         return true;
       });
     }
-    return style?.currentGate === "preparation_gate" && !(hasMediaCategory(sample, "tech_pack") && hasMediaCategory(sample, "bom"));
+    return false;
   }
 
   function verifiedPreviousChanges(style) {
@@ -981,7 +1099,7 @@
     if (colon) return colon[1];
     if (/^(款式主图|款式图|样衣正面图)(\s|·|$)/.test(label)) return "style_cover";
     if (/^正面(\s|·|$)/.test(label)) return "front";
-    return item?.mediaCategory || item?.fileCategory || "";
+    return item?.category || item?.mediaCategory || item?.fileCategory || "";
   }
 
   function readableMediaLabel(item) {
@@ -1008,7 +1126,9 @@
   }
 
   function findStyleCover(sample) {
-    return (sample?.mediaList || []).find((item) => isStyleCoverMedia(item) && item.url);
+    const style = state.data?.styleList?.find((item) => item.id === sample?.styleId) || currentStyle();
+    const covers = styleDocumentList(style, sample).filter((item) => item.category === "style_cover" && item.url);
+    return covers.find((item) => item.isMainImage) || covers[0];
   }
 
   function uploadLabel(category, file) {
@@ -1661,8 +1781,120 @@
       : approveButton.disabled ? `暂不能最终放行：${releaseLabels[shipment.release] || shipment.risk}` : "可以提交最终审批。";
   }
 
+  function documentCategorySummary(categoryId, documents) {
+    const files = documents.filter((item) => item.category === categoryId);
+    const latest = files.slice().sort((a, b) => String(b.uploadedAt || "").localeCompare(String(a.uploadedAt || "")))[0];
+    return {
+      categoryId,
+      label: fileCategoryLabels[categoryId] || categoryId,
+      required: styleDocumentCategories.find((item) => item.id === categoryId)?.required,
+      files,
+      latest
+    };
+  }
+
+  function documentStatusText(documents) {
+    const missing = styleDocumentCategories
+      .filter((item) => item.required && !documents.some((doc) => doc.category === item.id))
+      .map((item) => fileCategoryLabels[item.id] || item.id);
+    return {
+      complete: !missing.length,
+      text: missing.length ? `评审资料未齐全：缺少 ${missing.join("、")}` : "评审资料已齐全"
+    };
+  }
+
+  function fileThumb(item) {
+    const type = canonicalFileType(item);
+    if (type === "image" && item.url) return `<img src="${esc(item.url)}" alt="${esc(item.fileName)}" />`;
+    if (type === "video" && item.url) return `<video src="${esc(item.url)}" muted playsinline></video>`;
+    return `<span>${esc(fileIcon(item))}</span>`;
+  }
+
+  function fileCard(item, options = {}) {
+    const canSetMain = options.allowMain && item.category === "style_cover" && canonicalFileType(item) === "image" && !item.isMainImage;
+    return `
+      <article class="document-file-card" data-file-card="${esc(item.id)}">
+        <button class="document-file-thumb" type="button" data-preview-file="${esc(item.id)}">${fileThumb(item)}</button>
+        <div class="document-file-meta">
+          <strong>${esc(item.fileName)}</strong>
+          <small>${esc(fileTypeLabel(item))} · ${esc(formatFileSize(item.fileSize))}</small>
+          <small>${esc(item.uploadedBy || "未记录")} · ${esc(dateText(item.uploadedAt))} · ${esc(fileCategoryLabels[item.category] || item.category)}</small>
+        </div>
+        <div class="document-file-actions">
+          <button class="secondary-button compact-button" type="button" data-preview-file="${esc(item.id)}">预览</button>
+          <a class="secondary-button compact-button" href="${esc(item.url || "#")}" download="${esc(item.fileName)}">下载</a>
+          ${canSetMain ? `<button class="secondary-button compact-button" type="button" data-set-main-document="${esc(item.id)}">设为主图</button>` : ""}
+          ${item.source === "local" ? `<button class="danger-button compact-button" type="button" data-delete-local-file="${esc(item.id)}">删除</button>` : ""}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderStyleDocuments() {
+    const style = currentStyle();
+    const sample = currentSample();
+    const documents = styleDocumentList(style, sample);
+    const expanded = Boolean(state.documentsExpandedByStyle[style?.id || currentStyleKey()]);
+    const status = documentStatusText(documents);
+    const statusBox = $("#style-document-status");
+    const folders = $("#style-document-folders");
+    const files = $("#style-document-files");
+    const toggle = $("#toggle-style-documents");
+    if (toggle) toggle.textContent = expanded ? "收起资料" : "展开资料";
+    if (statusBox) {
+      statusBox.className = `document-status ${status.complete ? "complete" : "missing"}`;
+      statusBox.textContent = status.text;
+    }
+    if (folders) {
+      folders.innerHTML = styleDocumentCategories.map(({ id }) => {
+        const summary = documentCategorySummary(id, documents);
+        const latest = summary.latest;
+        const updated = latest ? `${shortDate(latest.uploadedAt)} ${latest.uploadedBy || "未记录"}更新` : "缺失";
+        return `
+          <article class="document-folder-card ${summary.files.length ? "ready" : "missing"}">
+            <strong>${esc(summary.label)}</strong>
+            <span>${esc(summary.files.length)} 个文件｜${summary.files.length ? "已上传" : "缺失"}${latest ? `｜${esc(updated)}` : ""}</span>
+          </article>
+        `;
+      }).join("");
+    }
+    if (files) {
+      files.hidden = !expanded;
+      files.innerHTML = styleDocumentCategories.map(({ id }) => {
+        const summary = documentCategorySummary(id, documents);
+        return `
+          <section class="document-file-group">
+            <h3>${esc(summary.label)}</h3>
+            <div class="document-file-list">
+              ${summary.files.length ? summary.files.map((item) => fileCard(item, { allowMain: true })).join("") : '<div class="compact-empty">暂无文件。</div>'}
+            </div>
+          </section>
+        `;
+      }).join("");
+    }
+  }
+
+  function renderStyleMaterialFiles() {
+    const styleKey = state.editingStyleId || "__draft__";
+    const style = styleById(state.editingStyleId);
+    const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
+    const documents = styleDocumentList(style, sample).filter((item) => item.styleId === styleKey || item.source === "snapshot");
+    const container = $("#style-material-file-list");
+    if (!container) return;
+    container.innerHTML = styleDocumentCategories.map(({ id }) => {
+      const items = documents.filter((item) => item.category === id);
+      return `
+        <section class="modal-document-group">
+          <h4>${esc(fileCategoryLabels[id] || id)}</h4>
+          ${items.length ? items.map((item) => fileCard(item, { allowMain: true })).join("") : '<div class="compact-empty">上传后会显示文件卡片。</div>'}
+        </section>
+      `;
+    }).join("");
+  }
+
   function renderMedia() {
     const mediaList = reviewMediaList();
+    renderStyleDocuments();
     if (!state.selectedMediaId || !mediaList.some((item) => item.id === state.selectedMediaId)) {
       state.selectedMediaId = mediaList[0]?.id || "";
     }
@@ -2321,24 +2553,14 @@
   }
 
   async function uploadFilesForCreatedStyle(filesByCategory, context) {
-    const entries = Object.entries(filesByCategory || {}).flatMap(([category, files]) => (
-      Array.from(files || []).map((file) => ({ category, file }))
-    ));
-    if (!entries.length) return;
-    $("#style-create-status").textContent = `正在上传资料：0/${entries.length}`;
-    let index = 0;
-    for (const { category, file } of entries) {
-      index += 1;
-      $("#style-create-status").textContent = `正在上传资料：${index}/${entries.length} ${file.name}`;
-      const presigned = await createUpload(file, {
-        ...context,
-        label: uploadLabel(category, file),
-        fileCategory: category,
-        mediaCategory: category === "style_cover" ? "style_cover" : "document"
-      });
-      await putToS3(file, presigned, "#style-create-status");
-      await completeUpload(file, presigned);
-    }
+    const draftDocs = state.localStyleDocumentsByStyle.__draft__ || [];
+    if (!draftDocs.length || !context?.styleId) return;
+    state.localStyleDocumentsByStyle[context.styleId] = [
+      ...(state.localStyleDocumentsByStyle[context.styleId] || []),
+      ...draftDocs.map((item) => ({ ...item, styleId: context.styleId }))
+    ];
+    state.localStyleDocumentsByStyle.__draft__ = [];
+    $("#style-create-status").textContent = "资料已加入本地预览。";
   }
 
   function stylePayloadFromForm(form) {
@@ -2782,6 +3004,82 @@
     renderLightboxMedia();
   }
 
+  function allPreviewFiles() {
+    const editingStyle = styleById(state.editingStyleId);
+    const editingSample = state.data?.samples?.find((item) => item.styleId === editingStyle?.id);
+    return [
+      ...styleDocumentList(currentStyle(), currentSample()),
+      ...(editingStyle ? styleDocumentList(editingStyle, editingSample) : []),
+      ...reviewMediaList()
+    ];
+  }
+
+  function openFilePreview(fileId) {
+    const item = allPreviewFiles().find((file) => String(file.id) === String(fileId));
+    if (!item) return;
+    state.activePreviewFile = item;
+    const type = canonicalFileType(item);
+    const modal = $("#file-preview-modal");
+    const title = $("#file-preview-title");
+    const typeLabel = $("#file-preview-type");
+    const download = $("#file-preview-download");
+    const stage = $("#file-preview-stage");
+    title.textContent = item.fileName || "已上传文件";
+    typeLabel.textContent = `${fileTypeLabel(item)} · ${formatFileSize(item.fileSize)} · ${item.uploadedBy || "未记录"}`;
+    download.href = item.url || "#";
+    download.download = item.fileName || "download";
+    if (type === "image") {
+      stage.innerHTML = `<img src="${esc(item.url)}" alt="${esc(item.fileName)}" />`;
+    } else if (type === "video") {
+      stage.innerHTML = `<video src="${esc(item.url)}" controls autoplay></video>`;
+    } else if (type === "pdf") {
+      stage.innerHTML = item.url
+        ? `<iframe src="${esc(item.url)}" title="${esc(item.fileName)}"></iframe>`
+        : `<div class="file-preview-fallback"><strong>PDF 无法预览</strong><p>请下载查看。</p></div>`;
+    } else {
+      stage.innerHTML = `
+        <div class="file-preview-fallback">
+          <strong>${esc(fileIcon(item))}</strong>
+          <p>${esc(item.fileName)} 暂不支持在线预览，请下载查看。</p>
+          <a class="primary-button" href="${esc(item.url || "#")}" download="${esc(item.fileName)}">下载文件</a>
+        </div>
+      `;
+    }
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeFilePreview() {
+    $("#file-preview-modal").hidden = true;
+    $("#file-preview-stage").innerHTML = "";
+    state.activePreviewFile = null;
+    document.body.style.overflow = "";
+  }
+
+  function deleteLocalFile(fileId) {
+    Object.keys(state.localStyleDocumentsByStyle).forEach((styleId) => {
+      state.localStyleDocumentsByStyle[styleId] = state.localStyleDocumentsByStyle[styleId].filter((item) => item.id !== fileId);
+    });
+    Object.keys(state.localReviewMediaByStyle).forEach((styleId) => {
+      state.localReviewMediaByStyle[styleId] = state.localReviewMediaByStyle[styleId].filter((item) => item.id !== fileId);
+    });
+    renderAll();
+    renderStyleMaterialFiles();
+  }
+
+  function setMainDocument(fileId) {
+    const styleId = Object.keys(state.localStyleDocumentsByStyle).find((key) => (
+      state.localStyleDocumentsByStyle[key].some((item) => item.id === fileId)
+    )) || state.editingStyleId || currentStyle()?.id || currentStyleKey();
+    state.localStyleDocumentsByStyle[styleId] = localStyleDocuments(styleId).map((item) => ({
+      ...item,
+      isMainImage: item.id === fileId
+    }));
+    renderAll();
+    renderStyleMaterialFiles();
+    showMessage("款式主图已更新。", "ok");
+  }
+
   async function createUpload(file, context) {
     const mediaKind = file.type.startsWith("image/") ? "photo" : file.type.startsWith("video/") ? "video" : "document";
     return requestJson("/api/media/presign-upload", {
@@ -2844,52 +3142,64 @@
     });
   }
 
-  async function uploadMediaFiles(files) {
-    if (state.uploading) return;
-    const style = currentStyle();
-    const sample = currentSample();
+  function addLocalStyleDocuments(category, files, styleId = currentStyleKey(), makeMain = false) {
+    const style = styleById(styleId) || currentStyle();
     const review = currentReview();
-    if (!style || !sample || !review || !isUuid(style.id) || !isUuid(sample.id) || !isUuid(review.id)) {
-      return showMessage("当前款式尚未保存到数据库，无法上传媒体。");
-    }
+    const now = new Date().toISOString();
+    const uploadedBy = currentReviewerName(style, review) || "大前";
+    const records = Array.from(files || []).filter(Boolean).map((file, index) => ({
+      id: `local_doc_${Date.now()}_${index}_${Math.random().toString(16).slice(2)}`,
+      styleId,
+      category,
+      fileName: file.name,
+      fileType: file.type,
+      mimeType: file.type,
+      fileSize: file.size,
+      url: URL.createObjectURL(file),
+      uploadedBy,
+      uploadedAt: now,
+      isMainImage: makeMain || category === "style_cover",
+      source: "local",
+      raw: file
+    }));
+    if (!records.length) return [];
+    const existing = localStyleDocuments(styleId).map((item) => (
+      makeMain || category === "style_cover" ? { ...item, isMainImage: false } : item
+    ));
+    state.localStyleDocumentsByStyle[styleId] = [...existing, ...records];
+    return records;
+  }
+
+  async function uploadMediaFiles(files) {
+    const style = currentStyle();
+    const review = currentReview();
     const uploadFiles = Array.from(files || []).filter(Boolean);
     if (!uploadFiles.length) return;
-    state.uploading = true;
-    $("#upload-status").dataset.tone = "";
-    $("#upload-status").textContent = `准备上传 ${uploadFiles.length} 个文件...`;
-    try {
-      let index = 0;
-      for (const file of uploadFiles) {
-        index += 1;
-        $("#upload-status").dataset.tone = "";
-        $("#upload-status").textContent = `正在上传 ${index}/${uploadFiles.length}：${file.name}`;
-        const context = {
-          styleId: style.id,
-          sampleId: sample.id,
-          reviewId: review?.id || null,
-          styleExternalRef: style.externalRef,
-          sampleExternalRef: sample.externalRef,
-          reviewExternalRef: review?.externalRef || null,
-          label: uploadLabel("review_media", file),
-          fileCategory: "review_media",
-          mediaCategory: file.type.startsWith("image/") ? "review_photo" : file.type.startsWith("video/") ? "review_video" : "review_document"
-        };
-        const presigned = await createUpload(file, context);
-        await putToS3(file, presigned);
-        await completeUpload(file, presigned);
-      }
-      $$("[data-media-upload-input]").forEach((input) => { input.value = ""; });
-      $("#upload-status").dataset.tone = "success";
-      $("#upload-status").textContent = "✓ 上传成功，已保存。";
-      await loadSnapshot();
-    } catch (error) {
-      console.error("上传评审媒体失败", { files: uploadFiles, error });
-      $("#upload-status").dataset.tone = "error";
-      $("#upload-status").textContent = `上传失败：${error.message}`;
-      showMessage(`上传失败：${error.message}`);
-    } finally {
-      state.uploading = false;
-    }
+    const styleKey = style?.id || currentStyleKey();
+    const now = new Date().toISOString();
+    const uploadedBy = currentReviewerName(style, review) || "大前";
+    const records = uploadFiles.map((file, index) => ({
+      id: `local_review_${Date.now()}_${index}_${Math.random().toString(16).slice(2)}`,
+      styleId: styleKey,
+      reviewId: review?.id || "",
+      category: canonicalFileType(file) === "video" ? "overall_video" : "review_media",
+      fileName: file.name,
+      fileType: file.type,
+      mimeType: file.type,
+      fileSize: file.size,
+      url: URL.createObjectURL(file),
+      uploadedBy,
+      uploadedAt: now,
+      relatedArea: "",
+      source: "local",
+      raw: file
+    }));
+    state.localReviewMediaByStyle[styleKey] = [...localReviewMedia(styleKey), ...records];
+    state.selectedMediaId = records[0]?.id || state.selectedMediaId;
+    $$("[data-media-upload-input]").forEach((input) => { input.value = ""; });
+    $("#upload-status").dataset.tone = "success";
+    $("#upload-status").textContent = `已添加 ${records.length} 个评审媒体文件。`;
+    renderMedia();
   }
 
   async function saveMediaLabel(input) {
@@ -2897,6 +3207,17 @@
     const item = reviewMediaList().find((media) => media.id === mediaId);
     const name = String(input?.value || "").trim();
     if (!mediaId || !item || !name) return;
+    if (item.source === "local") {
+      Object.keys(state.localReviewMediaByStyle).forEach((styleId) => {
+        state.localReviewMediaByStyle[styleId] = state.localReviewMediaByStyle[styleId].map((media) => (
+          media.id === mediaId ? { ...media, fileName: name } : media
+        ));
+      });
+      $("#upload-status").dataset.tone = "success";
+      $("#upload-status").textContent = "媒体名称已更新。";
+      renderMedia();
+      return;
+    }
     const nextLabel = labelWithCategory(item, name);
     if (nextLabel === item.label) return;
     input.disabled = true;
@@ -2919,6 +3240,17 @@
     const item = reviewMediaList().find((media) => media.id === mediaId);
     if (!mediaId || !item) return;
     const name = mediaNameForEdit(item);
+    if (item.source === "local") {
+      Object.keys(state.localReviewMediaByStyle).forEach((styleId) => {
+        state.localReviewMediaByStyle[styleId] = state.localReviewMediaByStyle[styleId].map((media) => (
+          media.id === mediaId ? { ...media, category: select.value || "review_media" } : media
+        ));
+      });
+      $("#upload-status").dataset.tone = "success";
+      $("#upload-status").textContent = "媒体部位已更新。";
+      renderMedia();
+      return;
+    }
     const nextLabel = select.value ? `[${select.value}] ${name}` : name;
     if (nextLabel === item.label) return;
     select.disabled = true;
@@ -2963,32 +3295,53 @@
 
   async function uploadStyleImage(file) {
     const style = currentStyle();
-    const sample = currentSample();
-    const review = currentReview();
     if (!file) return;
-    if (!style || !sample || !review || !isUuid(style.id) || !isUuid(sample.id) || !isUuid(review.id)) {
-      return showMessage("当前款式尚未保存到数据库，无法上传媒体。");
+    addLocalStyleDocuments("style_cover", [file], style?.id || currentStyleKey(), true);
+    renderAll();
+    showMessage("款式主图已加入本地预览。", "ok");
+  }
+
+  function isMobileViewport() {
+    return window.matchMedia("(max-width: 768px)").matches;
+  }
+
+  function applySidebarState(collapsed) {
+    document.body.classList.toggle("sidebar-collapsed", collapsed);
+    document.body.classList.toggle("sidebar-expanded", !collapsed);
+    const toggle = $("#sidebar-toggle");
+    if (toggle) {
+      toggle.textContent = collapsed ? "›" : "‹";
+      toggle.setAttribute("aria-label", collapsed ? "展开侧栏" : "收起侧栏");
+      toggle.title = collapsed ? "展开侧栏" : "收起侧栏";
     }
-    try {
-      const context = {
-        styleId: style.id,
-        sampleId: sample.id,
-        reviewId: review?.id || null,
-        styleExternalRef: style.externalRef,
-        sampleExternalRef: sample.externalRef,
-        reviewExternalRef: review?.externalRef || null,
-        label: uploadLabel("style_cover", file),
-        fileCategory: "style_cover",
-        mediaCategory: "style_cover"
-      };
-      const presigned = await createUpload(file, context);
-      await putToS3(file, presigned);
-      await completeUpload(file, presigned);
-      await loadSnapshot();
-    } catch (error) {
-      console.error("款式主图上传失败", { file, styleId: style?.id, sampleId: sample?.id, reviewId: review?.id, error });
-      showMessage(`款式图上传失败：${error.message}`);
+  }
+
+  function setSidebarCollapsed(collapsed, persist = true) {
+    applySidebarState(collapsed);
+    if (persist) {
+      sidebarPreferenceSet = true;
+      localStorage.setItem(sidebarStorageKey, collapsed ? "true" : "false");
     }
+  }
+
+  function initSidebarState() {
+    const saved = localStorage.getItem(sidebarStorageKey);
+    sidebarPreferenceSet = saved === "true" || saved === "false";
+    applySidebarState(saved === "true");
+    closeSidebarDrawer();
+  }
+
+  function openSidebarDrawer() {
+    document.body.classList.add("sidebar-drawer-open");
+    $("#sidebar-backdrop").hidden = false;
+    $("#mobile-menu-button")?.setAttribute("aria-expanded", "true");
+  }
+
+  function closeSidebarDrawer() {
+    document.body.classList.remove("sidebar-drawer-open");
+    const backdrop = $("#sidebar-backdrop");
+    if (backdrop) backdrop.hidden = true;
+    $("#mobile-menu-button")?.setAttribute("aria-expanded", "false");
   }
 
   function switchView(viewName) {
@@ -3000,6 +3353,10 @@
       const hiddenViews = String(button.dataset.hideOn || "").split(/\s+/).filter(Boolean);
       button.hidden = hiddenViews.includes(viewName);
     });
+    if (viewName === "review" && !sidebarPreferenceSet && !isMobileViewport()) {
+      applySidebarState(true);
+    }
+    if (isMobileViewport()) closeSidebarDrawer();
     updateStatus();
     if (window.location.hash !== `#${viewName}`) {
       window.history.replaceState(null, "", `#${viewName}`);
@@ -3071,6 +3428,7 @@
     $$("[data-style-tab-panel]").forEach((panel) => {
       panel.hidden = panel.dataset.styleTabPanel !== activeTab;
     });
+    if (activeTab === "materials") renderStyleMaterialFiles();
   }
 
   function openStyleModal(styleId = null, tab = "edit") {
@@ -3086,6 +3444,7 @@
       });
     }
     setStyleModalTab(tab);
+    renderStyleMaterialFiles();
     $("#style-modal").hidden = false;
     document.body.style.overflow = "hidden";
   }
@@ -3277,7 +3636,12 @@
       if (verifyIssueButton) markIssueReadyForVerification(verifyIssueButton.dataset.verifyIssue);
 
       const deleteMediaButton = event.target.closest("[data-delete-media]");
-      if (deleteMediaButton) deleteMedia(deleteMediaButton.dataset.deleteMedia);
+      if (deleteMediaButton) {
+        const mediaId = deleteMediaButton.dataset.deleteMedia;
+        const item = reviewMediaList().find((media) => media.id === mediaId);
+        if (item?.source === "local") deleteLocalFile(mediaId);
+        else deleteMedia(mediaId);
+      }
 
       const openMediaButton = event.target.closest("[data-open-media]");
       if (openMediaButton) openMediaLightbox(openMediaButton.dataset.openMedia);
@@ -3287,6 +3651,15 @@
         state.selectedMediaId = selectMediaButton.dataset.selectMedia;
         renderMedia();
       }
+
+      const previewFileButton = event.target.closest("[data-preview-file]");
+      if (previewFileButton) openFilePreview(previewFileButton.dataset.previewFile);
+
+      const deleteLocalFileButton = event.target.closest("[data-delete-local-file]");
+      if (deleteLocalFileButton) deleteLocalFile(deleteLocalFileButton.dataset.deleteLocalFile);
+
+      const setMainButton = event.target.closest("[data-set-main-document]");
+      if (setMainButton) setMainDocument(setMainButton.dataset.setMainDocument);
     });
 
     document.addEventListener("focusout", (event) => {
@@ -3295,6 +3668,7 @@
     });
 
     document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && document.body.classList.contains("sidebar-drawer-open")) closeSidebarDrawer();
       const input = event.target.closest("[data-media-label-input]");
       if (!input || event.key !== "Enter") return;
       event.preventDefault();
@@ -3315,6 +3689,11 @@
     });
 
     $("#new-style-button").addEventListener("click", () => openStyleModal());
+    $("#sidebar-toggle").addEventListener("click", () => {
+      setSidebarCollapsed(!document.body.classList.contains("sidebar-collapsed"), true);
+    });
+    $("#mobile-menu-button").addEventListener("click", openSidebarDrawer);
+    $("#sidebar-backdrop").addEventListener("click", closeSidebarDrawer);
     $("#add-person").addEventListener("click", () => openPersonModal());
     $("#add-brand").addEventListener("click", () => openBrandModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
@@ -3393,6 +3772,11 @@
       const filter = $("#review-filter-body");
       filter.hidden = !filter.hidden;
       $("#toggle-review-filter").textContent = filter.hidden ? "切换款式" : "收起切换";
+    });
+    $("#toggle-style-documents").addEventListener("click", () => {
+      const styleKey = currentStyle()?.id || currentStyleKey();
+      state.documentsExpandedByStyle[styleKey] = !state.documentsExpandedByStyle[styleKey];
+      renderStyleDocuments();
     });
     $("#calendar-brand-filter").addEventListener("change", (event) => {
       state.calendarBrandFilter = event.currentTarget.value;
@@ -3483,8 +3867,14 @@
     $("#media-lightbox").addEventListener("click", (event) => {
       if (event.target.id === "media-lightbox") closeMediaLightbox();
     });
+    $("#file-preview-close").addEventListener("click", closeFilePreview);
+    $("#file-preview-modal").addEventListener("click", (event) => {
+      if (event.target.id === "file-preview-modal") closeFilePreview();
+    });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !$("#media-lightbox").hidden) closeMediaLightbox();
+      if (event.key === "Escape" && !$("#file-preview-modal").hidden) closeFilePreview();
+      if (event.key === "Escape" && document.body.classList.contains("sidebar-drawer-open")) closeSidebarDrawer();
       if (event.key === "ArrowLeft") moveLightbox(-1);
       if (event.key === "ArrowRight") moveLightbox(1);
     });
@@ -3525,15 +3915,22 @@
       if (!input) return;
       const category = input.dataset.styleInitFile;
       const files = Array.from(input.files || []);
-      state.styleInitFiles[category] = category === "style_cover" ? files.slice(0, 1) : files;
-      const count = Object.values(state.styleInitFiles).reduce((sum, list) => sum + (list?.length || 0), 0);
-      $("#style-create-status").textContent = count ? `已选择 ${count} 个款式资料，创建后上传。` : "";
+      const acceptedFiles = category === "style_cover" ? files.slice(0, 1) : files;
+      state.styleInitFiles[category] = acceptedFiles;
+      const styleKey = state.editingStyleId || "__draft__";
+      const added = addLocalStyleDocuments(category, acceptedFiles, styleKey, category === "style_cover");
+      const count = localStyleDocuments(styleKey).length;
+      $("#style-create-status").dataset.tone = "success";
+      $("#style-create-status").textContent = added.length ? `已添加 ${added.length} 个资料文件，当前共 ${count} 个文件。` : "";
       if (category === "style_cover") {
-        const file = files[0];
+        const file = acceptedFiles[0];
         $("#style-cover-preview").innerHTML = file
-          ? `<img src="${esc(URL.createObjectURL(file))}" alt="款式主图预览" />`
+          ? `<img src="${esc(added[0]?.url || URL.createObjectURL(file))}" alt="款式主图预览" />`
           : "暂无主图";
       }
+      renderStyleMaterialFiles();
+      renderAll();
+      input.value = "";
     });
 
     $("#final-approve").addEventListener("click", () => submitFinalDecision("approve_to_send"));
@@ -3544,8 +3941,12 @@
       uploadStyleImage(input.files?.[0]);
       input.value = "";
     });
+    window.addEventListener("resize", () => {
+      if (!isMobileViewport()) closeSidebarDrawer();
+    });
   }
 
+  initSidebarState();
   bindEvents();
   state.data = state.data || {};
   renderSettings();
