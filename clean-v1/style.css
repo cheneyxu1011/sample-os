@@ -412,9 +412,58 @@ h3 {
   background: var(--warn-bg);
   color: var(--warn);
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   margin-bottom: 16px;
   box-shadow: var(--shadow-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.banner button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 59, 48, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--warn);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.toast-stack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 3000;
+  display: grid;
+  gap: 8px;
+  width: min(320px, calc(100vw - 36px));
+  pointer-events: none;
+}
+
+.toast {
+  border: 1px solid rgba(52, 199, 89, 0.24);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(245, 255, 248, 0.96);
+  color: #1f7a3a;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  font-weight: 800;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.toast.leaving {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .view {

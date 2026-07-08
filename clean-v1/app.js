@@ -355,10 +355,31 @@
   }
 
   function showMessage(message, tone) {
+    if (message && (tone === "ok" || tone === "success")) {
+      showToast({ type: "success", message, duration: 3000 });
+      return;
+    }
     const banner = $("#message-banner");
     banner.hidden = !message;
-    banner.textContent = message || "";
+    banner.innerHTML = message ? `
+      <span>${esc(message)}</span>
+      <button type="button" data-dismiss-banner aria-label="关闭提示">×</button>
+    ` : "";
     banner.dataset.tone = tone || "error";
+  }
+
+  function showToast({ type = "success", message = "", duration = 3000 } = {}) {
+    if (!message) return;
+    const stack = $("#toast-stack");
+    if (!stack) return;
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    stack.appendChild(toast);
+    window.setTimeout(() => {
+      toast.classList.add("leaving");
+      window.setTimeout(() => toast.remove(), 180);
+    }, duration);
   }
 
   async function requestJson(path, options = {}) {
@@ -2828,6 +2849,7 @@
       form.reset();
       form.department.value = "品质部";
       await loadSnapshot();
+      showToast({ type: "success", message: "Issue 已创建" });
     } catch (error) {
       console.error("新增 Issue 失败", { styleId: style.id, sampleId: sample?.id, reviewId: review.id, level, error });
       showMessage(`新增 Issue 失败：${error.message}`);
@@ -3137,6 +3159,7 @@
     try {
       await syncData("issueStatus", { issueId, status: "closed" });
       await loadSnapshot();
+      showToast({ type: "success", message: "删除成功" });
     } catch (error) {
       console.error("关闭 Issue 失败", { issueId, error });
       showMessage(`关闭 Issue 失败：${error.message}`);
@@ -3550,6 +3573,7 @@
         status.dataset.tone = "success";
         status.textContent = "文件已删除。";
       }
+      showToast({ type: "success", message: "删除成功" });
       return;
     }
     try {
@@ -3561,6 +3585,7 @@
         status.dataset.tone = "success";
         status.textContent = "文件已删除。";
       }
+      showToast({ type: "success", message: "删除成功" });
     } catch (error) {
       console.error("删除资料文件失败", { fileId, error });
       showMessage(`删除文件失败：${error.message}`);
@@ -3586,6 +3611,7 @@
         status.dataset.tone = "success";
         status.textContent = "文件名已更新。";
       }
+      showToast({ type: "success", message: "保存成功" });
       return;
     }
     input.disabled = true;
@@ -3598,6 +3624,7 @@
         status.dataset.tone = "success";
         status.textContent = "文件名已保存。";
       }
+      showToast({ type: "success", message: "保存成功" });
     } catch (error) {
       console.error("保存资料文件名失败", { fileId, name, error });
       showMessage(`文件名保存失败：${error.message}`);
@@ -3737,6 +3764,7 @@
     $$("[data-media-upload-input]").forEach((input) => { input.value = ""; });
     $("#upload-status").dataset.tone = "success";
     $("#upload-status").textContent = `已添加 ${records.length} 个评审媒体文件。`;
+    showToast({ type: "success", message: "上传成功" });
     renderMedia();
   }
 
@@ -3753,6 +3781,7 @@
       });
       $("#upload-status").dataset.tone = "success";
       $("#upload-status").textContent = "媒体名称已更新。";
+      showToast({ type: "success", message: "保存成功" });
       renderMedia();
       return;
     }
@@ -3763,6 +3792,7 @@
       await syncData("updateMediaLabel", { mediaId, label: nextLabel });
       $("#upload-status").dataset.tone = "success";
       $("#upload-status").textContent = "媒体名称已保存。";
+      showToast({ type: "success", message: "保存成功" });
       await loadSnapshot();
     } catch (error) {
       console.error("保存媒体名称失败", { mediaId, name, error });
@@ -3786,6 +3816,7 @@
       });
       $("#upload-status").dataset.tone = "success";
       $("#upload-status").textContent = "媒体部位已更新。";
+      showToast({ type: "success", message: "保存成功" });
       renderMedia();
       return;
     }
@@ -3796,6 +3827,7 @@
       await syncData("updateMediaLabel", { mediaId, label: nextLabel });
       $("#upload-status").dataset.tone = "success";
       $("#upload-status").textContent = "媒体部位已保存。";
+      showToast({ type: "success", message: "保存成功" });
       await loadSnapshot();
     } catch (error) {
       console.error("保存媒体部位失败", { mediaId, label: nextLabel, error });
@@ -4107,6 +4139,12 @@
 
   function bindEvents() {
     document.addEventListener("click", async (event) => {
+      const dismissBanner = event.target.closest("[data-dismiss-banner]");
+      if (dismissBanner) {
+        showMessage("");
+        return;
+      }
+
       const nav = event.target.closest("[data-view]");
       if (nav) switchView(nav.dataset.view);
 
