@@ -676,12 +676,15 @@
 
   function normalizeUploadedFile(item, fallback = {}) {
     const category = item.category || categoryFromLabel(item) || fallback.category || "other";
+    const displayName = item.label ? mediaNameForEdit(item) : (item.fileName || mediaNameForEdit(item));
     return {
       id: String(item.id || fallback.id || `file_${Date.now()}`),
       styleId: item.styleId || fallback.styleId || "",
       reviewId: item.reviewId || fallback.reviewId || "",
       category,
-      fileName: item.fileName || mediaNameForEdit(item) || "已上传文件",
+      label: item.label || "",
+      fileName: displayName || "已上传文件",
+      originalFileName: item.fileName || "",
       fileType: item.fileType || item.mimeType || "",
       mimeType: item.mimeType || item.fileType || "",
       fileSize: item.fileSize || item.size || 0,
