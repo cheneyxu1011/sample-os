@@ -2990,26 +2990,7 @@ textarea:focus {
   margin: 0;
 }
 
-.role-template-card dl .release-permission-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.release-permission-row label {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-}
-
-.release-permission-row span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.release-permission-row select {
+.role-department-select {
   width: 100%;
 }
 
@@ -3762,10 +3743,6 @@ textarea:focus {
 
   .document-folder-grid,
   .material-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .role-template-card dl .release-permission-row {
     grid-template-columns: 1fr;
   }
 

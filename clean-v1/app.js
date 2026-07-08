@@ -221,6 +221,24 @@
     }
   ];
 
+  const roleDepartmentOptions = departmentOverviewCards.map((item) => item.name);
+
+  const defaultRoleDepartmentById = {
+    business_pm: "业务部",
+    pattern_reviewer: "开发技术部",
+    process_reviewer: "开发技术部",
+    sample_feedback_owner: "开发技术部",
+    ie_reviewer: "开发技术部",
+    bonding_owner: "开发技术部",
+    measurement_reviewer: "开发技术部",
+    lab_testing_owner: "开发技术部",
+    material_owner: "开发技术部",
+    trim_owner: "开发技术部",
+    quality_reviewer: "品质部",
+    sample_review_gate_owner: "品质部",
+    production_reviewer: "生产部"
+  };
+
   const roleTemplates = [
     { id: "business_pm", name: "Business PM / 业务负责人", type: "评审角色", stages: ["开发准备", "样衣评审"], responsibility: "确认客户邮件、TP、BOM、Comment、颜色、辅料、交期、寄样目的是否一致", permissions: ["发起开发", "补充资料", "提交意见", "创建 Issue", "申请寄样"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["顾瑶", "顾永宏"] },
     { id: "pattern_reviewer", name: "Pattern Reviewer / 版型评审员", type: "评审角色", stages: ["样衣评审"], responsibility: "评审版型、关键尺寸、公差、结构、左右对称、纸样与实物一致性", permissions: ["提交意见", "创建尺寸/版型 Issue", "复验版型问题"], reviewDefault: "是", finalRelease: "否", exceptionRelease: "否", people: ["徐海燕"] },
@@ -399,6 +417,10 @@
     return activeRoleTemplates().find((role) => role.id === roleId) || roleTemplates.find((role) => role.id === roleId);
   }
 
+  function roleDepartment(role) {
+    return role?.department || defaultRoleDepartmentById[role?.id] || "";
+  }
+
   function isDefaultReviewRole(role) {
     return String(role?.reviewDefault || "").trim() === "是";
   }
@@ -417,7 +439,8 @@
         ...role,
         stages: Array.isArray(role.stages) ? role.stages : [],
         permissions: Array.isArray(role.permissions) ? role.permissions : [],
-        people: Array.isArray(role.people) ? role.people.filter((name) => !hidden.has(name)) : []
+        people: Array.isArray(role.people) ? role.people.filter((name) => !hidden.has(name)) : [],
+        department: role.department || defaultRoleDepartmentById[role.id] || ""
       }));
   }
 
@@ -432,6 +455,7 @@
       reviewDefault: role.reviewDefault || "否",
       finalRelease: role.finalRelease || "否",
       exceptionRelease: role.exceptionRelease || "否",
+      department: roleDepartment(role),
       people: role.people || []
     }));
   }
@@ -2158,8 +2182,7 @@
     const users = allUsers();
     const allTemplates = activeRoleTemplates();
     const selectedDepartment = departmentOverviewCards.find((item) => item.id === state.settingsDepartmentFilter);
-    const selectedRoleIds = new Set(selectedDepartment?.roleIds || []);
-    const templates = selectedDepartment ? allTemplates.filter((role) => selectedRoleIds.has(role.id)) : allTemplates;
+    const templates = selectedDepartment ? allTemplates.filter((role) => roleDepartment(role) === selectedDepartment.name) : allTemplates;
     const gateRules = data.gateRules || {};
     const ownerOrDefault = (userId, fallback) => {
       if (!userId) return fallback;
@@ -2239,9 +2262,13 @@
               <span class="inline-add"><input data-role-permission-input="${esc(role.id)}" placeholder="新增权限" /><button type="button" data-role-add-permission="${esc(role.id)}">添加</button></span>
             </dd>
           </div>
-          <div class="release-permission-row">
-            <label><span>最终放行</span><select data-role-final-release="${esc(role.id)}"><option ${role.finalRelease === "否" ? "selected" : ""}>否</option><option ${role.finalRelease === "是" ? "selected" : ""}>是</option><option ${role.finalRelease === "仅例外放行" ? "selected" : ""}>仅例外放行</option></select></label>
-            <label><span>例外放行</span><select data-role-exception-release="${esc(role.id)}"><option ${role.exceptionRelease === "否" ? "selected" : ""}>否</option><option ${role.exceptionRelease === "是" ? "selected" : ""}>是</option></select></label>
+          <div>
+            <dt>归属部门</dt>
+            <dd>
+              <select class="role-department-select" data-role-department="${esc(role.id)}">
+                ${roleDepartmentOptions.map((department) => `<option value="${esc(department)}" ${roleDepartment(role) === department ? "selected" : ""}>${esc(department)}</option>`).join("")}
+              </select>
+            </dd>
           </div>
           <div>
             <dt>当前分配人员</dt>
@@ -3599,8 +3626,9 @@
       responsibility: String(fields.get("responsibility") || "").trim() || `${cnName}相关职责`,
       permissions: String(fields.get("permissions") || "").split(/[,，/]/).map((item) => item.trim()).filter(Boolean),
       reviewDefault: String(fields.get("reviewDefault") || "否"),
-      finalRelease: String(fields.get("finalRelease") || "否"),
-      exceptionRelease: String(fields.get("exceptionRelease") || "否"),
+      finalRelease: "否",
+      exceptionRelease: "否",
+      department: String(fields.get("department") || "开发技术部"),
       people: []
     };
   }
@@ -3882,17 +3910,11 @@
       saveBrandFromForm(event.currentTarget);
     });
     document.addEventListener("change", (event) => {
-      const finalRelease = event.target.closest("[data-role-final-release]");
-      if (finalRelease) {
-        updateRoleTemplate(finalRelease.dataset.roleFinalRelease, (role) => {
-          role.finalRelease = finalRelease.value;
-        }, "最终放行权限已更新");
-      }
-      const exceptionRelease = event.target.closest("[data-role-exception-release]");
-      if (exceptionRelease) {
-        updateRoleTemplate(exceptionRelease.dataset.roleExceptionRelease, (role) => {
-          role.exceptionRelease = exceptionRelease.value;
-        }, "例外放行权限已更新");
+      const roleDepartmentSelect = event.target.closest("[data-role-department]");
+      if (roleDepartmentSelect) {
+        updateRoleTemplate(roleDepartmentSelect.dataset.roleDepartment, (role) => {
+          role.department = roleDepartmentSelect.value;
+        }, "归属部门已更新");
       }
     });
 
