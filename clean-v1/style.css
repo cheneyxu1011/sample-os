@@ -252,6 +252,12 @@ body.sidebar-collapsed .nav-item {
   justify-content: flex-end;
 }
 
+.section-toolbar {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .eyebrow,
 .section-head p,
 .panel p,
@@ -408,7 +414,7 @@ h3 {
 .settings-hero {
   margin-bottom: 16px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   align-items: flex-start;
 }
