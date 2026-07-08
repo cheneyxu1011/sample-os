@@ -204,7 +204,7 @@
     { id: "xinchangjiang_dispatcher", name: "Xinchangjiang Dispatcher / 新长江派发人", type: "路线角色", stages: ["新长江派发"], responsibility: "负责新长江打样人员分配和现场执行状态更新", permissions: ["新长江派发", "派发打样", "提交异常"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: ["夏红霞"] },
     { id: "sample_review_gate_owner", name: "Sample Review Gate Owner / 样衣评审负责人", type: "Gate 角色", stages: ["样衣评审", "寄样决策"], responsibility: "组织样衣评审、确认 Issue 等级、判断是否阻止寄样、做最终寄样结论", permissions: ["确认问题等级", "复验问题", "最终放行", "阻止寄样"], reviewDefault: "是", finalRelease: "是", exceptionRelease: "否", people: ["大前"] },
     { id: "final_approver", name: "Final Approver / 例外放行审批人", type: "审批角色", stages: ["例外放行", "重大争议"], responsibility: "例外放行、重大争议裁决", permissions: ["例外放行", "争议裁决"], reviewDefault: "否，仅例外时出现", finalRelease: "仅例外放行", exceptionRelease: "是", people: ["杨总"] },
-    { id: "production_reviewer", name: "Production Reviewer / 生产评审员", type: "可选评审角色", stages: ["量产可行性评估"], responsibility: "从大货现场角度确认样衣工艺是否能稳定复制", permissions: ["提交意见", "创建量产风险 Issue"], reviewDefault: "可选，压胶/复杂款建议参与", finalRelease: "否", exceptionRelease: "否", people: [] },
+    { id: "production_reviewer", name: "Production Owner / 生产负责人", type: "可选评审角色", stages: ["量产可行性评估"], responsibility: "从大货现场角度确认样衣工艺是否能稳定复制", permissions: ["提交意见", "创建量产风险 Issue"], reviewDefault: "可选，压胶/复杂款建议参与", finalRelease: "否", exceptionRelease: "否", people: [] },
     { id: "measurement_reviewer", name: "Measurement Reviewer / 尺寸测量员", type: "可选评审角色", stages: ["样衣评审", "复验"], responsibility: "按统一量法测量关键尺寸，记录实测数据，标记超公差部位", permissions: ["提交尺寸复核", "创建尺寸 Issue", "上传测量表", "复验尺寸整改"], reviewDefault: "可选，尺寸风险款建议参与", finalRelease: "否", exceptionRelease: "否", people: [] },
     { id: "lab_testing_owner", name: "Lab & Testing Owner / 测试负责人", type: "可选评审角色", stages: ["测试确认", "压胶/功能样评审"], responsibility: "判断是否需要洗后、拉力、剥离、防水、色牢度等测试", permissions: ["创建测试 Issue", "上传测试报告", "确认测试结果", "要求复验"], reviewDefault: "可选，压胶/功能款建议参与", finalRelease: "否", exceptionRelease: "否", people: [] },
     { id: "sample_keeper", name: "Sample Keeper / 样衣管理员", type: "流程角色", stages: ["样衣位置管理"], responsibility: "维护样衣位置，确认当前持有人，记录样衣流转", permissions: ["更新样衣位置", "上传位置记录", "确认已寄出"], reviewDefault: "否", finalRelease: "否", exceptionRelease: "否", people: [] },
@@ -2173,13 +2173,9 @@
               <span class="inline-add"><input data-role-permission-input="${esc(role.id)}" placeholder="新增权限" /><button type="button" data-role-add-permission="${esc(role.id)}">添加</button></span>
             </dd>
           </div>
-          <div>
-            <dt>最终放行</dt>
-            <dd><select data-role-final-release="${esc(role.id)}"><option ${role.finalRelease === "否" ? "selected" : ""}>否</option><option ${role.finalRelease === "是" ? "selected" : ""}>是</option><option ${role.finalRelease === "仅例外放行" ? "selected" : ""}>仅例外放行</option></select></dd>
-          </div>
-          <div>
-            <dt>例外放行</dt>
-            <dd><select data-role-exception-release="${esc(role.id)}"><option ${role.exceptionRelease === "否" ? "selected" : ""}>否</option><option ${role.exceptionRelease === "是" ? "selected" : ""}>是</option></select></dd>
+          <div class="release-permission-row">
+            <label><span>最终放行</span><select data-role-final-release="${esc(role.id)}"><option ${role.finalRelease === "否" ? "selected" : ""}>否</option><option ${role.finalRelease === "是" ? "selected" : ""}>是</option><option ${role.finalRelease === "仅例外放行" ? "selected" : ""}>仅例外放行</option></select></label>
+            <label><span>例外放行</span><select data-role-exception-release="${esc(role.id)}"><option ${role.exceptionRelease === "否" ? "selected" : ""}>否</option><option ${role.exceptionRelease === "是" ? "selected" : ""}>是</option></select></label>
           </div>
           <div>
             <dt>当前分配人员</dt>
