@@ -1327,8 +1327,12 @@ h3 {
   scrollbar-gutter: stable;
 }
 
+.review-media-panel {
+  padding-bottom: 12px;
+}
+
 .media-focus {
-  margin: 10px 0 14px;
+  margin: 8px 0 10px;
 }
 
 .media-focus-empty,
@@ -1351,8 +1355,8 @@ h3 {
 }
 
 .media-focus-stage {
-  min-height: 520px;
-  height: clamp(520px, calc(100vh - 360px), 640px);
+  min-height: 560px;
+  height: clamp(560px, calc(100vh - 260px), 760px);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -1930,10 +1934,10 @@ textarea:focus {
 .uploaded-media {
   display: flex;
   grid-template-columns: none;
-  margin-top: 10px;
+  margin-top: 6px;
   gap: 10px;
   overflow-x: auto;
-  padding: 2px 2px 8px;
+  padding: 2px 2px 4px;
   scroll-snap-type: x proximity;
 }
 
@@ -3514,9 +3518,14 @@ textarea:focus {
     min-height: 240px;
   }
 
+  .media-focus-stage {
+    min-height: 360px;
+    height: 56vh;
+  }
+
   .media-focus-stage img,
   .media-focus-stage video {
-    max-height: 420px;
+    max-height: 100%;
   }
 
   .department-progress-meta {
