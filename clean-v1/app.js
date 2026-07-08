@@ -129,7 +129,7 @@
     { id: "style_cover", required: true },
     { id: "customer_reference", required: true },
     { id: "measurement_table", required: true },
-    { id: "tech_pack", required: false },
+    { id: "tech_pack", required: true },
     { id: "bom", required: true },
     { id: "customer_comments", required: false },
     { id: "other", required: false }
@@ -1117,11 +1117,7 @@
   }
 
   function preparationIncomplete(style, sample) {
-    const documents = styleDocumentList(style, sample);
-    const missingRequired = styleDocumentCategories
-      .filter((item) => item.required)
-      .some((item) => !documents.some((doc) => doc.category === item.id));
-    if (missingRequired) return true;
+    if (preparationComplete(style, sample)) return false;
     const rows = style?.preparationChecklist || [];
     if (rows.length) {
       return rows.some((item) => {
@@ -1134,7 +1130,7 @@
         return true;
       });
     }
-    return false;
+    return true;
   }
 
   function verifiedPreviousChanges(style) {
@@ -1256,33 +1252,58 @@
     return "pending";
   }
 
+  function roadmapDate(value, fallback = "未设置") {
+    if (!value) return fallback;
+    const text = dateText(value);
+    return text === "未设置" ? fallback : shortDate(text);
+  }
+
+  function roadmapMeta(node) {
+    return [
+      `状态 ${node.desc || "未开始"}`,
+      `计划 ${roadmapDate(node.planDate)}`,
+      `实际 ${roadmapDate(node.actualDate, "未完成")}`,
+      `负责人 ${node.owner || "未指定"}`
+    ];
+  }
+
   function roadmapNodes(style, sample, review, issues, shipment) {
     const blockers = (issues || []).filter(isBlocking);
     const finalApproved = isFinalApproved(review) || shipment.release === "ready_to_send";
-    const gateIndexMap = {
-      business_input: 0,
-      preparation_gate: 1,
-      sample_dispatch_gate: 2,
-      sample_making_gate: 3,
-      sample_review_gate: 4,
-      final_approval_gate: 7
-    };
-    const currentIndex = finalApproved ? 8 : (gateIndexMap[style?.currentGate] ?? (sample ? 4 : 0));
+    const workflow = workflowInfo(style);
     const gateOwner = textOwner(style, review, "gateOwner", "大前");
-    const prepDone = !preparationIncomplete(style, sample);
+    const businessOwner = businessOwnerName(style);
+    const sampleOwner = sampleFeedbackOwnerName(style);
+    const prepDone = preparationComplete(style, sample);
+    const prepActual = preparationCompletionDate(style, sample);
+    const dispatched = Boolean(workflow.sampleDispatchedAt);
+    const sampleDone = Boolean(workflow.sampleCompletedAt);
     const reviewDone = review && !departmentReviewIncomplete(review);
     const issueText = `${issues.length} 个 Issue${blockers.length ? `，${blockers.length} 个阻塞` : ""}`;
     const decisionRisk = ["blocked_by_issue", "blocked_by_department_review", "blocked_by_owner_missing", "blocked_by_preparation", "overdue_pending_confirm"].includes(shipment.release);
+    let currentIndex = 1;
+    if (prepDone) currentIndex = 2;
+    if (dispatched) currentIndex = 3;
+    if (sampleDone || style?.currentGate === "sample_review_gate" || review?.status === "reviewing") currentIndex = 4;
+    if (blockers.length) currentIndex = 5;
+    if (!blockers.length && reviewDone) currentIndex = 7;
+    if (finalApproved) currentIndex = 8;
+    const createdDate = style?.createdAt || sample?.createdAt || "";
+    const prepPlan = style?.preparationPlannedDate || createdDate || "";
+    const dispatchPlan = prepActual || prepPlan;
+    const samplePlan = style?.sampleDoneDate || sample?.sampleDoneDate || plannedDate(style, sample);
+    const reviewPlan = sampleDone ? workflow.sampleCompletedAt : samplePlan;
+    const finalPlan = plannedDate(style, sample);
 
     const nodes = [
-      { label: "建立款式", desc: style?.styleNo ? "已完成" : "待建立", tip: "款式基础资料已经建立" },
-      { label: "前期准备", desc: prepDone ? "王部长确认" : "资料待补齐", tip: prepDone ? "准备资料已满足评审要求" : "需要补齐工艺单、BOM、客户资料等" },
-      { label: "派发打样", desc: sample ? "已派发" : "待派发", tip: "资料确认后派发到对应打样路线" },
-      { label: "打样完成", desc: sample?.location || style?.sampleLocation || "待入库", tip: "样衣完成后进入样衣间或当前所在位置" },
-      { label: "样衣评审", desc: `${gateOwner}负责`, tip: "点击进入样衣评审页", action: "review" },
-      { label: "问题归属", desc: issueText, tip: "点击查看质量闸口问题", action: "issues" },
-      { label: "整改复验", desc: blockers.length ? "待处理" : reviewDone ? "待复核" : "未开始", tip: "阻塞问题需整改完成并复核关闭", action: "issues" },
-      { label: "寄样决策", desc: finalApproved ? "可寄样" : "待判断", tip: "点击查看评审结论与最终放行", action: "final" }
+      { label: "建立款式", desc: style?.styleNo ? "已完成" : "待建立", owner: businessOwner, planDate: createdDate, actualDate: createdDate, tip: "款式基础资料已经建立" },
+      { label: "前期准备", desc: prepDone ? "资料齐全" : "资料待补齐", owner: workflowActor(style, "preparationConfirmedBy", businessOwner), planDate: prepPlan, actualDate: prepActual, tip: prepDone ? "必要资料已齐全或业务负责人已确认" : "需要补齐款式主图、客户原始资料、尺寸表、BOM、工艺单" },
+      { label: "派发打样", desc: dispatched ? "已派发" : "待派发", owner: workflowActor(style, "sampleDispatchedBy", businessOwner), planDate: dispatchPlan, actualDate: workflow.sampleDispatchedAt, tip: "资料确认后由业务负责人派发到对应打样路线" },
+      { label: "打样完成", desc: sampleDone ? "已完成" : "待完成", owner: workflowActor(style, "sampleCompletedBy", sampleOwner), planDate: samplePlan, actualDate: workflow.sampleCompletedAt, tip: "打样反馈人确认样衣已经完成" },
+      { label: "样衣评审", desc: reviewDone ? "已完成" : `${gateOwner}负责`, owner: gateOwner, planDate: reviewPlan, actualDate: reviewDone ? review?.updatedAt || review?.reviewedAt : "", tip: "点击进入样衣评审页", action: "review" },
+      { label: "问题归属", desc: issueText, owner: gateOwner, planDate: reviewPlan, actualDate: issues.length ? issues.map((issue) => issue.createdAt).filter(Boolean).sort().pop() : "", tip: "点击查看质量闸口问题", action: "issues" },
+      { label: "整改复验", desc: blockers.length ? "待处理" : reviewDone ? "待复核" : "未开始", owner: gateOwner, planDate: finalPlan, actualDate: blockers.length ? "" : issues.filter((issue) => issue.status === "closed").map((issue) => issue.updatedAt).filter(Boolean).sort().pop(), tip: "阻塞问题需整改完成并复核关闭", action: "issues" },
+      { label: "寄样决策", desc: finalApproved ? "可寄样" : "待判断", owner: textOwner(style, review, "finalApprover", "杨总"), planDate: finalPlan, actualDate: finalApproved ? review?.updatedAt : "", tip: "点击查看评审结论与最终放行", action: "final" }
     ];
 
     return nodes.map((node, index) => {
@@ -1296,6 +1317,10 @@
   function renderRoadmap(style, sample, review, issues, shipment) {
     const nodes = roadmapNodes(style, sample, review, issues, shipment);
     const expanded = Boolean(state.expandedRoadmaps[style.id]);
+    const workflow = workflowInfo(style);
+    const prepReady = preparationComplete(style, sample);
+    const dispatched = Boolean(workflow.sampleDispatchedAt);
+    const sampleDone = Boolean(workflow.sampleCompletedAt);
     const currentIndex = nodes.findIndex((node) => node.status === "current");
     const firstRiskIndex = nodes.findIndex((node) => node.status === "risk");
     const activeIndex = currentIndex >= 0 ? currentIndex : firstRiskIndex >= 0 ? firstRiskIndex : Math.max(0, nodes.findIndex((node) => node.status === "pending") - 1);
@@ -1311,8 +1336,15 @@
     return `
       <div class="gate-roadmap" aria-label="开发路线图">
         <div class="roadmap-head">
-          <strong>开发路线图</strong>
-          <span>${esc(gateLabel(style.currentGate))} · ${esc(statusLabels[review?.status] || review?.status || "进行中")}</span>
+          <div>
+            <strong>开发路线图</strong>
+            <span>${esc(gateLabel(style.currentGate))} · ${esc(statusLabels[review?.status] || review?.status || "进行中")}</span>
+          </div>
+          <div class="roadmap-actions">
+            ${!prepReady ? `<button class="secondary-button compact-button" type="button" data-confirm-preparation="${esc(style.id)}">确认资料齐全</button>` : ""}
+            ${prepReady && !dispatched ? `<button class="primary-button compact-button" type="button" data-dispatch-sample="${esc(style.id)}">派发打样</button>` : ""}
+            ${dispatched && !sampleDone ? `<button class="secondary-button compact-button" type="button" data-complete-sample="${esc(style.id)}">打样完成</button>` : ""}
+          </div>
         </div>
         <div class="roadmap-compact">
           ${compactItems.map(([label, node]) => `
@@ -1320,6 +1352,7 @@
               <span>${esc(label)}</span>
               <strong>${esc(node.label)}</strong>
               <small>${esc(node.desc)}</small>
+              <em>${esc(`计划 ${roadmapDate(node.planDate)}｜实际 ${roadmapDate(node.actualDate, "未完成")}`)}</em>
             </button>
           `).join("")}
         </div>
@@ -1330,7 +1363,7 @@
               <button class="roadmap-node ${esc(node.status)}" type="button" title="${esc(`${node.label}：${node.desc}`)}" data-roadmap-action="${esc(node.action || "")}" data-roadmap-style="${esc(style.id)}">
                 <span class="roadmap-dot">${node.status === "complete" ? "✓" : node.status === "risk" ? "!" : ""}</span>
                 <span class="roadmap-label">${esc(index + 1)}. ${esc(node.label)}</span>
-                <small>${esc(node.desc)}</small>
+                <small>${roadmapMeta(node).map((item) => `<i>${esc(item)}</i>`).join("")}</small>
               </button>
             `).join("")}
           </div>
@@ -1426,13 +1459,8 @@
           <div class="pipeline-actions">
             <button class="primary-button" type="button" data-open-review="${esc(style.id)}">打开评审</button>
             <button class="secondary-button" type="button" data-open-style-materials="${esc(style.id)}">款式资料</button>
-            <details class="more-actions">
-              <summary>更多</summary>
-              <div>
-                <button class="secondary-button" type="button" data-open-style-editor="${esc(style.id)}">编辑</button>
-                <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
-              </div>
-            </details>
+            <button class="secondary-button" type="button" data-open-style-editor="${esc(style.id)}">编辑</button>
+            <button class="danger-button" type="button" data-delete-style="${esc(style.id)}">删除</button>
           </div>
         ` : ""}
       </article>
@@ -1887,6 +1915,56 @@
       complete: !missing.length,
       text: missing.length ? `评审资料未齐全：缺少 ${missing.join("、")}` : "评审资料已齐全"
     };
+  }
+
+  function missingRequiredDocuments(style, sample) {
+    const documents = styleDocumentList(style, sample);
+    return styleDocumentCategories
+      .filter((item) => item.required && !documents.some((doc) => doc.category === item.id))
+      .map((item) => item.id);
+  }
+
+  function documentsReady(style, sample) {
+    return missingRequiredDocuments(style, sample).length === 0;
+  }
+
+  function workflowInfo(style) {
+    return style?.workflow || style?.profile?.workflow || {};
+  }
+
+  function preparationConfirmed(style) {
+    const workflow = workflowInfo(style);
+    return Boolean(workflow.preparationConfirmedAt || workflow.preparationAutoCompletedAt);
+  }
+
+  function preparationComplete(style, sample) {
+    return documentsReady(style, sample) || preparationConfirmed(style);
+  }
+
+  function preparationCompletionDate(style, sample) {
+    const workflow = workflowInfo(style);
+    if (workflow.preparationConfirmedAt) return workflow.preparationConfirmedAt;
+    if (workflow.preparationAutoCompletedAt) return workflow.preparationAutoCompletedAt;
+    if (!documentsReady(style, sample)) return "";
+    const required = new Set(styleDocumentCategories.filter((item) => item.required).map((item) => item.id));
+    return styleDocumentList(style, sample)
+      .filter((doc) => required.has(doc.category))
+      .map((doc) => doc.uploadedAt)
+      .filter(Boolean)
+      .sort()
+      .pop() || "";
+  }
+
+  function workflowActor(style, field, fallback = "未指定") {
+    return workflowInfo(style)[field] || fallback;
+  }
+
+  function businessOwnerName(style) {
+    return roleOwnerNames(style, "business_pm")[0] || roleOwnerText(style, "business_pm") || "业务负责人";
+  }
+
+  function sampleFeedbackOwnerName(style) {
+    return roleOwnerNames(style, "sample_feedback_owner")[0] || roleOwnerText(style, "sample_feedback_owner") || "打样反馈人";
   }
 
   function fileThumb(item) {
@@ -2730,6 +2808,129 @@
       quantity: 1,
       highRisk: false
     };
+  }
+
+  function currentTimestamp() {
+    return new Date().toISOString().slice(0, 16).replace("T", " ");
+  }
+
+  function existingStylePayload(style, sample, review) {
+    const owners = style?.owners || style?.profile?.owners || {};
+    const roleOwners = owners.roleOwners || {};
+    return {
+      styleId: style.id,
+      sampleId: sample?.id || null,
+      reviewId: review?.id || null,
+      styleNo: style.styleNo || "",
+      brand: style.brand || "",
+      styleName: style.styleName || "",
+      season: style.season || "",
+      customer: style.customer || style.profile?.customer || "",
+      route: style.route || "normal",
+      samplePhase: style.samplePhase || sample?.samplePhase || "first_sample",
+      sampleLocation: sample?.location || style.sampleLocation || "未设置",
+      plannedShipDate: plannedDate(style, sample) === "未设置" ? "" : (style.plannedShipDate || sample?.plannedShipDate || ""),
+      customerDeadline: style.customerDeadline || "",
+      orderMeetingDate: style.orderMeetingDate || "",
+      reviewObjective: style.reviewObjective || "",
+      businessOwner: owners.businessOwner || "",
+      sampleOwner: owners.sampleOwner || "",
+      gateOwnerId: isUuid(style.gateOwner || review?.gateOwner) ? (style.gateOwner || review?.gateOwner) : undefined,
+      finalApproverId: isUuid(style.finalApprover || review?.finalApprover) ? (style.finalApprover || review?.finalApprover) : undefined,
+      gateOwner: owners.gateOwner || "",
+      finalApprover: owners.finalApprover || "",
+      patternOwner: owners.patternOwner || "",
+      processOwner: owners.processOwner || "",
+      qcOwner: owners.qcOwner || "",
+      bondingOwner: owners.bondingOwner || "",
+      roleOwners
+    };
+  }
+
+  function applyLocalWorkflow(style, workflowPatch, currentGate) {
+    if (!style.profile) style.profile = {};
+    style.profile.workflow = { ...(style.profile.workflow || {}), ...workflowPatch };
+    style.workflow = style.profile.workflow;
+    if (!style.owners && style.profile.owners) style.owners = style.profile.owners;
+    if (currentGate) style.currentGate = currentGate;
+  }
+
+  async function updateStyleWorkflow(styleId, workflowPatch, options = {}) {
+    const style = styleById(styleId);
+    const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
+    const review = state.data?.reviews?.find((item) => item.styleId === style?.id || item.sampleId === sample?.id);
+    if (!style) return;
+    const workflow = { ...workflowInfo(style), ...workflowPatch };
+    applyLocalWorkflow(style, workflowPatch, options.currentGate);
+    renderPipeline();
+    updateStatus();
+    if (!isUuid(style.id)) {
+      showMessage(options.successMessage || "流程状态已更新。", "ok");
+      return;
+    }
+    try {
+      await syncData("updateStyleInfo", {
+        ...existingStylePayload(style, sample, review),
+        currentGate: options.currentGate || style.currentGate,
+        nextAction: options.nextAction || style.nextAction || "",
+        blockerSummary: options.blockerSummary || style.blockerSummary || "",
+        workflow
+      });
+      await loadSnapshot();
+      renderAll();
+      showMessage(options.successMessage || "流程状态已保存。", "ok");
+    } catch (error) {
+      console.error("保存流程状态失败", { styleId, workflowPatch, options, error });
+      showMessage(`保存流程状态失败：${error.message}`);
+      await loadSnapshot();
+    }
+  }
+
+  function confirmPreparation(styleId) {
+    const style = styleById(styleId);
+    const actor = businessOwnerName(style);
+    return updateStyleWorkflow(styleId, {
+      preparationConfirmedAt: currentTimestamp(),
+      preparationConfirmedBy: actor,
+      preparationManual: true
+    }, {
+      currentGate: "sample_dispatch_gate",
+      nextAction: "业务负责人派发打样",
+      blockerSummary: "",
+      successMessage: `前期准备已确认：${actor}`
+    });
+  }
+
+  function dispatchSample(styleId) {
+    const style = styleById(styleId);
+    const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
+    if (!preparationComplete(style, sample)) return showMessage("资料未齐或未确认，不能派发打样。");
+    const actor = businessOwnerName(style);
+    return updateStyleWorkflow(styleId, {
+      sampleDispatchedAt: currentTimestamp(),
+      sampleDispatchedBy: actor
+    }, {
+      currentGate: "sample_making_gate",
+      nextAction: "等待打样反馈人确认打样完成",
+      blockerSummary: "",
+      successMessage: `已派发打样：${actor}`
+    });
+  }
+
+  function completeSampleMaking(styleId) {
+    const style = styleById(styleId);
+    const workflow = workflowInfo(style);
+    if (!workflow.sampleDispatchedAt) return showMessage("请先由业务负责人派发打样。");
+    const actor = sampleFeedbackOwnerName(style);
+    return updateStyleWorkflow(styleId, {
+      sampleCompletedAt: currentTimestamp(),
+      sampleCompletedBy: actor
+    }, {
+      currentGate: "sample_review_gate",
+      nextAction: "进入样衣评审",
+      blockerSummary: "",
+      successMessage: `打样完成已记录：${actor}`
+    });
   }
 
   async function createStyleFromForm(form) {
@@ -3821,6 +4022,15 @@
         state.expandedRoadmaps[styleId] = !state.expandedRoadmaps[styleId];
         renderPipeline();
       }
+
+      const confirmPreparationButton = event.target.closest("[data-confirm-preparation]");
+      if (confirmPreparationButton) await confirmPreparation(confirmPreparationButton.dataset.confirmPreparation);
+
+      const dispatchSampleButton = event.target.closest("[data-dispatch-sample]");
+      if (dispatchSampleButton) await dispatchSample(dispatchSampleButton.dataset.dispatchSample);
+
+      const completeSampleButton = event.target.closest("[data-complete-sample]");
+      if (completeSampleButton) await completeSampleMaking(completeSampleButton.dataset.completeSample);
 
       const styleEditorButton = event.target.closest("[data-open-style-editor]");
       if (styleEditorButton) openStyleModal(styleEditorButton.dataset.openStyleEditor, "edit");

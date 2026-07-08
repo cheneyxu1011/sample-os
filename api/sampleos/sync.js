@@ -411,6 +411,8 @@ async function updateStyleInfo(supabase, orgId, body) {
   const styleId = await resolveEntityId(supabase, orgId, "styles", body.styleId);
   if (!styleId) throw new Error("styleId is required");
   const now = new Date().toISOString();
+  const hasGateOwnerId = body.gateOwnerId !== undefined || body.reviewOwnerId !== undefined;
+  const hasFinalApproverId = body.finalApproverId !== undefined;
   const gateOwnerId = profileIdOrNull(body.gateOwnerId || body.reviewOwnerId);
   const finalApproverId = profileIdOrNull(body.finalApproverId);
 
@@ -422,10 +424,16 @@ async function updateStyleInfo(supabase, orgId, body) {
     route: body.route || "normal",
     sample_phase: body.samplePhase || "first_sample",
     planned_ship_date: body.plannedShipDate || null,
-    gate_owner_id: gateOwnerId,
-    final_approver_id: finalApproverId,
+    gate_owner_id: hasGateOwnerId ? gateOwnerId : undefined,
+    final_approver_id: hasFinalApproverId ? finalApproverId : undefined,
+    current_gate: body.currentGate || undefined,
+    next_action: body.nextAction || undefined,
+    blocker_summary: body.blockerSummary || undefined,
     updated_at: now,
   };
+  Object.keys(stylePayload).forEach((key) => {
+    if (stylePayload[key] === undefined) delete stylePayload[key];
+  });
   if (!stylePayload.style_no || !stylePayload.style_name) throw new Error("款号和款式名称不能为空");
 
   const { data: style, error: styleError } = await supabase
@@ -480,9 +488,12 @@ async function updateStyleInfo(supabase, orgId, body) {
     reviewId = review?.id || null;
   }
   if (reviewId) {
+    const reviewPayload = { updated_at: now };
+    if (hasGateOwnerId) reviewPayload.gate_owner_id = gateOwnerId;
+    if (hasFinalApproverId) reviewPayload.final_approver_id = finalApproverId;
     const { error: reviewError } = await supabase
       .from("reviews")
-      .update({ gate_owner_id: gateOwnerId, final_approver_id: finalApproverId, updated_at: now })
+      .update(reviewPayload)
       .eq("org_id", orgId)
       .eq("id", reviewId);
     if (reviewError) throw syncError("update reviews", reviewError, { reviewId });
@@ -504,10 +515,12 @@ async function updateStyleInfo(supabase, orgId, body) {
       bondingOwner: textOrNull(body.bondingOwner),
       roleOwners: body.roleOwners && typeof body.roleOwners === "object" ? body.roleOwners : {},
     },
+    workflow: body.workflow && typeof body.workflow === "object" ? body.workflow : undefined,
     styleId,
     sampleId,
     reviewId,
   };
+  if (profileDetail.workflow === undefined) delete profileDetail.workflow;
 
   const { data: existingProfile, error: existingProfileError } = await supabase
     .from("audit_events")
@@ -524,6 +537,7 @@ async function updateStyleInfo(supabase, orgId, body) {
       ...(existingProfile.detail || {}),
       ...profileDetail,
       owners: { ...(existingProfile.detail?.owners || {}), ...profileDetail.owners },
+      workflow: profileDetail.workflow || existingProfile.detail?.workflow || {},
     };
     const { error } = await supabase.from("audit_events").update({ detail }).eq("id", existingProfile.id);
     if (error) throw syncError("update style profile audit", error, { styleId });
