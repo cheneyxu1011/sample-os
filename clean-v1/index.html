@@ -85,17 +85,6 @@
             <section class="panel review-media-panel">
               <div class="panel-head">
                 <div>
-                  <h2>款式资料</h2>
-                  <p>评审前请先查看客户资料、尺寸表、BOM、工艺单和修改意见，再填写评审意见。</p>
-                </div>
-                <button class="secondary-button compact-button" type="button" id="toggle-style-documents">展开资料</button>
-              </div>
-              <div id="style-document-status" class="document-status"></div>
-              <div id="style-document-folders" class="document-folder-grid"></div>
-              <div id="style-document-files" class="document-file-browser" hidden></div>
-
-              <div class="panel-head">
-                <div>
                   <h2>评审媒体</h2>
                   <p>这里记录样衣实物照片、视频和问题证据，可作为 Issue 证据。</p>
                 </div>
@@ -116,17 +105,32 @@
               <div id="uploaded-media" class="uploaded-media"></div>
             </section>
 
-            <section class="panel my-review-panel">
-              <div class="panel-head">
-                <div>
-                  <h2>我的评审任务</h2>
-                  <p>只展开当前评审人的任务，保存后再提交或转 Issue。</p>
+            <aside class="review-sidebar">
+              <section class="panel my-review-panel">
+                <div class="panel-head">
+                  <div>
+                    <h2>我的评审任务</h2>
+                    <p>只展开当前评审人的任务，保存后再提交或转 Issue。</p>
+                  </div>
                 </div>
-              </div>
-              <div id="reviewer-task-filter" class="reviewer-task-filter"></div>
-              <div id="my-review-task"></div>
-              <div id="gate-owner-card"></div>
-            </section>
+                <div id="reviewer-task-filter" class="reviewer-task-filter"></div>
+                <div id="my-review-task"></div>
+                <div id="gate-owner-card"></div>
+              </section>
+
+              <section class="panel style-documents-panel">
+                <div class="panel-head compact">
+                  <div>
+                    <h2>款式资料</h2>
+                    <p>评审前先确认客户资料、尺寸表、BOM、工艺单和修改意见。</p>
+                  </div>
+                  <button class="secondary-button compact-button" type="button" id="toggle-style-documents">展开资料</button>
+                </div>
+                <div id="style-document-status" class="document-status"></div>
+                <div id="style-document-folders" class="document-folder-grid"></div>
+                <div id="style-document-files" class="document-file-browser" hidden></div>
+              </section>
+            </aside>
           </div>
 
           <section class="panel department-progress-panel">

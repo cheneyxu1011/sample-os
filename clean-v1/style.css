@@ -1311,8 +1311,20 @@ h3 {
 .review-workspace {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
   margin-top: 16px;
+  align-items: start;
+}
+
+.review-sidebar {
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  display: grid;
+  gap: 16px;
+  align-self: start;
+  scrollbar-gutter: stable;
 }
 
 .media-focus {
@@ -1362,10 +1374,10 @@ h3 {
 }
 
 .document-status {
-  margin: 4px 0 12px;
+  margin: 4px 0 10px;
   border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 13px;
+  padding: 8px 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -1381,17 +1393,21 @@ h3 {
 
 .document-folder-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .document-folder-card {
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .document-folder-card.ready {
@@ -1409,10 +1425,11 @@ h3 {
 }
 
 .document-folder-card span {
-  margin-top: 4px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .document-file-browser {
@@ -3319,6 +3336,13 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .review-sidebar {
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
   .settings-hero {
     flex-direction: column;
     align-items: stretch;
@@ -3600,6 +3624,13 @@ textarea:focus {
   .month-weekdays,
   .month-calendar-grid {
     grid-template-columns: 1fr;
+  }
+
+  .review-sidebar {
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .department-overview-grid {

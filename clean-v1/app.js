@@ -1930,17 +1930,15 @@
     if (toggle) toggle.textContent = expanded ? "收起资料" : "展开资料";
     if (statusBox) {
       statusBox.className = `document-status ${status.complete ? "complete" : "missing"}`;
-      statusBox.textContent = status.text;
+      statusBox.textContent = status.complete ? "资料已齐" : status.text.replace("评审资料未齐全：", "资料未齐：");
     }
     if (folders) {
       folders.innerHTML = styleDocumentCategories.map(({ id }) => {
         const summary = documentCategorySummary(id, documents);
-        const latest = summary.latest;
-        const updated = latest ? `${shortDate(latest.uploadedAt)} ${latest.uploadedBy || "未记录"}更新` : "缺失";
         return `
           <article class="document-folder-card ${summary.files.length ? "ready" : "missing"}">
             <strong>${esc(summary.label)}</strong>
-            <span>${esc(summary.files.length)} 个文件｜${summary.files.length ? "已上传" : "缺失"}${latest ? `｜${esc(updated)}` : ""}</span>
+            <span>${summary.files.length ? `已上传 · ${esc(summary.files.length)} 个文件` : "缺失"}</span>
           </article>
         `;
       }).join("");
