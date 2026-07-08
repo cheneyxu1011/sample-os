@@ -1328,11 +1328,34 @@ h3 {
 }
 
 .review-media-panel {
+  padding-top: 14px;
   padding-bottom: 12px;
 }
 
+.review-media-panel .panel-head {
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.review-media-panel .panel-head h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.review-media-panel .panel-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.review-media-panel .upload-status:empty {
+  display: none;
+}
+
 .media-focus {
-  margin: 8px 0 10px;
+  margin: 6px 0 10px;
 }
 
 .media-focus-empty,
@@ -1888,16 +1911,16 @@ textarea:focus {
 }
 
 .compact-upload-choice {
-  min-height: 32px;
+  min-height: 30px;
   border: 0;
   border-radius: 7px;
-  padding: 0 12px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   background: var(--accent);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
   box-shadow: 0 6px 14px rgba(0, 113, 227, 0.18);
 }
