@@ -456,7 +456,16 @@
         <div class="modal-section">
           <div class="modal-grid">
             <label>人员姓名<input name="name" required data-required-message="请输入人员姓名" /><small data-field-error="name"></small></label>
-            <label>所属部门<input name="department" placeholder="例如：业务部 / 品质部 / 工艺部" /></label>
+            <label>所属部门
+              <select name="department" id="person-department-select">
+                <option>业务部</option>
+                <option>品质部</option>
+                <option>开发技术部</option>
+                <option>生产部</option>
+                <option>面辅料准备组</option>
+                <option>其他部门</option>
+              </select>
+            </label>
             <label>是否默认负责人<select name="defaultOwner"><option value="false">否</option><option value="true">是</option></select></label>
           </div>
         </div>

@@ -214,6 +214,7 @@
   ];
 
   const roleDepartmentOptions = departmentOverviewCards.map((item) => item.name);
+  const personDepartmentOptions = ["业务部", "品质部", "开发技术部", "生产部", "面辅料准备组", "其他部门"];
 
   const defaultRoleDepartmentById = {
     business_pm: "业务部",
@@ -403,6 +404,27 @@
 
   function roleShortName(role) {
     return role?.name?.split(" / ").pop() || role?.name || "";
+  }
+
+  function displayRoleName(role) {
+    const name = roleShortName(role);
+    const map = {
+      "Pattern Reviewer / 版型评审员": "版师",
+      "版型评审员": "版师",
+      "Process Reviewer / 工艺评审员": "工艺师",
+      "工艺评审员": "工艺师",
+      "Sample Feedback Owner / 打样反馈人": "打样反馈人",
+      "打样反馈人": "打样反馈人",
+      "IE Reviewer / IE 评审员": "IE评审员",
+      "IE 评审员": "IE评审员",
+      "Production Owner / 生产负责人": "生产负责人",
+      "生产负责人": "生产负责人",
+      "Quality Reviewer / 品质评审员": "QC质量工程师",
+      "品质评审员": "QC质量工程师",
+      "Business PM / 业务负责人": "业务负责人",
+      "业务负责人": "业务负责人"
+    };
+    return map[role?.name] || map[name] || name;
   }
 
   function roleById(roleId) {
@@ -2181,6 +2203,9 @@
         ...(role.people || []),
         ...assignedUsersForRole(role.id).map((person) => person.name)
       ]));
+    const departmentRoles = (departmentName) => uniqueNames(allTemplates
+      .filter((role) => roleDepartment(role) === departmentName)
+      .map(displayRoleName));
     const gateRules = data.gateRules || {};
     const ownerOrDefault = (userId, fallback) => {
       if (!userId) return fallback;
@@ -2203,11 +2228,12 @@
       <div class="department-overview-grid">
         ${departmentOverviewCards.map((department) => {
           const people = departmentPeople(department.name);
+          const roles = departmentRoles(department.name);
           return `
             <button class="department-overview-card ${state.settingsDepartmentFilter === department.id ? "active" : ""}" type="button" data-settings-department="${esc(department.id)}">
               <span>${esc(department.name)}</span>
               <strong>${esc(people.length)}</strong>
-              <small>主要角色：${esc(department.roles.join(" / "))}</small>
+              <small>主要角色：${esc(roles.join(" / ") || "暂无角色")}</small>
               <div class="department-people-tags">
                 ${people.length ? people.map((person) => `<i>${esc(person)}</i>`).join("") : "<i>暂无人员</i>"}
               </div>
@@ -3559,12 +3585,14 @@
 
   function openPersonModal(personId = null) {
     const person = personId ? allUsers().find((user) => user.id === personId) : null;
+    const selectedDepartment = departmentOverviewCards.find((item) => item.id === state.settingsDepartmentFilter)?.name || "开发技术部";
+    const departmentValue = person?.department || (personDepartmentOptions.includes(selectedDepartment) ? selectedDepartment : "其他部门");
     state.editingPersonId = person?.id || null;
     $("#person-modal-title").textContent = person ? "分配人员" : "新增人员";
     const form = $("#person-form");
     form.reset();
     form.elements.namedItem("name").value = person?.name || "";
-    form.elements.namedItem("department").value = person?.department || "";
+    form.elements.namedItem("department").value = personDepartmentOptions.includes(departmentValue) ? departmentValue : "其他部门";
     renderPersonModalOptions(person);
     $("#person-save-status").textContent = "";
     setFieldErrors(form, {});
