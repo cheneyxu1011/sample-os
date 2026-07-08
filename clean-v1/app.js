@@ -43,7 +43,8 @@
     activePreviewFile: null,
     settingsDepartmentFilter: "",
     selectedReviewTaskKeyByStyle: {},
-    optionalDepartmentRoleIdsByStyle: {}
+    optionalDepartmentRoleIdsByStyle: {},
+    currentOperator: ""
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -215,6 +216,18 @@
     }
   ];
 
+  const pipelineOperatorOptions = [
+    "顾瑶",
+    "顾永宏",
+    "大前",
+    "徐海燕",
+    "张部长",
+    "李师傅",
+    "夏师傅",
+    "王部长",
+    "杨总"
+  ];
+
   const roleDepartmentOptions = departmentOverviewCards.map((item) => item.name);
   const personDepartmentOptions = ["业务部", "品质部", "开发技术部", "生产部", "面辅料准备组", "其他部门"];
 
@@ -368,6 +381,26 @@
       method: "POST",
       body: JSON.stringify({ action, ...payload })
     });
+  }
+
+  function renderOperatorSelect() {
+    const select = $("#current-operator-select");
+    if (!select) return;
+    const current = state.currentOperator || select.value || "";
+    select.innerHTML = `<option value="">请选择人员</option>${pipelineOperatorOptions.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join("")}`;
+    select.value = current;
+  }
+
+  function requireCurrentOperator() {
+    if (state.currentOperator) return state.currentOperator;
+    const select = $("#current-operator-select");
+    if (select?.value) {
+      state.currentOperator = select.value;
+      return state.currentOperator;
+    }
+    showMessage("请先选择当前操作人");
+    select?.focus();
+    return "";
   }
 
   function styleById(id) {
@@ -1241,6 +1274,12 @@
     return value.length >= 10 ? value.slice(0, 10) : value;
   }
 
+  function dateTimeText(value) {
+    if (!value) return "未设置";
+    const text = String(value).replace("T", " ");
+    return text.length >= 16 ? text.slice(0, 16) : text;
+  }
+
   function meta(label, value) {
     return `<div class="meta"><span>${esc(label)}</span><strong>${esc(value || "未设置")}</strong></div>`;
   }
@@ -1259,25 +1298,61 @@
   }
 
   function roadmapMeta(node) {
-    return [
+    const lines = [
       `状态 ${node.desc || "未开始"}`,
       `计划 ${roadmapDate(node.planDate)}`,
       `实际 ${roadmapDate(node.actualDate, "未完成")}`,
       `负责人 ${node.owner || "未指定"}`
     ];
+    if (node.recordText) lines.unshift(node.recordText);
+    return lines;
+  }
+
+  function nodeConfirmations(style) {
+    const workflow = workflowInfo(style);
+    const saved = workflow.nodeConfirmations || style?.nodeConfirmations || {};
+    return {
+      ...saved,
+      createStyle: saved.createStyle || (style?.createdAt ? {
+        confirmedBy: businessOwnerName(style),
+        confirmedAt: style.createdAt,
+        action: "创建"
+      } : null),
+      preparation: saved.preparation || (workflow.preparationConfirmedAt ? {
+        confirmedBy: workflow.preparationConfirmedBy,
+        confirmedAt: workflow.preparationConfirmedAt,
+        action: "确认"
+      } : null),
+      dispatchSample: saved.dispatchSample || (workflow.sampleDispatchedAt ? {
+        confirmedBy: workflow.sampleDispatchedBy,
+        confirmedAt: workflow.sampleDispatchedAt,
+        action: "确认"
+      } : null),
+      sampleCompleted: saved.sampleCompleted || (workflow.sampleCompletedAt ? {
+        confirmedBy: workflow.sampleCompletedBy,
+        confirmedAt: workflow.sampleCompletedAt,
+        action: "确认"
+      } : null)
+    };
+  }
+
+  function confirmationText(record) {
+    if (!record?.confirmedBy || !record?.confirmedAt) return "";
+    return `${record.confirmedBy}${record.action || "确认"} · ${dateTimeText(record.confirmedAt)}`;
   }
 
   function roadmapNodes(style, sample, review, issues, shipment) {
     const blockers = (issues || []).filter(isBlocking);
     const finalApproved = isFinalApproved(review) || shipment.release === "ready_to_send";
     const workflow = workflowInfo(style);
+    const confirmations = nodeConfirmations(style);
     const gateOwner = textOwner(style, review, "gateOwner", "大前");
     const businessOwner = businessOwnerName(style);
     const sampleOwner = sampleFeedbackOwnerName(style);
     const prepDone = preparationComplete(style, sample);
-    const prepActual = preparationCompletionDate(style, sample);
-    const dispatched = Boolean(workflow.sampleDispatchedAt);
-    const sampleDone = Boolean(workflow.sampleCompletedAt);
+    const prepActual = confirmations.preparation?.confirmedAt || preparationCompletionDate(style, sample);
+    const dispatched = Boolean(confirmations.dispatchSample?.confirmedAt || workflow.sampleDispatchedAt);
+    const sampleDone = Boolean(confirmations.sampleCompleted?.confirmedAt || workflow.sampleCompletedAt);
     const reviewDone = review && !departmentReviewIncomplete(review);
     const issueText = `${issues.length} 个 Issue${blockers.length ? `，${blockers.length} 个阻塞` : ""}`;
     const decisionRisk = ["blocked_by_issue", "blocked_by_department_review", "blocked_by_owner_missing", "blocked_by_preparation", "overdue_pending_confirm"].includes(shipment.release);
@@ -1296,10 +1371,10 @@
     const finalPlan = plannedDate(style, sample);
 
     const nodes = [
-      { label: "建立款式", desc: style?.styleNo ? "已完成" : "待建立", owner: businessOwner, planDate: createdDate, actualDate: createdDate, tip: "款式基础资料已经建立" },
-      { label: "前期准备", desc: prepDone ? "资料齐全" : "资料待补齐", owner: workflowActor(style, "preparationConfirmedBy", businessOwner), planDate: prepPlan, actualDate: prepActual, tip: prepDone ? "必要资料已齐全或业务负责人已确认" : "需要补齐款式主图、客户原始资料、尺寸表、BOM、工艺单" },
-      { label: "派发打样", desc: dispatched ? "已派发" : "待派发", owner: workflowActor(style, "sampleDispatchedBy", businessOwner), planDate: dispatchPlan, actualDate: workflow.sampleDispatchedAt, tip: "资料确认后由业务负责人派发到对应打样路线" },
-      { label: "打样完成", desc: sampleDone ? "已完成" : "待完成", owner: workflowActor(style, "sampleCompletedBy", sampleOwner), planDate: samplePlan, actualDate: workflow.sampleCompletedAt, tip: "打样反馈人确认样衣已经完成" },
+      { label: "建立款式", desc: style?.styleNo ? "已完成" : "待建立", owner: businessOwner, planDate: createdDate, actualDate: confirmations.createStyle?.confirmedAt || createdDate, recordText: confirmationText(confirmations.createStyle), tip: "款式基础资料已经建立" },
+      { label: "前期准备", desc: confirmations.preparation?.confirmedAt ? "已确认" : prepDone ? "资料齐全" : "资料待补齐", owner: workflowActor(style, "preparationConfirmedBy", businessOwner), planDate: prepPlan, actualDate: prepActual, recordText: confirmationText(confirmations.preparation), tip: prepDone ? "必要资料已齐全或业务负责人已确认" : "需要补齐款式主图、客户原始资料、尺寸表、BOM、工艺单" },
+      { label: "派发打样", desc: dispatched ? "已派发" : "待派发", owner: workflowActor(style, "sampleDispatchedBy", businessOwner), planDate: dispatchPlan, actualDate: confirmations.dispatchSample?.confirmedAt || workflow.sampleDispatchedAt, recordText: confirmationText(confirmations.dispatchSample), tip: "资料确认后由业务负责人派发到对应打样路线" },
+      { label: "打样完成", desc: sampleDone ? "已完成" : "待完成", owner: workflowActor(style, "sampleCompletedBy", sampleOwner), planDate: samplePlan, actualDate: confirmations.sampleCompleted?.confirmedAt || workflow.sampleCompletedAt, recordText: confirmationText(confirmations.sampleCompleted), tip: "打样反馈人确认样衣已经完成" },
       { label: "样衣评审", desc: reviewDone ? "已完成" : `${gateOwner}负责`, owner: gateOwner, planDate: reviewPlan, actualDate: reviewDone ? review?.updatedAt || review?.reviewedAt : "", tip: "点击进入样衣评审页", action: "review" },
       { label: "问题归属", desc: issueText, owner: gateOwner, planDate: reviewPlan, actualDate: issues.length ? issues.map((issue) => issue.createdAt).filter(Boolean).sort().pop() : "", tip: "点击查看质量闸口问题", action: "issues" },
       { label: "整改复验", desc: blockers.length ? "待处理" : reviewDone ? "待复核" : "未开始", owner: gateOwner, planDate: finalPlan, actualDate: blockers.length ? "" : issues.filter((issue) => issue.status === "closed").map((issue) => issue.updatedAt).filter(Boolean).sort().pop(), tip: "阻塞问题需整改完成并复核关闭", action: "issues" },
@@ -1318,9 +1393,10 @@
     const nodes = roadmapNodes(style, sample, review, issues, shipment);
     const expanded = Boolean(state.expandedRoadmaps[style.id]);
     const workflow = workflowInfo(style);
+    const confirmations = nodeConfirmations(style);
     const prepReady = preparationComplete(style, sample);
-    const dispatched = Boolean(workflow.sampleDispatchedAt);
-    const sampleDone = Boolean(workflow.sampleCompletedAt);
+    const dispatched = Boolean(confirmations.dispatchSample?.confirmedAt || workflow.sampleDispatchedAt);
+    const sampleDone = Boolean(confirmations.sampleCompleted?.confirmedAt || workflow.sampleCompletedAt);
     const currentIndex = nodes.findIndex((node) => node.status === "current");
     const firstRiskIndex = nodes.findIndex((node) => node.status === "risk");
     const activeIndex = currentIndex >= 0 ? currentIndex : firstRiskIndex >= 0 ? firstRiskIndex : Math.max(0, nodes.findIndex((node) => node.status === "pending") - 1);
@@ -1341,9 +1417,9 @@
             <span>${esc(gateLabel(style.currentGate))} · ${esc(statusLabels[review?.status] || review?.status || "进行中")}</span>
           </div>
           <div class="roadmap-actions">
-            ${!prepReady ? `<button class="secondary-button compact-button" type="button" data-confirm-preparation="${esc(style.id)}">确认资料齐全</button>` : ""}
-            ${prepReady && !dispatched ? `<button class="primary-button compact-button" type="button" data-dispatch-sample="${esc(style.id)}">派发打样</button>` : ""}
-            ${dispatched && !sampleDone ? `<button class="secondary-button compact-button" type="button" data-complete-sample="${esc(style.id)}">打样完成</button>` : ""}
+            ${!confirmations.preparation?.confirmedAt ? `<button class="secondary-button compact-button" type="button" data-confirm-preparation="${esc(style.id)}">前期准备确认</button>` : ""}
+            ${prepReady && !dispatched ? `<button class="primary-button compact-button" type="button" data-dispatch-sample="${esc(style.id)}">确认派发打样</button>` : ""}
+            ${dispatched && !sampleDone ? `<button class="secondary-button compact-button" type="button" data-complete-sample="${esc(style.id)}">确认打样完成</button>` : ""}
           </div>
         </div>
         <div class="roadmap-compact">
@@ -1352,6 +1428,7 @@
               <span>${esc(label)}</span>
               <strong>${esc(node.label)}</strong>
               <small>${esc(node.desc)}</small>
+              ${node.recordText ? `<em class="roadmap-record">${esc(node.recordText)}</em>` : ""}
               <em>${esc(`计划 ${roadmapDate(node.planDate)}｜实际 ${roadmapDate(node.actualDate, "未完成")}`)}</em>
             </button>
           `).join("")}
@@ -2654,6 +2731,7 @@
   }
 
   function renderAll() {
+    renderOperatorSelect();
     renderPipeline();
     renderReviewSummary();
     renderDepartments();
@@ -2811,7 +2889,9 @@
   }
 
   function currentTimestamp() {
-    return new Date().toISOString().slice(0, 16).replace("T", " ");
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   }
 
   function existingStylePayload(style, sample, review) {
@@ -2851,6 +2931,7 @@
     if (!style.profile) style.profile = {};
     style.profile.workflow = { ...(style.profile.workflow || {}), ...workflowPatch };
     style.workflow = style.profile.workflow;
+    style.nodeConfirmations = style.profile.workflow.nodeConfirmations || style.nodeConfirmations || {};
     if (!style.owners && style.profile.owners) style.owners = style.profile.owners;
     if (currentGate) style.currentGate = currentGate;
   }
@@ -2864,6 +2945,10 @@
     applyLocalWorkflow(style, workflowPatch, options.currentGate);
     renderPipeline();
     updateStatus();
+    if (options.persist === false) {
+      showMessage(options.successMessage || "流程状态已更新。", "ok");
+      return;
+    }
     if (!isUuid(style.id)) {
       showMessage(options.successMessage || "流程状态已更新。", "ok");
       return;
@@ -2888,15 +2973,23 @@
 
   function confirmPreparation(styleId) {
     const style = styleById(styleId);
-    const actor = businessOwnerName(style);
+    const actor = requireCurrentOperator();
+    if (!actor) return;
+    const confirmedAt = currentTimestamp();
+    const confirmations = {
+      ...nodeConfirmations(style),
+      preparation: { confirmedBy: actor, confirmedAt, action: "确认" }
+    };
     return updateStyleWorkflow(styleId, {
-      preparationConfirmedAt: currentTimestamp(),
+      nodeConfirmations: confirmations,
+      preparationConfirmedAt: confirmedAt,
       preparationConfirmedBy: actor,
       preparationManual: true
     }, {
       currentGate: "sample_dispatch_gate",
       nextAction: "业务负责人派发打样",
       blockerSummary: "",
+      persist: false,
       successMessage: `前期准备已确认：${actor}`
     });
   }
@@ -2905,14 +2998,22 @@
     const style = styleById(styleId);
     const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
     if (!preparationComplete(style, sample)) return showMessage("资料未齐或未确认，不能派发打样。");
-    const actor = businessOwnerName(style);
+    const actor = requireCurrentOperator();
+    if (!actor) return;
+    const confirmedAt = currentTimestamp();
+    const confirmations = {
+      ...nodeConfirmations(style),
+      dispatchSample: { confirmedBy: actor, confirmedAt, action: "确认" }
+    };
     return updateStyleWorkflow(styleId, {
-      sampleDispatchedAt: currentTimestamp(),
+      nodeConfirmations: confirmations,
+      sampleDispatchedAt: confirmedAt,
       sampleDispatchedBy: actor
     }, {
       currentGate: "sample_making_gate",
       nextAction: "等待打样反馈人确认打样完成",
       blockerSummary: "",
+      persist: false,
       successMessage: `已派发打样：${actor}`
     });
   }
@@ -2921,14 +3022,22 @@
     const style = styleById(styleId);
     const workflow = workflowInfo(style);
     if (!workflow.sampleDispatchedAt) return showMessage("请先由业务负责人派发打样。");
-    const actor = sampleFeedbackOwnerName(style);
+    const actor = requireCurrentOperator();
+    if (!actor) return;
+    const confirmedAt = currentTimestamp();
+    const confirmations = {
+      ...nodeConfirmations(style),
+      sampleCompleted: { confirmedBy: actor, confirmedAt, action: "确认" }
+    };
     return updateStyleWorkflow(styleId, {
-      sampleCompletedAt: currentTimestamp(),
+      nodeConfirmations: confirmations,
+      sampleCompletedAt: confirmedAt,
       sampleCompletedBy: actor
     }, {
       currentGate: "sample_review_gate",
       nextAction: "进入样衣评审",
       blockerSummary: "",
+      persist: false,
       successMessage: `打样完成已记录：${actor}`
     });
   }
@@ -4281,6 +4390,12 @@
       saveBrandFromForm(event.currentTarget);
     });
     document.addEventListener("change", (event) => {
+      const operatorSelect = event.target.closest("#current-operator-select");
+      if (operatorSelect) {
+        state.currentOperator = operatorSelect.value;
+        return;
+      }
+
       const roleDepartmentSelect = event.target.closest("[data-role-department]");
       if (roleDepartmentSelect) {
         updateRoleTemplate(roleDepartmentSelect.dataset.roleDepartment, (role) => {

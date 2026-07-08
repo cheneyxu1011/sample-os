@@ -252,6 +252,43 @@ body.sidebar-collapsed .nav-item {
   justify-content: flex-end;
 }
 
+.operator-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.operator-select select {
+  min-width: 128px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .operator-select {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .operator-select select {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
 .section-toolbar {
   margin-bottom: 12px;
   display: flex;
@@ -865,6 +902,11 @@ h3 {
   margin-top: 4px;
   font-style: normal;
   line-height: 1.25;
+}
+
+.roadmap-compact-item .roadmap-record {
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .roadmap-compact-item strong {
