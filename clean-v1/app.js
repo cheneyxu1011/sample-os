@@ -194,30 +194,22 @@
     {
       id: "business",
       name: "业务部",
-      roles: ["业务负责人"],
-      people: ["顾瑶", "顾永宏"],
-      roleIds: ["business_pm"]
+      roles: ["业务负责人"]
     },
     {
       id: "development",
       name: "开发技术部",
-      roles: ["版师", "工艺师", "样衣组长", "IE评审员"],
-      people: ["徐海燕", "张部长", "李师傅", "样衣组长", "IE工程师"],
-      roleIds: ["pattern_reviewer", "process_reviewer", "sample_feedback_owner", "ie_reviewer", "bonding_owner"]
+      roles: ["版师", "工艺师", "样衣组长", "IE评审员"]
     },
     {
       id: "quality",
       name: "品质部",
-      roles: ["QC质量工程师"],
-      people: ["大前"],
-      roleIds: ["quality_reviewer", "sample_review_gate_owner"]
+      roles: ["QC质量工程师"]
     },
     {
       id: "production",
       name: "生产部",
-      roles: ["生产负责人"],
-      people: ["张厂长", "夏师傅"],
-      roleIds: ["production_reviewer"]
+      roles: ["生产负责人"]
     }
   ];
 
@@ -2183,6 +2175,12 @@
     const allTemplates = activeRoleTemplates();
     const selectedDepartment = departmentOverviewCards.find((item) => item.id === state.settingsDepartmentFilter);
     const templates = selectedDepartment ? allTemplates.filter((role) => roleDepartment(role) === selectedDepartment.name) : allTemplates;
+    const departmentPeople = (departmentName) => uniqueNames(allTemplates
+      .filter((role) => roleDepartment(role) === departmentName)
+      .flatMap((role) => [
+        ...(role.people || []),
+        ...assignedUsersForRole(role.id).map((person) => person.name)
+      ]));
     const gateRules = data.gateRules || {};
     const ownerOrDefault = (userId, fallback) => {
       if (!userId) return fallback;
@@ -2204,16 +2202,14 @@
       </div>
       <div class="department-overview-grid">
         ${departmentOverviewCards.map((department) => {
-          const visiblePeople = department.people.slice(0, 4);
-          const extra = department.people.length - visiblePeople.length;
+          const people = departmentPeople(department.name);
           return `
             <button class="department-overview-card ${state.settingsDepartmentFilter === department.id ? "active" : ""}" type="button" data-settings-department="${esc(department.id)}">
               <span>${esc(department.name)}</span>
-              <strong>${esc(department.people.length)}</strong>
+              <strong>${esc(people.length)}</strong>
               <small>主要角色：${esc(department.roles.join(" / "))}</small>
               <div class="department-people-tags">
-                ${visiblePeople.map((person) => `<i>${esc(person)}</i>`).join("")}
-                ${extra > 0 ? `<i>+${esc(extra)}</i>` : ""}
+                ${people.length ? people.map((person) => `<i>${esc(person)}</i>`).join("") : "<i>暂无人员</i>"}
               </div>
             </button>
           `;
