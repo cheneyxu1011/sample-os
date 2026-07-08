@@ -39,6 +39,7 @@
     localStyleDocumentsByStyle: {},
     localReviewMediaByStyle: {},
     activePreviewFile: null,
+    settingsDepartmentFilter: "",
     selectedReviewTaskKeyByStyle: {},
     optionalDepartmentRoleIdsByStyle: {}
   };
@@ -187,6 +188,37 @@
     { id: "juegang_factory", label: "掘港工厂" },
     { id: "shipped", label: "已寄出" },
     { id: "repair_pending", label: "待返修" }
+  ];
+
+  const departmentOverviewCards = [
+    {
+      id: "business",
+      name: "业务部",
+      roles: ["业务负责人"],
+      people: ["顾瑶", "顾永宏"],
+      roleIds: ["business_pm"]
+    },
+    {
+      id: "development",
+      name: "开发技术部",
+      roles: ["版师", "工艺师", "样衣组长", "IE评审员"],
+      people: ["徐海燕", "张部长", "李师傅", "样衣组长", "IE工程师"],
+      roleIds: ["pattern_reviewer", "process_reviewer", "sample_feedback_owner", "ie_reviewer", "bonding_owner"]
+    },
+    {
+      id: "quality",
+      name: "品质部",
+      roles: ["QC质量工程师"],
+      people: ["大前"],
+      roleIds: ["quality_reviewer", "sample_review_gate_owner"]
+    },
+    {
+      id: "production",
+      name: "生产部",
+      roles: ["生产负责人"],
+      people: ["张厂长", "夏师傅"],
+      roleIds: ["production_reviewer"]
+    }
   ];
 
   const roleTemplates = [
@@ -2124,7 +2156,10 @@
   function renderSettings() {
     const data = state.data || {};
     const users = allUsers();
-    const templates = activeRoleTemplates();
+    const allTemplates = activeRoleTemplates();
+    const selectedDepartment = departmentOverviewCards.find((item) => item.id === state.settingsDepartmentFilter);
+    const selectedRoleIds = new Set(selectedDepartment?.roleIds || []);
+    const templates = selectedDepartment ? allTemplates.filter((role) => selectedRoleIds.has(role.id)) : allTemplates;
     const gateRules = data.gateRules || {};
     const ownerOrDefault = (userId, fallback) => {
       if (!userId) return fallback;
@@ -2136,12 +2171,32 @@
       ["Sample Review Gate Owner", ownerOrDefault(gateRules.sampleReviewGateOwner, "大前"), "组织样衣评审、确认 Issue 等级、判断是否阻止寄样、做最终寄样结论"],
       ["Final Approver", ownerOrDefault(gateRules.finalApprover, "杨总"), "例外放行、重大争议裁决"]
     ];
-    $("#settings-stats").innerHTML = [
-      ["系统角色", templates.length],
-      ["Gate 负责人", 5],
-      ["例外审批人", 1],
-      ["打样路线", 2]
-    ].map(([label, value]) => `<article><strong>${esc(value)}</strong><span>${esc(label)}</span></article>`).join("");
+    $("#settings-stats").innerHTML = `
+      <div class="department-overview-head">
+        <div>
+          <strong>部门人员概览</strong>
+          <span>${esc(selectedDepartment ? `当前筛选：${selectedDepartment.name}` : "点击部门卡片筛选下方评审角色")}</span>
+        </div>
+        <button class="secondary-button compact-button" type="button" data-settings-department="">全部</button>
+      </div>
+      <div class="department-overview-grid">
+        ${departmentOverviewCards.map((department) => {
+          const visiblePeople = department.people.slice(0, 4);
+          const extra = department.people.length - visiblePeople.length;
+          return `
+            <button class="department-overview-card ${state.settingsDepartmentFilter === department.id ? "active" : ""}" type="button" data-settings-department="${esc(department.id)}">
+              <span>${esc(department.name)}</span>
+              <strong>${esc(department.people.length)}</strong>
+              <small>主要角色：${esc(department.roles.join(" / "))}</small>
+              <div class="department-people-tags">
+                ${visiblePeople.map((person) => `<i>${esc(person)}</i>`).join("")}
+                ${extra > 0 ? `<i>+${esc(extra)}</i>` : ""}
+              </div>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    `;
 
     $("#brand-list").innerHTML = configuredBrands().map((brand) => `
       <article>
@@ -2160,39 +2215,7 @@
       </div>
     `).join("");
 
-    const departmentMap = new Map();
-    users.forEach((user) => {
-      const department = user.department || "未设置部门";
-      departmentMap.set(department, [...(departmentMap.get(department) || []), user]);
-    });
-    $("#organization-chart").innerHTML = users.length ? `
-      <div class="organization-head">
-        <strong>组织架构</strong>
-        <span>按部门查看人员、固定角色和关键权限，便于同步调整责任关系。</span>
-      </div>
-      <div class="organization-grid">
-        ${Array.from(departmentMap.entries()).map(([department, members]) => `
-          <article class="org-department-card">
-            <header><strong>${esc(department)}</strong><span>${esc(members.length)} 人</span></header>
-            <div class="org-member-list">
-              ${members.map((user) => {
-                const assigned = assignedRolesForUser(user);
-                const permissions = Array.from(new Set(assigned.flatMap((role) => role.permissions))).slice(0, 3);
-                return `
-                  <div class="org-member-row">
-                    <strong>${esc(user.name)}</strong>
-                    <span>${esc(assigned.map(roleShortName).join(" / ") || "未分配固定角色")}</span>
-                    <small>${esc(permissions.join(" / ") || "待分配权限")}</small>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          </article>
-        `).join("")}
-      </div>
-    ` : '<div class="empty">暂无组织人员。</div>';
-
-    $("#role-template-view").innerHTML = templates.map((role) => {
+    $("#role-template-view").innerHTML = templates.length ? templates.map((role) => {
       const assignedPeople = Array.from(new Set([
         ...(role.people || []),
         ...assignedUsersForRole(role.id).map((person) => person.name)
@@ -2236,7 +2259,7 @@
         </dl>
       </article>
     `;
-    }).join("");
+    }).join("") : '<div class="empty">当前部门暂无匹配角色模板。</div>';
 
     $("#people-library-list").innerHTML = users.length ? `
       <div class="people-row people-head people-row-compact"><strong>人员姓名</strong><span>所属部门</span><em>已分配角色</em><small>适用品牌 / 路线</small><div>关键权限</div><div>操作</div></div>
@@ -3770,6 +3793,13 @@
 
       const setMainButton = event.target.closest("[data-set-main-document]");
       if (setMainButton) setMainDocument(setMainButton.dataset.setMainDocument);
+
+      const departmentFilterButton = event.target.closest("[data-settings-department]");
+      if (departmentFilterButton) {
+        const next = departmentFilterButton.dataset.settingsDepartment || "";
+        state.settingsDepartmentFilter = state.settingsDepartmentFilter === next ? "" : next;
+        renderSettings();
+      }
     });
 
     document.addEventListener("focusout", (event) => {
