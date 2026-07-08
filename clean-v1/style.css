@@ -3054,6 +3054,91 @@ textarea:focus {
   gap: 8px;
 }
 
+.organization-chart {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.organization-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.organization-head strong,
+.organization-head span {
+  display: block;
+}
+
+.organization-head span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.organization-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.org-department-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(248, 248, 250, 0.78);
+}
+
+.org-department-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.org-department-card header span {
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--accent);
+  background: rgba(0, 113, 227, 0.1);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.org-member-list {
+  display: grid;
+  gap: 8px;
+}
+
+.org-member-row {
+  min-width: 0;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.org-member-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.org-member-row strong,
+.org-member-row span,
+.org-member-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.org-member-row span,
+.org-member-row small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .people-row {
   display: grid;
   grid-template-columns: 120px 110px minmax(160px, 1.2fr) minmax(140px, 1fr) minmax(160px, 1fr) 72px 210px;
@@ -3257,6 +3342,15 @@ textarea:focus {
 
   .settings-role-tabs {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .organization-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .organization-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .people-head {
@@ -3519,6 +3613,15 @@ textarea:focus {
   .month-weekdays,
   .month-calendar-grid {
     grid-template-columns: 1fr;
+  }
+
+  .organization-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .organization-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .calendar-month-toggle {

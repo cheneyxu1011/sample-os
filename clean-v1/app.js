@@ -331,10 +331,19 @@
 
   function allUsers() {
     const realUsers = state.data?.users || [];
+    const hiddenPeople = new Set(state.data?.settings?.hiddenPeople || []);
     const byName = new Map();
-    defaultUsers.forEach((user) => byName.set(user.name, { ...user, isDefaultUser: true }));
-    realUsers.forEach((user) => byName.set(user.name, { ...user, isDefaultUser: false }));
+    defaultUsers.forEach((user) => {
+      if (!hiddenPeople.has(user.name)) byName.set(user.name, { ...user, isDefaultUser: true });
+    });
+    realUsers.forEach((user) => {
+      if (!hiddenPeople.has(user.name)) byName.set(user.name, { ...user, isDefaultUser: false });
+    });
     return Array.from(byName.values());
+  }
+
+  function hiddenPeopleNames() {
+    return new Set(state.data?.settings?.hiddenPeople || []);
   }
 
   function userRoleIds(user) {
@@ -369,13 +378,14 @@
   function activeRoleTemplates() {
     const configured = state.data?.settings?.roleTemplates;
     const source = Array.isArray(configured) && configured.length ? configured : roleTemplates;
+    const hidden = hiddenPeopleNames();
     return source
       .filter((role) => !hiddenRoleTemplateIds.has(role.id))
       .map((role) => ({
         ...role,
         stages: Array.isArray(role.stages) ? role.stages : [],
         permissions: Array.isArray(role.permissions) ? role.permissions : [],
-        people: Array.isArray(role.people) ? role.people : []
+        people: Array.isArray(role.people) ? role.people.filter((name) => !hidden.has(name)) : []
       }));
   }
 
@@ -664,7 +674,8 @@
   }
 
   function uniqueNames(names) {
-    return Array.from(new Set(names.map((name) => String(name || "").trim()).filter(Boolean).filter((name) => name !== "未指定")));
+    const hidden = hiddenPeopleNames();
+    return Array.from(new Set(names.map((name) => String(name || "").trim()).filter(Boolean).filter((name) => name !== "未指定" && !hidden.has(name))));
   }
 
   function roleOwnerNames(style, roleId, row = {}) {
@@ -2149,6 +2160,38 @@
       </div>
     `).join("");
 
+    const departmentMap = new Map();
+    users.forEach((user) => {
+      const department = user.department || "未设置部门";
+      departmentMap.set(department, [...(departmentMap.get(department) || []), user]);
+    });
+    $("#organization-chart").innerHTML = users.length ? `
+      <div class="organization-head">
+        <strong>组织架构</strong>
+        <span>按部门查看人员、固定角色和关键权限，便于同步调整责任关系。</span>
+      </div>
+      <div class="organization-grid">
+        ${Array.from(departmentMap.entries()).map(([department, members]) => `
+          <article class="org-department-card">
+            <header><strong>${esc(department)}</strong><span>${esc(members.length)} 人</span></header>
+            <div class="org-member-list">
+              ${members.map((user) => {
+                const assigned = assignedRolesForUser(user);
+                const permissions = Array.from(new Set(assigned.flatMap((role) => role.permissions))).slice(0, 3);
+                return `
+                  <div class="org-member-row">
+                    <strong>${esc(user.name)}</strong>
+                    <span>${esc(assigned.map(roleShortName).join(" / ") || "未分配固定角色")}</span>
+                    <small>${esc(permissions.join(" / ") || "待分配权限")}</small>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    ` : '<div class="empty">暂无组织人员。</div>';
+
     $("#role-template-view").innerHTML = templates.map((role) => {
       const assignedPeople = Array.from(new Set([
         ...(role.people || []),
@@ -2314,13 +2357,10 @@
   async function deletePersonRecord(personId) {
     const person = allUsers().find((user) => user.id === personId);
     if (!person) return;
-    if (person.isDefaultUser) {
-      showMessage("默认人员不是数据库记录，无法删除；保存为真实人员后可删除。");
-      return;
-    }
     const ok = window.confirm(`确认删除人员记录：${person.name}？删除后会同步从角色模板分配人员中移除。`);
     if (!ok) return;
     try {
+      const hiddenPeople = Array.from(new Set([...(state.data?.settings?.hiddenPeople || []), ...(person.isDefaultUser ? [person.name] : [])]));
       const nextTemplates = activeRoleTemplates().map((role) => ({
         ...role,
         people: (role.people || []).filter((name) => name !== person.name)
@@ -2329,7 +2369,14 @@
         key: "roleTemplates",
         value: serializeRoleTemplates(nextTemplates)
       });
-      await syncData("deletePerson", { personId });
+      if (person.isDefaultUser) {
+        await syncData("updateSetting", {
+          key: "hiddenPeople",
+          value: hiddenPeople
+        });
+      } else {
+        await syncData("deletePerson", { personId });
+      }
       await loadSnapshot();
       showMessage("人员记录已删除。", "ok");
     } catch (error) {
@@ -2396,9 +2443,11 @@
       });
       await loadSnapshot();
       showMessage(message, "ok");
+      return true;
     } catch (error) {
       console.error("保存角色模板失败", { templates, error });
       showMessage(`保存角色模板失败：${error.message}`);
+      return false;
     }
   }
 
@@ -3485,6 +3534,71 @@
     document.body.style.overflow = "";
   }
 
+  function openRoleTemplateModal() {
+    const form = $("#role-template-form");
+    form.reset();
+    form.elements.namedItem("stages").value = "样衣评审";
+    $("#role-template-save-status").textContent = "";
+    setFieldErrors(form, {});
+    $("#role-template-modal").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeRoleTemplateModal() {
+    $("#role-template-modal").hidden = true;
+    $("#role-template-form").reset();
+    $("#role-template-save-status").textContent = "";
+    setFieldErrors($("#role-template-form"), {});
+    document.body.style.overflow = "";
+  }
+
+  function roleTemplatePayloadFromForm(form) {
+    const fields = new FormData(form);
+    const cnName = String(fields.get("cnName") || "").trim();
+    const enName = String(fields.get("enName") || "").trim();
+    const name = enName ? `${enName} / ${cnName}` : cnName;
+    const idBase = (enName || cnName || `role_${Date.now()}`)
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    const existingIds = new Set(activeRoleTemplates().map((role) => role.id));
+    let id = `custom_${idBase || Date.now()}`;
+    let suffix = 2;
+    while (existingIds.has(id)) {
+      id = `custom_${idBase}_${suffix}`;
+      suffix += 1;
+    }
+    return {
+      id,
+      name,
+      type: String(fields.get("type") || "评审角色"),
+      stages: String(fields.get("stages") || "样衣评审").split(/[,，/]/).map((item) => item.trim()).filter(Boolean),
+      responsibility: String(fields.get("responsibility") || "").trim() || `${cnName}相关职责`,
+      permissions: String(fields.get("permissions") || "").split(/[,，/]/).map((item) => item.trim()).filter(Boolean),
+      reviewDefault: String(fields.get("reviewDefault") || "否"),
+      finalRelease: String(fields.get("finalRelease") || "否"),
+      exceptionRelease: String(fields.get("exceptionRelease") || "否"),
+      people: []
+    };
+  }
+
+  async function saveRoleTemplateFromForm(form) {
+    const payload = roleTemplatePayloadFromForm(form);
+    if (!payload.name) {
+      setFieldErrors(form, { cnName: "请输入角色名" });
+      $("#role-template-save-status").textContent = "创建失败：请输入角色名";
+      return;
+    }
+    $("#role-template-save-status").textContent = "正在创建角色模板...";
+    try {
+      const saved = await saveRoleTemplates([...activeRoleTemplates(), payload], "角色模板已新增。");
+      if (saved) closeRoleTemplateModal();
+    } catch (error) {
+      console.error("新增角色模板失败", { payload, error });
+      $("#role-template-save-status").textContent = `创建失败：${error.message}`;
+    }
+  }
+
   function jumpToReviewSection(styleId, selector) {
     if (styleId) state.selectedStyleId = styleId;
     renderAll();
@@ -3691,6 +3805,7 @@
     $("#mobile-menu-button").addEventListener("click", openSidebarDrawer);
     $("#sidebar-backdrop").addEventListener("click", closeSidebarDrawer);
     $("#add-person").addEventListener("click", () => openPersonModal());
+    $("#add-role-template").addEventListener("click", openRoleTemplateModal);
     $("#add-brand").addEventListener("click", () => openBrandModal());
     $("#style-modal-close").addEventListener("click", closeStyleModal);
     $("#style-modal-cancel").addEventListener("click", closeStyleModal);
@@ -3717,6 +3832,15 @@
     $("#person-form").addEventListener("submit", (event) => {
       event.preventDefault();
       savePersonFromForm(event.currentTarget);
+    });
+    $("#role-template-modal-close").addEventListener("click", closeRoleTemplateModal);
+    $("#role-template-modal-cancel").addEventListener("click", closeRoleTemplateModal);
+    $("#role-template-modal").addEventListener("click", (event) => {
+      if (event.target.id === "role-template-modal") closeRoleTemplateModal();
+    });
+    $("#role-template-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      saveRoleTemplateFromForm(event.currentTarget);
     });
     $("#brand-modal-close").addEventListener("click", closeBrandModal);
     $("#brand-modal-cancel").addEventListener("click", closeBrandModal);

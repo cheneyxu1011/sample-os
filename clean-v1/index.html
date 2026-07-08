@@ -263,7 +263,7 @@
             </div>
             <div class="settings-actions">
               <button class="primary-button" type="button" id="add-person">新增人员</button>
-              <button class="secondary-button" type="button" disabled title="暂不开放新增角色">新增角色模板</button>
+              <button class="secondary-button" type="button" id="add-role-template">新增角色模板</button>
             </div>
           </section>
           <div class="settings-stats" id="settings-stats"></div>
@@ -285,6 +285,7 @@
                 <p>人员记录只保留分配和删除操作；角色、权限和负责人从角色模板统一维护。</p>
               </div>
             </div>
+            <div id="organization-chart" class="organization-chart"></div>
             <div id="people-library-list" class="person-assignment-table"></div>
           </section>
 
@@ -472,6 +473,62 @@
         <div class="modal-actions">
           <button class="secondary-button" type="button" id="person-modal-cancel">取消</button>
           <button class="primary-button" type="submit">保存人员</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="role-template-modal" hidden>
+      <form class="modal-card person-modal-card" id="role-template-form">
+        <div class="modal-head">
+          <div>
+            <span>角色模板</span>
+            <h2>新增角色模板</h2>
+            <p>新增后会同步用于人员分配、款式负责人下拉和评审任务。</p>
+          </div>
+          <button class="modal-close" type="button" id="role-template-modal-close" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-section">
+          <div class="modal-grid">
+            <label>中文角色名<input name="cnName" required placeholder="例如：生产负责人" data-required-message="请输入角色名" /><small data-field-error="cnName"></small></label>
+            <label>英文角色名<input name="enName" placeholder="例如：Production Owner" /></label>
+            <label>角色类型
+              <select name="type">
+                <option>评审角色</option>
+                <option>流程角色</option>
+                <option>Gate 角色</option>
+                <option>路线角色</option>
+                <option>可选评审角色</option>
+              </select>
+            </label>
+            <label>参与阶段<input name="stages" placeholder="多个阶段用逗号分隔" value="样衣评审" /></label>
+            <label>默认评审
+              <select name="reviewDefault">
+                <option value="否">否</option>
+                <option value="是">是</option>
+                <option value="可选，按需参与">可选，按需参与</option>
+              </select>
+            </label>
+            <label>最终放行
+              <select name="finalRelease">
+                <option>否</option>
+                <option>是</option>
+                <option>仅例外放行</option>
+              </select>
+            </label>
+            <label>例外放行
+              <select name="exceptionRelease">
+                <option>否</option>
+                <option>是</option>
+              </select>
+            </label>
+            <label class="wide-field">职责说明<textarea name="responsibility" rows="2" placeholder="说明这个角色负责判断什么、推进什么"></textarea></label>
+            <label class="wide-field">关键权限<input name="permissions" placeholder="多个权限用逗号分隔，例如：提交意见，创建 Issue" /></label>
+          </div>
+        </div>
+        <div class="upload-status" id="role-template-save-status" role="status"></div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" id="role-template-modal-cancel">取消</button>
+          <button class="primary-button" type="submit">创建角色模板</button>
         </div>
       </form>
     </div>

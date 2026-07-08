@@ -677,6 +677,7 @@ async function updateSetting(supabase, orgId, body) {
     "trainingCards",
     "roleTemplates",
     "brands",
+    "hiddenPeople",
   ]);
   const key = String(body.key || "").trim();
   if (!allowedKeys.has(key)) throw new Error("Unsupported setting key");
