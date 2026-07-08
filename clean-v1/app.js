@@ -18,6 +18,7 @@
     lightboxPan: { x: 0, y: 0 },
     lightboxPanning: null,
     editingMediaId: "",
+    selectedMediaIndex: 0,
     pipelineViewMode: "cards",
     expandedRoadmaps: {},
     uploading: false,
@@ -1984,10 +1985,17 @@
   function renderMedia() {
     const mediaList = reviewMediaList();
     renderStyleDocuments();
-    if (!state.selectedMediaId || !mediaList.some((item) => item.id === state.selectedMediaId)) {
-      state.selectedMediaId = mediaList[0]?.id || "";
+    if (!mediaList.length) {
+      state.selectedMediaId = "";
+      state.selectedMediaIndex = 0;
+    } else {
+      const selectedIndex = mediaList.findIndex((item) => item.id === state.selectedMediaId);
+      state.selectedMediaIndex = selectedIndex >= 0
+        ? selectedIndex
+        : Math.min(Math.max(Number(state.selectedMediaIndex) || 0, 0), mediaList.length - 1);
+      state.selectedMediaId = mediaList[state.selectedMediaIndex]?.id || "";
     }
-    const selected = mediaList.find((item) => item.id === state.selectedMediaId);
+    const selected = mediaList[state.selectedMediaIndex];
     const focus = $("#media-focus");
     if (focus) {
       if (!selected) {
@@ -1997,53 +2005,51 @@
         const preview = isVideo
           ? `<video src="${esc(selected.url || "")}" controls muted></video>`
           : `<img src="${esc(selected.url || "")}" alt="${esc(selected.label || selected.fileName)}" />`;
+        const category = categoryFromLabel(selected);
+        const partLabel = mediaPartLabels[category] || "未标注";
+        const title = mediaNameForEdit(selected);
+        const editing = state.editingMediaId === selected.id;
+        const partOptions = Object.entries(mediaPartLabels).map(([value, label]) => `<option value="${esc(value)}" ${category === value ? "selected" : ""}>${esc(label)}</option>`).join("");
         focus.innerHTML = `
           <div class="media-focus-stage">
-            <button class="media-open" type="button" data-open-media="${esc(selected.id)}" aria-label="放大查看 ${esc(selected.label || selected.fileName)}">${preview}</button>
+            <button class="media-open media-focus-open" type="button" data-open-media="${esc(selected.id)}" aria-label="放大查看 ${esc(title)}">${preview}</button>
           </div>
           <div class="media-focus-meta">
-            <strong>${esc(readableMediaLabel(selected))}</strong>
-            <span>${esc(mediaPartLabels[categoryFromLabel(selected)] || "未标注部位")}</span>
+            <strong>${esc(title)}</strong>
+            <span>${esc(partLabel)}</span>
+            <button class="secondary-button compact-button" type="button" data-edit-media="${esc(selected.id)}">编辑</button>
             <button class="secondary-button compact-button" type="button" data-review-to-issue>当前图片转 Issue</button>
           </div>
-        `;
-      }
-    }
-    $("#uploaded-media").innerHTML = mediaList.length ? mediaList.map((item) => {
-      const media = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/")
-        ? `<video src="${esc(item.url || "")}" controls muted></video>`
-        : `<img src="${esc(item.url || "")}" alt="${esc(item.label || item.fileName)}" />`;
-      const category = categoryFromLabel(item);
-      const partLabel = mediaPartLabels[category] || "未标注";
-      const title = mediaNameForEdit(item);
-      const editing = state.editingMediaId === item.id;
-      const partOptions = Object.entries(mediaPartLabels).map(([value, label]) => `<option value="${esc(value)}" ${category === value ? "selected" : ""}>${esc(label)}</option>`).join("");
-      return `
-        <article class="media-card ${item.id === state.selectedMediaId ? "selected" : ""}">
-          <div class="media-card-meta">
-            <span>${esc(partLabel)} · ${esc(dateText(item.uploadedAt))}</span>
-            <div class="media-card-tools">
-              <button class="media-edit" type="button" data-edit-media="${esc(item.id)}" aria-label="编辑 ${esc(title)}">编辑</button>
-              <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(title)}">×</button>
-            </div>
-          </div>
-          <button class="media-open" type="button" data-open-media="${esc(item.id)}" aria-label="放大查看 ${esc(title)}">${media}</button>
-          <div class="media-title">${esc(title)}</div>
           ${editing ? `
-            <div class="media-edit-panel">
+            <div class="media-edit-panel media-focus-edit-panel">
               <label class="media-name-field">
                 <span>部位</span>
-                <select data-media-part-select="${esc(item.id)}">
+                <select data-media-part-select="${esc(selected.id)}">
                   <option value="">未标注</option>
                   ${partOptions}
                 </select>
               </label>
               <label class="media-name-field">
                 <span>名称</span>
-                <input data-media-label-input="${esc(item.id)}" value="${esc(title)}" />
+                <input data-media-label-input="${esc(selected.id)}" value="${esc(title)}" />
               </label>
             </div>
           ` : ""}
+        `;
+      }
+    }
+    $("#uploaded-media").innerHTML = mediaList.length ? mediaList.map((item, index) => {
+      const media = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/")
+        ? `<video src="${esc(item.url || "")}" controls muted></video>`
+        : `<img src="${esc(item.url || "")}" alt="${esc(item.label || item.fileName)}" />`;
+      const category = categoryFromLabel(item);
+      const partLabel = mediaPartLabels[category] || "未标注";
+      const title = mediaNameForEdit(item);
+      return `
+        <article class="media-card ${index === state.selectedMediaIndex ? "selected" : ""}">
+          <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(title)}">×</button>
+          <button class="media-thumb-button" type="button" data-select-media="${esc(item.id)}" data-media-index="${index}" data-dblopen-media="${esc(item.id)}" aria-label="切换到 ${esc(title)}">${media}</button>
+          <div class="media-title">${esc(partLabel)}</div>
         </article>
       `;
     }).join("") : '<div class="empty">暂无已上传媒体。</div>';
@@ -3118,6 +3124,7 @@
     if (index < 0) return;
     state.lightboxIndex = index;
     state.selectedMediaId = mediaId;
+    state.selectedMediaIndex = index;
     renderMedia();
     renderLightboxMedia();
     $("#media-lightbox").hidden = false;
@@ -3142,6 +3149,9 @@
     const mediaList = reviewMediaList();
     if ($("#media-lightbox").hidden || mediaList.length <= 1) return;
     state.lightboxIndex = (state.lightboxIndex + direction + mediaList.length) % mediaList.length;
+    state.selectedMediaIndex = state.lightboxIndex;
+    state.selectedMediaId = mediaList[state.lightboxIndex]?.id || "";
+    renderMedia();
     renderLightboxMedia();
   }
 
@@ -3935,6 +3945,8 @@
       const selectMediaButton = event.target.closest("[data-select-media]");
       if (selectMediaButton) {
         state.selectedMediaId = selectMediaButton.dataset.selectMedia;
+        state.selectedMediaIndex = Number(selectMediaButton.dataset.mediaIndex || 0);
+        if (state.editingMediaId && state.editingMediaId !== state.selectedMediaId) state.editingMediaId = "";
         renderMedia();
       }
 
@@ -3971,6 +3983,11 @@
       if (input) saveMediaLabel(input);
       const documentInput = event.target.closest("[data-document-file-name-input]");
       if (documentInput) saveDocumentFileName(documentInput);
+    });
+
+    document.addEventListener("dblclick", (event) => {
+      const mediaButton = event.target.closest("[data-dblopen-media]");
+      if (mediaButton) openMediaLightbox(mediaButton.dataset.dblopenMedia);
     });
 
     document.addEventListener("keydown", (event) => {
