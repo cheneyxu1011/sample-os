@@ -1897,7 +1897,10 @@
       <article class="document-file-card" data-file-card="${esc(item.id)}">
         <button class="document-file-thumb" type="button" data-preview-file="${esc(item.id)}">${fileThumb(item)}</button>
         <div class="document-file-meta">
-          <strong>${esc(item.fileName)}</strong>
+          <label class="document-file-name-field">
+            <span>文件名</span>
+            <input data-document-file-name-input="${esc(item.id)}" value="${esc(item.fileName)}" />
+          </label>
           <small>${esc(fileTypeLabel(item))} · ${esc(formatFileSize(item.fileSize))}</small>
           <small>${esc(item.uploadedBy || "未记录")} · ${esc(dateText(item.uploadedAt))} · ${esc(fileCategoryLabels[item.category] || item.category)}</small>
         </div>
@@ -1905,7 +1908,7 @@
           <button class="secondary-button compact-button" type="button" data-preview-file="${esc(item.id)}">预览</button>
           <a class="secondary-button compact-button" href="${esc(item.url || "#")}" download="${esc(item.fileName)}">下载</a>
           ${canSetMain ? `<button class="secondary-button compact-button" type="button" data-set-main-document="${esc(item.id)}">设为主图</button>` : ""}
-          ${item.source === "local" ? `<button class="danger-button compact-button" type="button" data-delete-local-file="${esc(item.id)}">删除</button>` : ""}
+          <button class="danger-button compact-button" type="button" data-delete-document-file="${esc(item.id)}">删除</button>
         </div>
       </article>
     `;
@@ -1957,9 +1960,12 @@
 
   function renderStyleMaterialFiles() {
     const styleKey = state.editingStyleId || "__draft__";
-    const style = styleById(state.editingStyleId);
-    const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
-    const documents = styleDocumentList(style, sample).filter((item) => item.styleId === styleKey || item.source === "snapshot");
+    const editing = Boolean(state.editingStyleId);
+    const style = editing ? styleById(state.editingStyleId) : null;
+    const sample = editing ? state.data?.samples?.find((item) => item.styleId === style?.id) : null;
+    const documents = editing
+      ? styleDocumentList(style, sample).filter((item) => item.styleId === styleKey || item.source === "snapshot")
+      : localStyleDocuments("__draft__");
     const container = $("#style-material-file-list");
     if (!container) return;
     container.innerHTML = styleDocumentCategories.map(({ id }) => {
@@ -3184,6 +3190,83 @@
     renderStyleMaterialFiles();
   }
 
+  function updateLocalDocumentFileName(fileId, fileName) {
+    Object.keys(state.localStyleDocumentsByStyle).forEach((styleId) => {
+      state.localStyleDocumentsByStyle[styleId] = state.localStyleDocumentsByStyle[styleId].map((item) => (
+        item.id === fileId ? { ...item, fileName } : item
+      ));
+    });
+  }
+
+  function documentStatusTarget() {
+    return $("#style-modal") && !$("#style-modal").hidden ? $("#style-create-status") : $("#upload-status");
+  }
+
+  async function deleteDocumentFile(fileId) {
+    const item = allPreviewFiles().find((file) => String(file.id) === String(fileId));
+    if (!item) return;
+    if (item.source === "local") {
+      deleteLocalFile(fileId);
+      const status = documentStatusTarget();
+      if (status) {
+        status.dataset.tone = "success";
+        status.textContent = "文件已删除。";
+      }
+      return;
+    }
+    try {
+      await syncData("deleteMedia", { mediaId: fileId });
+      await loadSnapshot();
+      renderStyleMaterialFiles();
+      const status = documentStatusTarget();
+      if (status) {
+        status.dataset.tone = "success";
+        status.textContent = "文件已删除。";
+      }
+    } catch (error) {
+      console.error("删除资料文件失败", { fileId, error });
+      showMessage(`删除文件失败：${error.message}`);
+    }
+  }
+
+  async function saveDocumentFileName(input) {
+    const fileId = input?.dataset.documentFileNameInput;
+    const item = allPreviewFiles().find((file) => String(file.id) === String(fileId));
+    const name = String(input?.value || "").trim();
+    if (!fileId || !item) return;
+    if (!name) {
+      input.value = item.fileName || "";
+      return;
+    }
+    if (name === item.fileName) return;
+    if (item.source === "local") {
+      updateLocalDocumentFileName(fileId, name);
+      renderAll();
+      renderStyleMaterialFiles();
+      const status = documentStatusTarget();
+      if (status) {
+        status.dataset.tone = "success";
+        status.textContent = "文件名已更新。";
+      }
+      return;
+    }
+    input.disabled = true;
+    try {
+      await syncData("updateMediaLabel", { mediaId: fileId, label: labelWithCategory(item, name) });
+      await loadSnapshot();
+      renderStyleMaterialFiles();
+      const status = documentStatusTarget();
+      if (status) {
+        status.dataset.tone = "success";
+        status.textContent = "文件名已保存。";
+      }
+    } catch (error) {
+      console.error("保存资料文件名失败", { fileId, name, error });
+      showMessage(`文件名保存失败：${error.message}`);
+      input.disabled = false;
+    }
+  }
+
   function setMainDocument(fileId) {
     const styleId = Object.keys(state.localStyleDocumentsByStyle).find((key) => (
       state.localStyleDocumentsByStyle[key].some((item) => item.id === fileId)
@@ -3843,6 +3926,9 @@
       const deleteLocalFileButton = event.target.closest("[data-delete-local-file]");
       if (deleteLocalFileButton) deleteLocalFile(deleteLocalFileButton.dataset.deleteLocalFile);
 
+      const deleteDocumentFileButton = event.target.closest("[data-delete-document-file]");
+      if (deleteDocumentFileButton) deleteDocumentFile(deleteDocumentFileButton.dataset.deleteDocumentFile);
+
       const setMainButton = event.target.closest("[data-set-main-document]");
       if (setMainButton) setMainDocument(setMainButton.dataset.setMainDocument);
 
@@ -3857,10 +3943,18 @@
     document.addEventListener("focusout", (event) => {
       const input = event.target.closest("[data-media-label-input]");
       if (input) saveMediaLabel(input);
+      const documentInput = event.target.closest("[data-document-file-name-input]");
+      if (documentInput) saveDocumentFileName(documentInput);
     });
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && document.body.classList.contains("sidebar-drawer-open")) closeSidebarDrawer();
+      const documentInput = event.target.closest("[data-document-file-name-input]");
+      if (documentInput && event.key === "Enter") {
+        event.preventDefault();
+        documentInput.blur();
+        return;
+      }
       const input = event.target.closest("[data-media-label-input]");
       if (!input || event.key !== "Enter") return;
       event.preventDefault();

@@ -1479,6 +1479,36 @@ h3 {
   min-width: 0;
 }
 
+.document-file-name-field {
+  display: grid;
+  gap: 3px;
+}
+
+.document-file-name-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.document-file-name-field input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 7px;
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 820;
+}
+
+.document-file-name-field input:focus {
+  border-color: rgba(0, 113, 227, 0.45);
+  background: #ffffff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
+}
+
 .document-file-meta strong,
 .document-file-meta small {
   display: block;
