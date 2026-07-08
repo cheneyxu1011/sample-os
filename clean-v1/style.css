@@ -423,6 +423,10 @@ h3 {
   font-weight: 750;
 }
 
+.banner[hidden] {
+  display: none;
+}
+
 .banner button {
   width: 28px;
   height: 28px;
