@@ -178,12 +178,12 @@ async function profileIdForName(supabase, orgId, name) {
   const text = String(name || "").trim();
   if (!text) return null;
   const { data, error } = await supabase
-    .from("sample_people")
+    .from("profiles")
     .select("id")
     .eq("org_id", orgId)
-    .eq("name", text)
+    .eq("display_name", text)
     .maybeSingle();
-  if (error) throw syncError("find reviewer person", error, { name: text });
+  if (error) throw syncError("find reviewer profile", error, { name: text });
   return data?.id || null;
 }
 

@@ -165,6 +165,7 @@ export default async function handler(req, res) {
           mimeType: item.mime_type,
           byteSize: item.byte_size,
           uploadedAt: cleanDateTime(item.created_at),
+          uploadedBy: item.uploaded_by ? (profileMap.get(item.uploaded_by)?.display_name || item.uploaded_by) : "系统",
           annotations: mediaAnnotationMap.get(String(item.id))?.annotations || [],
           url: await mediaAccessUrl(s3, item),
         };

@@ -768,7 +768,8 @@
       originalFileName: item.fileName || "",
       fileType: item.fileType || item.mimeType || "",
       mimeType: item.mimeType || item.fileType || "",
-      fileSize: item.fileSize || item.size || 0,
+      mediaKind: item.mediaKind || fallback.mediaKind || "",
+      fileSize: item.fileSize || item.byteSize || item.size || 0,
       url: item.url || "",
       uploadedBy: item.uploadedBy || fallback.uploadedBy || "大前",
       uploadedAt: item.uploadedAt || fallback.uploadedAt || "",
@@ -2901,15 +2902,31 @@
     return errors;
   }
 
+  async function uploadPersistedFile(file, context, statusSelector = "#upload-status") {
+    const presigned = await createUpload(file, context);
+    await putToS3(file, presigned, statusSelector);
+    return completeUpload(file, presigned);
+  }
+
   async function uploadFilesForCreatedStyle(filesByCategory, context) {
     const draftDocs = state.localStyleDocumentsByStyle.__draft__ || [];
     if (!draftDocs.length || !context?.styleId) return;
-    state.localStyleDocumentsByStyle[context.styleId] = [
-      ...(state.localStyleDocumentsByStyle[context.styleId] || []),
-      ...draftDocs.map((item) => ({ ...item, styleId: context.styleId }))
-    ];
+    const status = $("#style-create-status");
+    let uploaded = 0;
+    for (const doc of draftDocs) {
+      if (!doc.raw) continue;
+      if (status) status.textContent = `正在上传资料：${doc.fileName}`;
+      await uploadPersistedFile(doc.raw, {
+        ...context,
+        fileCategory: doc.category,
+        mediaCategory: doc.category,
+        label: uploadLabel(doc.category, doc.raw)
+      }, "#style-create-status");
+      uploaded += 1;
+    }
     state.localStyleDocumentsByStyle.__draft__ = [];
-    $("#style-create-status").textContent = "资料已加入本地预览。";
+    state.styleInitFiles = {};
+    if (status) status.textContent = uploaded ? `已上传 ${uploaded} 个资料文件。` : "";
   }
 
   function stylePayloadFromForm(form) {
@@ -3038,7 +3055,6 @@
       currentGate: "sample_dispatch_gate",
       nextAction: "业务负责人派发打样",
       blockerSummary: "",
-      persist: false,
       successMessage: `前期准备已确认：${record.confirmedByName}`
     });
   }
@@ -3062,7 +3078,6 @@
       currentGate: "sample_making_gate",
       nextAction: "等待打样反馈人确认打样完成",
       blockerSummary: "",
-      persist: false,
       successMessage: `已派发打样：${record.confirmedByName}`
     });
   }
@@ -3086,7 +3101,6 @@
       currentGate: "sample_review_gate",
       nextAction: "进入样衣评审",
       blockerSummary: "",
-      persist: false,
       successMessage: `打样完成已记录：${record.confirmedByName}`
     });
   }
@@ -3764,9 +3778,42 @@
 
   async function uploadMediaFiles(files) {
     const style = currentStyle();
+    const sample = currentSample();
     const review = currentReview();
     const uploadFiles = Array.from(files || []).filter(Boolean);
     if (!uploadFiles.length) return;
+    if (style?.id && sample?.id && isUuid(style.id) && isUuid(sample.id)) {
+      try {
+        $("#upload-status").dataset.tone = "muted";
+        for (const file of uploadFiles) {
+          const category = canonicalFileType(file) === "video" ? "overall_video" : "review_media";
+          $("#upload-status").textContent = `正在上传：${file.name}`;
+          await uploadPersistedFile(file, {
+            styleId: style.id,
+            sampleId: sample.id,
+            reviewId: review?.id || null,
+            styleExternalRef: style.externalRef || null,
+            sampleExternalRef: sample.externalRef || null,
+            reviewExternalRef: review?.externalRef || null,
+            mediaCategory: category,
+            fileCategory: category,
+            label: `[${category}] ${file.name}`
+          });
+        }
+        $$("[data-media-upload-input]").forEach((input) => { input.value = ""; });
+        await loadSnapshot();
+        $("#upload-status").dataset.tone = "success";
+        $("#upload-status").textContent = `已上传 ${uploadFiles.length} 个评审媒体文件。`;
+        showToast({ type: "success", message: "上传成功" });
+        return;
+      } catch (error) {
+        console.error("上传评审媒体失败", { styleId: style.id, sampleId: sample.id, error });
+        $("#upload-status").dataset.tone = "error";
+        $("#upload-status").textContent = `上传失败：${error.message}`;
+        showMessage(`上传失败：${error.message}`);
+        return;
+      }
+    }
     const styleKey = style?.id || currentStyleKey();
     const now = new Date().toISOString();
     const uploadedBy = currentReviewerName(style, review) || "大前";
@@ -3892,7 +3939,36 @@
 
   async function uploadStyleImage(file) {
     const style = currentStyle();
+    const sample = currentSample();
     if (!file) return;
+    if (style?.id && sample?.id && isUuid(style.id) && isUuid(sample.id)) {
+      try {
+        $("#upload-status").dataset.tone = "muted";
+        $("#upload-status").textContent = `正在上传款式主图：${file.name}`;
+        await uploadPersistedFile(file, {
+          styleId: style.id,
+          sampleId: sample.id,
+          reviewId: currentReview()?.id || null,
+          styleExternalRef: style.externalRef || null,
+          sampleExternalRef: sample.externalRef || null,
+          reviewExternalRef: currentReview()?.externalRef || null,
+          fileCategory: "style_cover",
+          mediaCategory: "style_cover",
+          label: uploadLabel("style_cover", file)
+        });
+        await loadSnapshot();
+        $("#upload-status").dataset.tone = "success";
+        $("#upload-status").textContent = "款式主图已上传。";
+        showToast({ type: "success", message: "上传成功" });
+        return;
+      } catch (error) {
+        console.error("上传款式主图失败", { styleId: style.id, error });
+        $("#upload-status").dataset.tone = "error";
+        $("#upload-status").textContent = `款式主图上传失败：${error.message}`;
+        showMessage(`款式主图上传失败：${error.message}`);
+        return;
+      }
+    }
     addLocalStyleDocuments("style_cover", [file], style?.id || currentStyleKey(), true);
     renderAll();
     showMessage("款式主图已加入本地预览。", "ok");
@@ -4633,12 +4709,48 @@
       uploadMediaFiles(files);
     });
 
-    document.addEventListener("change", (event) => {
+    document.addEventListener("change", async (event) => {
       const input = event.target.closest("[data-style-init-file]");
       if (!input) return;
       const category = input.dataset.styleInitFile;
       const files = Array.from(input.files || []);
       const acceptedFiles = category === "style_cover" ? files.slice(0, 1) : files;
+      if (state.editingStyleId) {
+        const style = styleById(state.editingStyleId);
+        const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
+        const review = state.data?.reviews?.find((item) => item.styleId === style?.id || item.sampleId === sample?.id);
+        if (style?.id && sample?.id && isUuid(style.id) && isUuid(sample.id)) {
+          try {
+            $("#style-create-status").dataset.tone = "muted";
+            for (const file of acceptedFiles) {
+              $("#style-create-status").textContent = `正在上传资料：${file.name}`;
+              await uploadPersistedFile(file, {
+                styleId: style.id,
+                sampleId: sample.id,
+                reviewId: review?.id || null,
+                styleExternalRef: style.externalRef || null,
+                sampleExternalRef: sample.externalRef || null,
+                reviewExternalRef: review?.externalRef || null,
+                fileCategory: category,
+                mediaCategory: category,
+                label: uploadLabel(category, file)
+              }, "#style-create-status");
+            }
+            input.value = "";
+            await loadSnapshot();
+            renderStyleMaterialFiles();
+            $("#style-create-status").dataset.tone = "success";
+            $("#style-create-status").textContent = `已上传 ${acceptedFiles.length} 个资料文件。`;
+            showToast({ type: "success", message: "上传成功" });
+          } catch (error) {
+            console.error("上传款式资料失败", { category, styleId: style?.id, error });
+            $("#style-create-status").dataset.tone = "error";
+            $("#style-create-status").textContent = `上传失败：${error.message}`;
+            showMessage(`上传失败：${error.message}`);
+          }
+          return;
+        }
+      }
       state.styleInitFiles[category] = acceptedFiles;
       const styleKey = state.editingStyleId || "__draft__";
       const added = addLocalStyleDocuments(category, acceptedFiles, styleKey, category === "style_cover");
