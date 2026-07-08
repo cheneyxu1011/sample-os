@@ -56,6 +56,18 @@
 
         <section class="view active" id="pipeline-view" data-title="开发流水线">
           <div class="section-toolbar">
+            <div class="pipeline-filter-bar" aria-label="开发流水线筛选">
+              <label class="pipeline-filter-select">品牌
+                <select id="pipeline-brand-filter">
+                  <option value="">全部品牌</option>
+                </select>
+              </label>
+              <div class="pipeline-route-filter" aria-label="款式分类">
+                <button class="active" type="button" data-pipeline-route-filter="">全部</button>
+                <button type="button" data-pipeline-route-filter="normal">普通款式</button>
+                <button type="button" data-pipeline-route-filter="bonding">压胶款式</button>
+              </div>
+            </div>
             <div class="view-toggle" aria-label="开发流水线视图切换">
               <button class="active" type="button" data-pipeline-view-mode="cards">卡片视图</button>
               <button type="button" data-pipeline-view-mode="compact">紧凑列表</button>
@@ -152,21 +164,26 @@
           <section class="panel issue-panel">
             <div class="panel-head">
               <div>
-                <h2>Issue</h2>
-                <p>重大 / 严重 Issue 会阻止寄样。</p>
+                <h2>Issue 问题跟踪</h2>
+                <p>将评审中发现的问题转为整改任务。重大 / Blocking Issue 未关闭时，系统会阻止寄样。</p>
               </div>
+              <button class="primary-button compact-button" type="button" id="open-issue-modal">新增 Issue</button>
             </div>
             <form id="issue-form" class="issue-form">
-              <input name="title" placeholder="新增 Issue 标题" required />
-              <select name="level">
-                <option value="normal">一般</option>
-                <option value="minor">轻微</option>
-                <option value="major">重大</option>
-                <option value="critical">严重</option>
-              </select>
-              <input name="department" placeholder="来源部门" value="品质部" />
-              <button class="primary-button" type="submit">新增 Issue</button>
+              <label>问题标题<input name="title" placeholder="例如：四针六线缝的方式不对需要修改" required /></label>
+              <label>风险等级
+                <select name="level">
+                  <option value="normal">一般 / 不阻止</option>
+                  <option value="major">重大 / 阻止寄样</option>
+                  <option value="critical">Blocking / 阻止寄样</option>
+                </select>
+              </label>
+              <label>责任部门<input name="department" placeholder="责任部门" value="开发技术部" /></label>
+              <label>操作<button class="primary-button" type="submit">打开弹窗</button></label>
             </form>
+            <div class="issue-list-head">
+              <span>问题信息</span><span>风险等级</span><span>当前状态</span><span>操作</span>
+            </div>
             <div id="issue-list" class="issue-list"></div>
           </section>
 
@@ -322,9 +339,10 @@
         <button type="button" data-lightbox-tool="zoom">放大 1x</button>
         <button type="button" data-lightbox-tool="draw">画笔</button>
         <button type="button" data-lightbox-tool="text">文字</button>
-        <button type="button" id="lightbox-delete-annotation">删除选中</button>
-        <button type="button" id="lightbox-undo-annotation">撤销备注</button>
+        <button type="button" id="lightbox-delete-annotation">清除选中</button>
+        <button type="button" id="lightbox-undo-annotation">撤销标注</button>
         <button type="button" id="lightbox-save-annotations">保存备注</button>
+        <button type="button" data-review-to-issue>转为 Issue</button>
       </div>
       <button class="lightbox-nav lightbox-prev" type="button" id="lightbox-prev" aria-label="上一个">‹</button>
       <div class="lightbox-stage" id="lightbox-stage"></div>
@@ -343,6 +361,57 @@
           <a class="secondary-button compact-button" id="file-preview-download" href="#" download>下载</a>
         </div>
         <div class="file-preview-stage" id="file-preview-stage"></div>
+      </div>
+    </div>
+
+    <div class="modal" id="issue-modal" hidden>
+      <div class="modal-card issue-modal-card">
+        <button class="modal-close" type="button" id="issue-modal-close" aria-label="关闭">×</button>
+        <div class="modal-head">
+          <span>Issue 问题跟踪</span>
+          <h2>新增 Issue</h2>
+          <p>补全责任部门、责任人和整改要求，保存后进入问题跟踪。</p>
+        </div>
+        <form id="issue-modal-form" class="issue-modal-form">
+          <section class="modal-section">
+            <h3>问题信息</h3>
+            <label>问题标题<input name="title" required placeholder="例如：领口缺少打枣工艺" /></label>
+            <label>问题描述<textarea name="description" rows="4" placeholder="说明问题细节、整改要求、补充备注"></textarea></label>
+            <label>问题部位<input name="relatedArea" placeholder="例如：正面 / 袖口 / 压胶位" /></label>
+            <label>风险等级
+              <select name="level">
+                <option value="normal">一般 / 不阻止</option>
+                <option value="major">重大 / 阻止寄样</option>
+                <option value="critical">Blocking / 阻止寄样</option>
+              </select>
+            </label>
+            <label>当前状态
+              <select name="status">
+                <option value="not_started">未开始</option>
+                <option value="in_progress">整改中</option>
+                <option value="pending_verification">待复核</option>
+                <option value="closed">已关闭</option>
+              </select>
+            </label>
+            <label>整改要求<textarea name="fixRequirement" rows="3" placeholder="例如：修改四针六线做法后重新拍照"></textarea></label>
+            <label class="issue-blocking-check"><input type="checkbox" name="shipmentBlocking" /> 是否阻止寄样</label>
+          </section>
+          <section class="modal-section">
+            <h3>关联图片</h3>
+            <div id="issue-evidence-preview" class="issue-evidence-preview"></div>
+          </section>
+          <section class="modal-section">
+            <h3>发起与责任</h3>
+            <label>发起评审部门<select name="sourceDepartment" data-issue-source-department></select></label>
+            <label>发起评审人<select name="sourceReviewer" data-issue-source-reviewer></select></label>
+            <label>责任部门<select name="ownerDepartment" data-issue-owner-department></select></label>
+            <label>责任人<select name="ownerId" data-issue-owner-person></select></label>
+          </section>
+          <div class="modal-actions">
+            <button class="secondary-button" type="button" id="issue-modal-cancel">取消</button>
+            <button class="primary-button" type="submit">保存 Issue</button>
+          </div>
+        </form>
       </div>
     </div>
 

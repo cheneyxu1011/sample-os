@@ -20,6 +20,8 @@
     editingMediaId: "",
     selectedMediaIndex: 0,
     pipelineViewMode: "cards",
+    pipelineBrandFilter: "",
+    pipelineRouteFilter: "",
     expandedRoadmaps: {},
     uploading: false,
     touchStartX: null,
@@ -40,7 +42,9 @@
     documentsExpandedByStyle: {},
     localStyleDocumentsByStyle: {},
     localReviewMediaByStyle: {},
+    localIssues: [],
     activePreviewFile: null,
+    issueModalContext: null,
     settingsDepartmentFilter: "",
     selectedReviewTaskKeyByStyle: {},
     optionalDepartmentRoleIdsByStyle: {},
@@ -56,7 +60,7 @@
     minor: "轻微",
     normal: "一般",
     major: "重大",
-    critical: "严重"
+    critical: "Blocking"
   };
 
   const statusLabels = {
@@ -314,7 +318,9 @@
     "工艺部": "process_reviewer",
     "IE 部": "ie_reviewer",
     "IE部": "ie_reviewer",
-    "打样部": "sample_feedback_owner"
+    "打样部": "sample_feedback_owner",
+    "生产部": "production_reviewer",
+    "生产评审员": "production_reviewer"
   };
 
   const departmentByRoleId = {
@@ -324,7 +330,8 @@
     process_reviewer: "工艺部",
     ie_reviewer: "IE 部",
     sample_feedback_owner: "打样部",
-    sample_review_gate_owner: "样衣评审负责人"
+    sample_review_gate_owner: "样衣评审负责人",
+    production_reviewer: "生产部"
   };
 
 
@@ -704,7 +711,7 @@
     const style = currentStyle();
     const sample = currentSample();
     const review = currentReview();
-    return (state.data?.issues || []).filter((issue) => (
+    return [...(state.data?.issues || []), ...(state.localIssues || [])].filter((issue) => (
       issue.styleId === style?.id || issue.sampleId === sample?.id || issue.reviewId === review?.id
     ));
   }
@@ -838,7 +845,15 @@
     const selected = roleOwnerText(style, roleId);
     const assigned = assignedUsersForRole(roleId).map((user) => user.name);
     const templatePeople = Array.isArray(role?.people) ? role.people : [];
-    return uniqueNames([selected, row.reviewerName, userName(row.reviewer), ...templatePeople, ...assigned]);
+    const operator = currentOperatorPerson();
+    const operatorRoles = operator ? assignedRolesForUser(operator).map((item) => item.id) : [];
+    const operatorMatches = operator && (
+      operatorRoles.includes(roleId)
+      || templatePeople.includes(operator.name)
+      || defaultRoleDepartmentById[roleId] === operator.department
+      || row.department === operator.department
+    );
+    return uniqueNames([operatorMatches ? operator.name : "", selected, row.reviewerName, userName(row.reviewer), ...templatePeople, ...assigned]);
   }
 
   function departmentReviewerNames(row, style) {
@@ -916,6 +931,8 @@
   }
 
   function currentReviewerName(style = currentStyle(), review = currentReview()) {
+    const operator = currentOperatorPerson();
+    if (operator?.name) return operator.name;
     const gateOwner = textOwner(style, review, "gateOwner", "");
     if (gateOwner && gateOwner !== "未指定") return gateOwner;
     return roleOwnerNames(style, "quality_reviewer")[0] || "大前";
@@ -1315,6 +1332,11 @@
     return allUsers().find((user) => user.id === id)?.name || id || "未指定";
   }
 
+  function currentOperatorPerson() {
+    if (!state.currentOperatorId) return null;
+    return activePeopleList().find((person) => person.id === state.currentOperatorId) || null;
+  }
+
   function dateText(date) {
     if (!date) return "未设置";
     const value = String(date);
@@ -1615,15 +1637,39 @@
     }
   }
 
+  function pipelineRouteMatches(style, routeFilter) {
+    if (!routeFilter) return true;
+    const sample = state.data?.samples?.find((item) => item.styleId === style.id);
+    const raw = `${style.route || ""} ${routeLabel(style)} ${style.sampleLocation || ""} ${sample?.location || ""}`.toLowerCase();
+    if (routeFilter === "bonding") return /bonding|压胶|新长江/.test(raw);
+    if (routeFilter === "normal") return /normal|普通/.test(raw) && !/bonding|压胶|新长江/.test(raw);
+    return raw.includes(routeFilter);
+  }
+
   function renderPipeline() {
-    const styles = state.data?.styleList || [];
+    const allStyles = state.data?.styleList || [];
     $$("[data-pipeline-view-mode]").forEach((button) => {
       button.classList.toggle("active", button.dataset.pipelineViewMode === state.pipelineViewMode);
     });
+    $$("[data-pipeline-route-filter]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.pipelineRouteFilter === state.pipelineRouteFilter);
+    });
+    const brandSelect = $("#pipeline-brand-filter");
+    if (brandSelect) {
+      const brands = Array.from(new Set(allStyles.map((style) => style.brand).filter(Boolean)));
+      const currentBrand = brands.includes(state.pipelineBrandFilter) ? state.pipelineBrandFilter : "";
+      state.pipelineBrandFilter = currentBrand;
+      brandSelect.innerHTML = `<option value="">全部品牌</option>${brands.map((brand) => `<option value="${esc(brand)}">${esc(brand)}</option>`).join("")}`;
+      brandSelect.value = currentBrand;
+    }
+    const styles = allStyles.filter((style) => (
+      (!state.pipelineBrandFilter || style.brand === state.pipelineBrandFilter)
+      && pipelineRouteMatches(style, state.pipelineRouteFilter)
+    ));
     $("#pipeline-list").classList.remove("skeleton");
     $("#pipeline-list").classList.toggle("compact-list-mode", state.pipelineViewMode === "compact");
     if (!styles.length) {
-      $("#pipeline-list").innerHTML = '<div class="empty">暂无款式数据。</div>';
+      $("#pipeline-list").innerHTML = '<div class="empty">当前筛选下暂无款式数据。</div>';
       return;
     }
     if (state.pipelineViewMode === "compact") {
@@ -1860,9 +1906,14 @@
           ${submitted || isMine ? `
             <div class="department-readonly-opinion">
               <p>${esc(row.opinion || reviewCardPlaceholder(row))}</p>
-              ${isMine ? `<button class="secondary-button compact-button" type="button" data-scroll-my-review>编辑我的评审</button>` : ""}
+              <button class="secondary-button compact-button" type="button" data-edit-department-review="${esc(rowKey)}">编辑我的评审</button>
             </div>
-          ` : `<div class="department-readonly-opinion muted">待提交，暂不显示草稿内容。</div>`}
+          ` : `
+            <div class="department-readonly-opinion muted">
+              <p>待提交，暂不显示草稿内容。</p>
+              <button class="secondary-button compact-button" type="button" data-edit-department-review="${esc(rowKey)}">编辑我的评审</button>
+            </div>
+          `}
         </details>
     `;
     }).join("") : '<div class="empty">暂无部门评审行。</div>';
@@ -1968,21 +2019,166 @@
     $("#issue-list").innerHTML = issues.length ? issues.map((issue) => {
       const blocked = isBlocking(issue);
       const canMarkVerify = issue.status !== "closed" && issue.status !== "pending_verification";
+      const evidenceLabel = issue.evidenceMediaId ? (issue.hasAnnotations ? "已关联标注图" : "已关联图片") : "未关联图片";
       return `
         <article class="issue-row ${blocked ? "blocked" : ""}">
-          <strong>
-            ${esc(issue.title)}
-            <small>${esc(issue.sourceDepartment || "未指定部门")} · ${esc(issue.relatedArea || "未标注部位")}</small>
-          </strong>
+          <div class="issue-info-cell">
+            <strong>${esc(issue.title)}</strong>
+            <small>发起：${esc(issue.sourceDepartment || "未指定部门")} / ${esc(issue.sourceReviewerName || issue.sourceReviewer || "未指定")}</small>
+            <small>责任：${esc(issue.ownerDepartment || issue.responsibleDepartment || "未指定部门")} / ${esc(issue.ownerName || userName(issue.owner) || "未指定")}</small>
+            <small>部位：${esc(issue.relatedArea || issue.mediaPart || "未标注部位")}</small>
+            <small>证据：${esc(evidenceLabel)} ${issue.evidenceMediaId ? `<button class="link-button" type="button" data-open-issue-evidence="${esc(issue.evidenceMediaId)}">查看标注图</button>` : ""}</small>
+          </div>
           <span class="badge ${blocked ? "blocked" : "ok"}">${esc(levelLabels[issue.level] || issue.level)} / ${blocked ? "阻止寄样" : "不阻止"}</span>
           <span>${esc(statusLabels[issue.status] || issue.status)}</span>
           <div class="issue-actions">
+            ${issue.status === "not_started" ? `<button class="secondary-button" type="button" data-assign-issue="${esc(issue.id)}">分派责任人</button>` : ""}
             ${canMarkVerify ? `<button class="secondary-button" type="button" data-verify-issue="${esc(issue.id)}">整改完成</button>` : ""}
             ${issue.status !== "closed" ? `<button class="secondary-button" type="button" data-close-issue="${esc(issue.id)}">复核关闭</button>` : ""}
           </div>
         </article>
       `;
     }).join("") : '<div class="empty">暂无 Issue。</div>';
+  }
+
+  function normalizeIssueDepartment(department = "") {
+    const text = String(department || "");
+    if (["业务部", "开发技术部", "品质部", "生产部"].includes(text)) return text;
+    if (/业务/.test(text)) return "业务部";
+    if (/品质|质量|QC/i.test(text)) return "品质部";
+    if (/生产/.test(text)) return "生产部";
+    if (/开发|版型|打版|工艺|IE|打样|样衣|压胶|新长江|面辅料/.test(text)) return "开发技术部";
+    return "开发技术部";
+  }
+
+  function issueDepartmentForPerson(person = {}) {
+    const roles = assignedRolesForUser(person).map((role) => role.id);
+    if (roles.some((id) => ["business_pm"].includes(id))) return "业务部";
+    if (roles.some((id) => ["quality_reviewer", "sample_review_gate_owner"].includes(id))) return "品质部";
+    if (roles.some((id) => ["production_reviewer"].includes(id))) return "生产部";
+    if (roles.some((id) => [
+      "pattern_reviewer",
+      "measurement_reviewer",
+      "process_reviewer",
+      "ie_reviewer",
+      "sample_feedback_owner",
+      "bonding_owner",
+      "lab_testing_owner"
+    ].includes(id))) return "开发技术部";
+    return normalizeIssueDepartment(person.department);
+  }
+
+  function activePeopleByDepartment(department) {
+    const normalized = normalizeIssueDepartment(department);
+    return activePeopleList().filter((person) => issueDepartmentForPerson(person) === normalized);
+  }
+
+  function issueDepartmentOptions(selected = "") {
+    const departments = ["业务部", "开发技术部", "品质部", "生产部"];
+    return departments.map((department) => `<option value="${esc(department)}" ${department === selected ? "selected" : ""}>${esc(department)}</option>`).join("");
+  }
+
+  function issuePersonOptions(department, selected = "") {
+    const people = activePeopleByDepartment(department);
+    const options = people.map((person) => {
+      const label = `${person.name} / ${personRoleLabel(person)}`;
+      return `<option value="${esc(person.id)}" ${person.id === selected || person.name === selected ? "selected" : ""}>${esc(label)}</option>`;
+    }).join("");
+    return `<option value="">请选择人员</option>${options}`;
+  }
+
+  function issueContextFromCurrentMedia(extra = {}) {
+    const media = reviewMediaList().find((item) => item.id === state.selectedMediaId) || reviewMediaList()[state.selectedMediaIndex];
+    const style = currentStyle();
+    const row = myDepartmentRow(state.departmentReviewRows || [], style, currentReview());
+    const category = categoryFromLabel(media);
+    const operator = currentOperatorPerson();
+    const sourceDepartment = normalizeIssueDepartment(row?.department || operator?.department || "品质部");
+    const sourceReviewerName = operator?.name || departmentReviewerNames(row || {}, style)[0] || "";
+    return {
+      mediaId: media?.id || "",
+      mediaLabel: media ? mediaNameForEdit(media) : "",
+      mediaUrl: media?.url || "",
+      mediaPart: media ? (mediaPartLabels[category] || "未标注") : "",
+      mediaCategory: category || "",
+      hasAnnotations: Boolean(media?.annotations?.length),
+      annotationSnapshot: normalizeAnnotations(media?.annotations || []),
+      reviewRole: row?.role || "",
+      sourceDepartment,
+      sourceReviewerName,
+      sourceReviewerId: operator?.id || "",
+      ownerDepartment: "开发技术部",
+      ownerId: "",
+      ...extra
+    };
+  }
+
+  function renderIssueEvidencePreview(context = state.issueModalContext || {}) {
+    const box = $("#issue-evidence-preview");
+    if (!box) return;
+    if (!context.mediaId) {
+      box.innerHTML = '<div class="compact-empty">未关联图片，可从当前大图或图片弹窗转为 Issue。</div>';
+      return;
+    }
+    box.innerHTML = `
+      <div class="issue-evidence-thumb">
+        ${context.mediaUrl ? `<img src="${esc(context.mediaUrl)}" alt="${esc(context.mediaLabel || "关联图片")}" />` : `<span>IMG</span>`}
+      </div>
+      <div>
+        <strong>${esc(context.mediaLabel || "当前图片")}</strong>
+        <small>部位：${esc(context.mediaPart || "未标注")}</small>
+        <small>${context.hasAnnotations ? "已带入当前图片标注" : "当前图片暂无标注"}</small>
+      </div>
+    `;
+  }
+
+  function renderIssueModalPeople() {
+    const form = $("#issue-modal-form");
+    if (!form) return;
+    const sourceDepartment = normalizeIssueDepartment(form.elements.sourceDepartment?.value || state.issueModalContext?.sourceDepartment || "品质部");
+    const ownerDepartment = normalizeIssueDepartment(form.elements.ownerDepartment?.value || state.issueModalContext?.ownerDepartment || "开发技术部");
+    form.elements.sourceDepartment.innerHTML = issueDepartmentOptions(sourceDepartment);
+    form.elements.ownerDepartment.innerHTML = issueDepartmentOptions(ownerDepartment);
+    form.elements.sourceReviewer.innerHTML = issuePersonOptions(sourceDepartment, state.issueModalContext?.sourceReviewerId || state.issueModalContext?.sourceReviewerName || "");
+    form.elements.ownerId.innerHTML = issuePersonOptions(ownerDepartment, state.issueModalContext?.ownerId || "");
+  }
+
+  function openIssueModal(context = {}) {
+    const modal = $("#issue-modal");
+    const form = $("#issue-modal-form");
+    if (!modal || !form) return;
+    const merged = issueContextFromCurrentMedia(context);
+    if (context.mediaId) {
+      const evidence = reviewMediaList().find((item) => item.id === context.mediaId);
+      if (evidence) {
+        merged.mediaUrl = evidence.url || merged.mediaUrl;
+        merged.mediaLabel = context.mediaLabel || mediaNameForEdit(evidence);
+        merged.mediaPart = context.mediaPart || mediaPartLabels[categoryFromLabel(evidence)] || merged.mediaPart;
+      }
+    }
+    merged.sourceDepartment = normalizeIssueDepartment(merged.sourceDepartment);
+    merged.ownerDepartment = normalizeIssueDepartment(merged.ownerDepartment);
+    const sourceMatch = activePeopleList().find((person) => person.name === merged.sourceReviewerName && issueDepartmentForPerson(person) === merged.sourceDepartment);
+    if (!merged.sourceReviewerId && sourceMatch) merged.sourceReviewerId = sourceMatch.id;
+    state.issueModalContext = merged;
+    form.reset();
+    form.elements.title.value = merged.title || (merged.mediaPart ? `${merged.mediaPart}问题需整改` : "");
+    form.elements.description.value = merged.description || "";
+    form.elements.relatedArea.value = merged.relatedArea || merged.mediaPart || "";
+    form.elements.level.value = merged.level || "normal";
+    form.elements.status.value = merged.status || "not_started";
+    form.elements.fixRequirement.value = merged.fixRequirement || "";
+    form.elements.shipmentBlocking.checked = ["major", "critical"].includes(form.elements.level.value);
+    renderIssueModalPeople();
+    renderIssueEvidencePreview(merged);
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeIssueModal() {
+    $("#issue-modal").hidden = true;
+    state.issueModalContext = null;
+    document.body.style.overflow = "";
   }
 
   function reviewSummaryText(style, sample, review, issues, shipment) {
@@ -2218,7 +2414,7 @@
           </div>
           <div class="media-focus-meta">
             <strong>${esc(title)}</strong>
-            <span>${esc(partLabel)}</span>
+            <span>${esc(partLabel)}${selected.annotations?.length ? " · 已标注" : ""}</span>
             <button class="secondary-button compact-button" type="button" data-edit-media="${esc(selected.id)}">编辑</button>
             <button class="secondary-button compact-button" type="button" data-review-to-issue>当前图片转 Issue</button>
           </div>
@@ -2251,7 +2447,7 @@
         <article class="media-card ${index === state.selectedMediaIndex ? "selected" : ""}">
           <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(title)}">×</button>
           <button class="media-thumb-button" type="button" data-select-media="${esc(item.id)}" data-media-index="${index}" data-dblopen-media="${esc(item.id)}" aria-label="切换到 ${esc(title)}">${media}</button>
-          <div class="media-title">${esc(partLabel)}</div>
+          <div class="media-title">${esc(partLabel)}${item.annotations?.length ? " · 已标注" : ""}</div>
         </article>
       `;
     }).join("") : '<div class="empty">暂无已上传媒体。</div>';
@@ -2845,43 +3041,74 @@
 
   async function createIssueFromForm(form) {
     const style = currentStyle();
+    const review = currentReview();
+    if (!style || !review) return showMessage("缺少当前款式或评审，不能新增 Issue。");
+    const fields = new FormData(form);
+    openIssueModal({
+      title: String(fields.get("title") || "").trim(),
+      level: fields.get("level") || "normal",
+      ownerDepartment: String(fields.get("department") || "开发技术部").trim() || "开发技术部"
+    });
+  }
+
+  function createIssueFromModal(form) {
+    const style = currentStyle();
     const sample = currentSample();
     const review = currentReview();
     if (!style || !review) return showMessage("缺少当前款式或评审，不能新增 Issue。");
     const fields = new FormData(form);
-    const level = fields.get("level");
-    const context = state.pendingIssueContext;
-    const description = context ? [
-      fields.get("title"),
-      `部门：${context.department}`,
-      `评审人：${context.reviewer || "未指定"}`,
-      `关注点：${context.focus || "未设置"}`,
-      `评审意见：${context.opinion || "未填写"}`,
-      `图片：${context.mediaLabel || "未选择"}`,
-      `部位：${context.mediaPart || "未标注"}`
-    ].join("\n") : fields.get("title");
-    try {
-      await syncData("createIssue", {
-        styleId: style.id,
-        sampleId: sample?.id,
-        reviewId: review.id,
-        title: fields.get("title"),
-        description,
-        sourceDepartment: fields.get("department"),
-        level,
-        shipmentBlocking: level === "major" || level === "critical",
-        canShipWithNote: level === "minor" || level === "normal",
-        status: "not_started"
-      });
-      state.pendingIssueContext = null;
-      form.reset();
-      form.department.value = "品质部";
-      await loadSnapshot();
-      showToast({ type: "success", message: "Issue 已创建" });
-    } catch (error) {
-      console.error("新增 Issue 失败", { styleId: style.id, sampleId: sample?.id, reviewId: review.id, level, error });
-      showMessage(`新增 Issue 失败：${error.message}`);
+    const level = String(fields.get("level") || "normal");
+    const owner = activePeopleList().find((person) => person.id === fields.get("ownerId"));
+    const sourceReviewer = activePeopleList().find((person) => person.id === fields.get("sourceReviewer"));
+    const context = state.issueModalContext || {};
+    const issue = {
+      id: `local_issue_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      styleId: style.id,
+      sampleId: sample?.id || "",
+      reviewId: review.id,
+      title: String(fields.get("title") || "").trim(),
+      description: String(fields.get("description") || "").trim(),
+      sourceDepartment: String(fields.get("sourceDepartment") || ""),
+      sourceReviewer: sourceReviewer?.id || "",
+      sourceReviewerName: sourceReviewer?.name || context.sourceReviewerName || "",
+      ownerDepartment: String(fields.get("ownerDepartment") || ""),
+      owner: owner?.id || "",
+      ownerName: owner?.name || "",
+      relatedArea: String(fields.get("relatedArea") || context.mediaPart || ""),
+      level,
+      shipmentBlocking: Boolean(fields.get("shipmentBlocking")) || ["major", "critical"].includes(level),
+      canShipWithNote: level === "normal",
+      status: String(fields.get("status") || "not_started"),
+      fixRequirement: String(fields.get("fixRequirement") || "").trim(),
+      evidenceMediaId: context.mediaId || "",
+      evidenceMediaLabel: context.mediaLabel || "",
+      evidenceMediaPart: context.mediaPart || "",
+      hasAnnotations: Boolean(context.hasAnnotations),
+      annotationSnapshot: normalizeAnnotations(context.annotationSnapshot || []),
+      createdAt: currentTimestamp(),
+      updatedAt: currentTimestamp(),
+      source: "local"
+    };
+    if (!issue.title) return showMessage("请填写问题标题。");
+    const editingIssueId = context.editingIssueId || "";
+    const existingLocal = (state.localIssues || []).find((item) => item.id === editingIssueId);
+    if (existingLocal) {
+      const updatedIssue = {
+        ...existingLocal,
+        ...issue,
+        id: existingLocal.id,
+        createdAt: existingLocal.createdAt,
+        updatedAt: currentTimestamp(),
+        source: existingLocal.source || "local"
+      };
+      state.localIssues = (state.localIssues || []).map((item) => item.id === existingLocal.id ? updatedIssue : item);
+    } else {
+      state.localIssues = [issue, ...(state.localIssues || [])];
     }
+    closeIssueModal();
+    renderIssues();
+    updateStatus();
+    showToast({ type: "success", message: existingLocal ? "Issue 已更新" : "Issue 已创建" });
   }
 
   function setFieldErrors(form, errors) {
@@ -3197,6 +3424,14 @@
   }
 
   async function closeIssue(issueId) {
+    if (String(issueId || "").startsWith("local_issue_")) {
+      state.localIssues = state.localIssues.map((issue) => (
+        issue.id === issueId ? { ...issue, status: "closed", updatedAt: currentTimestamp() } : issue
+      ));
+      renderAll();
+      showToast({ type: "success", message: "Issue 已关闭" });
+      return;
+    }
     try {
       await syncData("issueStatus", { issueId, status: "closed" });
       await loadSnapshot();
@@ -3208,6 +3443,14 @@
   }
 
   async function markIssueReadyForVerification(issueId) {
+    if (String(issueId || "").startsWith("local_issue_")) {
+      state.localIssues = state.localIssues.map((issue) => (
+        issue.id === issueId ? { ...issue, status: "pending_verification", updatedAt: currentTimestamp() } : issue
+      ));
+      renderAll();
+      showToast({ type: "success", message: "Issue 已标记待复核" });
+      return;
+    }
     try {
       await syncData("issueStatus", { issueId, status: "pending_verification" });
       await loadSnapshot();
@@ -3917,24 +4160,24 @@
     const style = currentStyle();
     const review = currentReview();
     const row = Number.isInteger(index) ? rows[index] : myDepartmentRow(rows, style, review);
-    const form = $("#issue-form");
-    if (!form || !row) return;
+    if (!row) return;
     const selected = reviewMediaList().find((item) => item.id === state.selectedMediaId);
     const part = selected ? (mediaPartLabels[categoryFromLabel(selected)] || "未标注部位") : "未选择图片";
-    state.pendingIssueContext = {
-      department: row.department,
-      reviewer: departmentReviewerNames(row, style)[0] || "",
-      opinion: row.opinion || "",
-      focus: reviewCardPlaceholder(row),
+    const reviewer = departmentReviewerNames(row, style)[0] || "";
+    openIssueModal({
+      title: `${row.department}评审问题 - ${part}`,
+      description: row.opinion || "",
+      sourceDepartment: row.department,
+      sourceReviewerName: reviewer,
+      level: row.status === "fail" ? "major" : "normal",
+      relatedArea: part,
       mediaId: selected?.id || "",
-      mediaLabel: selected ? readableMediaLabel(selected) : "",
-      mediaPart: part
-    };
-    form.elements.title.value = `${row.department}评审问题 - ${part}`;
-    form.elements.level.value = row.status === "fail" ? "major" : "normal";
-    form.elements.department.value = row.department;
-    form.scrollIntoView({ behavior: "smooth", block: "center" });
-    showMessage(`已带入${row.department}、当前意见和当前图片，可补充 Issue 标题后提交。`, "ok");
+      mediaLabel: selected ? mediaNameForEdit(selected) : "",
+      mediaUrl: selected?.url || "",
+      mediaPart: part,
+      hasAnnotations: Boolean(selected?.annotations?.length),
+      annotationSnapshot: normalizeAnnotations(selected?.annotations || [])
+    });
   }
 
   async function uploadStyleImage(file) {
@@ -4266,6 +4509,13 @@
         updateStatus();
       }
 
+      const pipelineRoute = event.target.closest("[data-pipeline-route-filter]");
+      if (pipelineRoute) {
+        state.pipelineRouteFilter = pipelineRoute.dataset.pipelineRouteFilter || "";
+        renderPipeline();
+        updateStatus();
+      }
+
       const roadmapToggle = event.target.closest("[data-toggle-roadmap]");
       if (roadmapToggle) {
         const styleId = roadmapToggle.dataset.toggleRoadmap;
@@ -4379,7 +4629,19 @@
       const reviewToIssueButton = event.target.closest("[data-review-to-issue]");
       if (reviewToIssueButton) {
         const rawIndex = reviewToIssueButton.dataset.reviewToIssue;
+        if (!$("#media-lightbox")?.hidden) closeMediaLightbox();
         fillIssueFromReview(rawIndex === undefined || rawIndex === "" ? null : Number(rawIndex));
+      }
+
+      const openIssueModalButton = event.target.closest("#open-issue-modal");
+      if (openIssueModalButton) openIssueModal();
+
+      const editDepartmentReviewButton = event.target.closest("[data-edit-department-review]");
+      if (editDepartmentReviewButton) {
+        const styleKey = currentStyle()?.id || "";
+        if (styleKey) state.selectedReviewTaskKeyByStyle[styleKey] = editDepartmentReviewButton.dataset.editDepartmentReview;
+        renderDepartments();
+        $("#my-review-task")?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
       const scrollMyReviewButton = event.target.closest("[data-scroll-my-review]");
@@ -4390,6 +4652,32 @@
 
       const verifyIssueButton = event.target.closest("[data-verify-issue]");
       if (verifyIssueButton) markIssueReadyForVerification(verifyIssueButton.dataset.verifyIssue);
+
+      const assignIssueButton = event.target.closest("[data-assign-issue]");
+      if (assignIssueButton) {
+        const issue = currentIssues().find((item) => item.id === assignIssueButton.dataset.assignIssue);
+        if (issue) openIssueModal({
+          editingIssueId: issue.id,
+          title: issue.title,
+          description: issue.description,
+          relatedArea: issue.relatedArea,
+          level: issue.level,
+          status: issue.status,
+          fixRequirement: issue.fixRequirement,
+          sourceDepartment: issue.sourceDepartment,
+          sourceReviewerName: issue.sourceReviewerName,
+          ownerDepartment: issue.ownerDepartment || issue.responsibleDepartment || "开发技术部",
+          ownerId: issue.owner || "",
+          mediaId: issue.evidenceMediaId,
+          mediaLabel: issue.evidenceMediaLabel,
+          mediaPart: issue.evidenceMediaPart,
+          hasAnnotations: issue.hasAnnotations,
+          annotationSnapshot: issue.annotationSnapshot || []
+        });
+      }
+
+      const evidenceButton = event.target.closest("[data-open-issue-evidence]");
+      if (evidenceButton) openMediaLightbox(evidenceButton.dataset.openIssueEvidence);
 
       const deleteMediaButton = event.target.closest("[data-delete-media]");
       if (deleteMediaButton) {
@@ -4530,10 +4818,30 @@
       event.preventDefault();
       saveBrandFromForm(event.currentTarget);
     });
+    $("#issue-modal-close").addEventListener("click", closeIssueModal);
+    $("#issue-modal-cancel").addEventListener("click", closeIssueModal);
+    $("#issue-modal").addEventListener("click", (event) => {
+      if (event.target.id === "issue-modal") closeIssueModal();
+    });
+    $("#issue-modal-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      createIssueFromModal(event.currentTarget);
+    });
     document.addEventListener("change", (event) => {
       const operatorSelect = event.target.closest("#current-operator-select");
       if (operatorSelect) {
         state.currentOperatorId = operatorSelect.value;
+        const styleKey = currentStyle()?.id || "";
+        if (styleKey) delete state.selectedReviewTaskKeyByStyle[styleKey];
+        renderAll();
+        return;
+      }
+
+      const pipelineBrandSelect = event.target.closest("#pipeline-brand-filter");
+      if (pipelineBrandSelect) {
+        state.pipelineBrandFilter = pipelineBrandSelect.value;
+        renderPipeline();
+        updateStatus();
         return;
       }
 
@@ -4542,6 +4850,18 @@
         updateRoleTemplate(roleDepartmentSelect.dataset.roleDepartment, (role) => {
           role.department = roleDepartmentSelect.value;
         }, "归属部门已更新");
+      }
+
+      const issueDepartmentSelect = event.target.closest("[data-issue-source-department], [data-issue-owner-department]");
+      if (issueDepartmentSelect) {
+        renderIssueModalPeople();
+        return;
+      }
+
+      const issueLevelSelect = event.target.closest("#issue-modal-form select[name='level']");
+      if (issueLevelSelect) {
+        const form = $("#issue-modal-form");
+        form.elements.shipmentBlocking.checked = ["major", "critical"].includes(issueLevelSelect.value);
       }
     });
 

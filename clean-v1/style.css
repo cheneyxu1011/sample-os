@@ -292,7 +292,64 @@ body.sidebar-collapsed .nav-item {
 .section-toolbar {
   margin-bottom: 12px;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pipeline-filter-bar {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pipeline-filter-select {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 5px;
+}
+
+.pipeline-filter-select select {
+  min-width: 160px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  padding: 0 10px;
+}
+
+.pipeline-route-filter {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.pipeline-route-filter button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 850;
+  padding: 0 10px;
+}
+
+.pipeline-route-filter button.active {
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--accent);
 }
 
 .eyebrow,
@@ -2747,9 +2804,37 @@ textarea:focus {
 
 .issue-form {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 120px 150px 120px;
+  grid-template-columns: minmax(220px, 1fr) 170px 170px 120px;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.issue-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 5px;
+}
+
+.issue-form input,
+.issue-form select {
+  min-height: 38px;
+}
+
+.issue-list-head,
+.issue-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 170px 120px 240px;
+  gap: 12px;
+  align-items: start;
+}
+
+.issue-list-head {
+  padding: 0 12px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .issue-row {
@@ -2757,6 +2842,7 @@ textarea:focus {
   border-radius: 8px;
   padding: 12px;
   background: rgba(255, 255, 255, 0.76);
+  margin-bottom: 10px;
 }
 
 .issue-row.blocked {
@@ -2764,11 +2850,26 @@ textarea:focus {
   background: var(--warn-bg);
 }
 
+.issue-info-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.issue-info-cell small,
 .issue-row strong small {
   display: block;
   color: var(--muted);
   font-weight: 500;
-  margin-top: 4px;
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 850;
+  padding: 0;
+  text-decoration: underline;
 }
 
 .issue-actions,
@@ -2780,6 +2881,73 @@ textarea:focus {
 
 .final-approval-panel {
   margin-top: 16px;
+}
+
+.issue-modal-card {
+  max-width: 920px;
+}
+
+.issue-modal-form {
+  display: grid;
+  gap: 14px;
+}
+
+.issue-modal-form .modal-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.issue-modal-form .modal-section h3,
+.issue-modal-form .modal-section label:has(textarea),
+.issue-modal-form .modal-section .issue-evidence-preview {
+  grid-column: 1 / -1;
+}
+
+.issue-modal-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.issue-modal-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.issue-blocking-check {
+  align-items: center;
+  grid-template-columns: auto 1fr;
+}
+
+.issue-evidence-preview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(246, 247, 249, 0.78);
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 12px;
+  padding: 10px;
+}
+
+.issue-evidence-thumb {
+  width: 112px;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #eaf2ff;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.issue-evidence-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .review-summary-box {
@@ -3967,6 +4135,20 @@ textarea:focus {
 
   .issue-form {
     grid-template-columns: 1fr;
+  }
+
+  .issue-list-head {
+    display: none;
+  }
+
+  .issue-row,
+  .issue-modal-form .modal-section,
+  .issue-evidence-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .issue-evidence-thumb {
+    width: 100%;
   }
 
   .field-grid {
