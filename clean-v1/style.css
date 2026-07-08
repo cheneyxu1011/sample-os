@@ -1247,31 +1247,46 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) minmax(260px, 0.85fr);
-  padding: 18px;
+  gap: 12px;
+  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr) minmax(230px, 0.78fr);
+  padding: 12px;
 }
 
 .review-cover .style-image-upload {
-  min-height: 100%;
+  height: clamp(230px, 19vw, 270px);
+  min-height: 0;
+}
+
+.review-cover .style-image-upload img {
+  min-height: 0;
+}
+
+.review-cover .style-image-action {
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  min-height: 30px;
+  font-size: 12px;
 }
 
 .review-core h2 {
-  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 1.18;
+  margin: 0 0 4px;
 }
 
 .review-core p {
   color: var(--muted);
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
-  margin: 0 0 14px;
+  margin: 0 0 8px;
 }
 
 .review-core dl,
 .review-judgement dl,
 .gate-owner-panel dl {
   display: grid;
-  gap: 10px;
+  gap: 7px;
   margin: 0;
 }
 
@@ -1283,8 +1298,8 @@ h3 {
 .review-judgement div,
 .gate-owner-panel div {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 7px;
+  padding: 7px 8px;
   background: rgba(255, 255, 255, 0.62);
 }
 
@@ -1292,20 +1307,26 @@ h3 {
 .review-judgement dt,
 .gate-owner-panel dt {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 750;
+  line-height: 1.2;
 }
 
 .review-core dd,
 .review-judgement dd,
 .gate-owner-panel dd {
-  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.22;
+  margin: 2px 0 0;
   font-weight: 850;
 }
 
 .review-judgement .status-pill {
   display: inline-flex;
-  margin-bottom: 12px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  min-height: 28px;
+  padding: 5px 10px;
 }
 
 .review-workspace {
