@@ -1843,6 +1843,13 @@ textarea:focus {
   gap: 10px;
 }
 
+.compact-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .upload-choice {
   min-height: 78px;
   font-weight: 850;
@@ -1851,6 +1858,25 @@ textarea:focus {
 .upload-choice:hover {
   border-color: var(--accent);
   background: #eaf4ff;
+}
+
+.compact-upload-choice {
+  min-height: 32px;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: var(--accent);
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 6px 14px rgba(0, 113, 227, 0.18);
+}
+
+.compact-upload-choice:hover {
+  background: var(--accent-2);
 }
 
 .upload-box input,
@@ -1880,14 +1906,15 @@ textarea:focus {
 
 .uploaded-media {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 14px;
+  margin-top: 10px;
+  gap: 16px;
 }
 
 .media-card {
   position: relative;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   background: rgba(255, 255, 255, 0.78);
   box-shadow: var(--shadow-soft);
 }
@@ -1907,10 +1934,34 @@ textarea:focus {
   text-align: left;
 }
 
+.media-card-meta {
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 5px;
+}
+
+.media-card-meta span {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-card-tools {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.media-edit,
 .media-delete {
-  position: absolute;
-  top: 6px;
-  right: 6px;
   width: 24px;
   height: 24px;
   min-height: 0;
@@ -1919,10 +1970,22 @@ textarea:focus {
   border-radius: 999px;
   display: grid;
   place-items: center;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.media-edit {
+  width: auto;
+  padding: 0 8px;
+  color: var(--accent);
+  background: rgba(0, 113, 227, 0.08);
+  font-weight: 850;
+}
+
+.media-delete {
   color: #ffffff;
   background: rgba(29, 29, 31, 0.72);
   font-size: 16px;
-  line-height: 1;
 }
 
 .media-delete:hover {
@@ -1939,17 +2002,29 @@ textarea:focus {
   cursor: zoom-in;
 }
 
-.media-card small {
-  display: block;
-  color: var(--muted);
-  margin-top: 6px;
-  word-break: break-word;
+.media-title {
+  min-height: 28px;
+  padding: 7px 2px 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 820;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-edit-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
 
 .media-name-field {
   display: grid;
   gap: 4px;
-  margin-top: 8px;
 }
 
 .media-name-field span {
@@ -1984,7 +2059,7 @@ textarea:focus {
   place-items: center;
   gap: 12px;
   padding: 32px;
-  background: rgba(7, 17, 21, 0.86);
+  background: rgba(0, 0, 0, 0.78);
   overflow: auto;
 }
 
@@ -2042,6 +2117,7 @@ textarea:focus {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background: transparent;
 }
 
 .annotation-layer polyline {

@@ -17,6 +17,7 @@
     draggingTextAnnotation: null,
     lightboxPan: { x: 0, y: 0 },
     lightboxPanning: null,
+    editingMediaId: "",
     pipelineViewMode: "cards",
     expandedRoadmaps: {},
     uploading: false,
@@ -2013,23 +2014,36 @@
         ? `<video src="${esc(item.url || "")}" controls muted></video>`
         : `<img src="${esc(item.url || "")}" alt="${esc(item.label || item.fileName)}" />`;
       const category = categoryFromLabel(item);
+      const partLabel = mediaPartLabels[category] || "未标注";
+      const title = mediaNameForEdit(item);
+      const editing = state.editingMediaId === item.id;
       const partOptions = Object.entries(mediaPartLabels).map(([value, label]) => `<option value="${esc(value)}" ${category === value ? "selected" : ""}>${esc(label)}</option>`).join("");
       return `
         <article class="media-card ${item.id === state.selectedMediaId ? "selected" : ""}">
-          <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(item.label || item.fileName)}">×</button>
-          <button class="media-open" type="button" data-select-media="${esc(item.id)}" aria-label="选择 ${esc(item.label || item.fileName)}">${media}</button>
-          <label class="media-name-field">
-            <span>部位</span>
-            <select data-media-part-select="${esc(item.id)}">
-              <option value="">未标注</option>
-              ${partOptions}
-            </select>
-          </label>
-          <label class="media-name-field">
-            <span>名称</span>
-            <input data-media-label-input="${esc(item.id)}" value="${esc(mediaNameForEdit(item))}" />
-          </label>
-          <small>${esc(mediaPartLabels[category] || fileCategoryLabels[category] || "评审媒体")} · ${esc(item.uploadedAt || "")}</small>
+          <div class="media-card-meta">
+            <span>${esc(partLabel)} · ${esc(dateText(item.uploadedAt))}</span>
+            <div class="media-card-tools">
+              <button class="media-edit" type="button" data-edit-media="${esc(item.id)}" aria-label="编辑 ${esc(title)}">编辑</button>
+              <button class="media-delete" type="button" data-delete-media="${esc(item.id)}" aria-label="删除 ${esc(title)}">×</button>
+            </div>
+          </div>
+          <button class="media-open" type="button" data-open-media="${esc(item.id)}" aria-label="放大查看 ${esc(title)}">${media}</button>
+          <div class="media-title">${esc(title)}</div>
+          ${editing ? `
+            <div class="media-edit-panel">
+              <label class="media-name-field">
+                <span>部位</span>
+                <select data-media-part-select="${esc(item.id)}">
+                  <option value="">未标注</option>
+                  ${partOptions}
+                </select>
+              </label>
+              <label class="media-name-field">
+                <span>名称</span>
+                <input data-media-label-input="${esc(item.id)}" value="${esc(title)}" />
+              </label>
+            </div>
+          ` : ""}
         </article>
       `;
     }).join("") : '<div class="empty">暂无已上传媒体。</div>';
@@ -2884,7 +2898,8 @@
           <div class="annotation-text-layer" id="annotation-text-layer"></div>
         </div>
       `;
-    $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · ${state.lightboxIndex + 1}/${mediaList.length}`;
+    const part = mediaPartLabels[categoryFromLabel(item)] || "未标注部位";
+    $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · ${part} · ${state.lightboxIndex + 1}/${mediaList.length}`;
     $("#lightbox-prev").disabled = mediaList.length <= 1;
     $("#lightbox-next").disabled = mediaList.length <= 1;
     $("#lightbox-tools").hidden = isVideo;
@@ -3102,6 +3117,8 @@
     const index = mediaList.findIndex((media) => media.id === mediaId);
     if (index < 0) return;
     state.lightboxIndex = index;
+    state.selectedMediaId = mediaId;
+    renderMedia();
     renderLightboxMedia();
     $("#media-lightbox").hidden = false;
     document.body.style.overflow = "hidden";
@@ -3918,6 +3935,14 @@
       const selectMediaButton = event.target.closest("[data-select-media]");
       if (selectMediaButton) {
         state.selectedMediaId = selectMediaButton.dataset.selectMedia;
+        renderMedia();
+      }
+
+      const editMediaButton = event.target.closest("[data-edit-media]");
+      if (editMediaButton) {
+        const mediaId = editMediaButton.dataset.editMedia;
+        state.editingMediaId = state.editingMediaId === mediaId ? "" : mediaId;
+        state.selectedMediaId = mediaId;
         renderMedia();
       }
 
