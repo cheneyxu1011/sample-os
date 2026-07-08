@@ -725,8 +725,30 @@ h3 {
 .style-title {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.style-title h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.style-title h2 strong {
+  font-weight: 700;
+}
+
+.style-title h2 span {
+  font-weight: 500;
+}
+
+.style-name-line {
+  margin: 6px 0 0;
+  color: #5f6368;
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .mobile-pipeline-summary {
@@ -829,12 +851,38 @@ h3 {
 
 .pipeline-row {
   display: grid;
-  grid-template-columns: 110px 110px 120px 136px 240px 120px 120px 120px minmax(220px, 1fr) 82px;
+  grid-template-columns: 210px 120px 136px 240px 120px 120px 120px minmax(220px, 1fr) 82px;
   gap: 10px;
   align-items: center;
-  min-width: 1480px;
+  min-width: 1380px;
   padding: 12px 14px;
   border-top: 1px solid var(--line);
+}
+
+.pipeline-style-identity {
+  display: block;
+  min-width: 0;
+}
+
+.pipeline-style-identity span,
+.pipeline-style-identity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pipeline-style-identity span {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pipeline-style-identity small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .pipeline-row:first-child {

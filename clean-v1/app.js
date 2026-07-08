@@ -44,7 +44,7 @@
     settingsDepartmentFilter: "",
     selectedReviewTaskKeyByStyle: {},
     optionalDepartmentRoleIdsByStyle: {},
-    currentOperator: ""
+    currentOperatorId: ""
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -214,18 +214,6 @@
       name: "生产部",
       roles: ["生产负责人"]
     }
-  ];
-
-  const pipelineOperatorOptions = [
-    "顾瑶",
-    "顾永宏",
-    "大前",
-    "徐海燕",
-    "张部长",
-    "李师傅",
-    "夏师傅",
-    "王部长",
-    "杨总"
   ];
 
   const roleDepartmentOptions = departmentOverviewCards.map((item) => item.name);
@@ -407,21 +395,46 @@
   function renderOperatorSelect() {
     const select = $("#current-operator-select");
     if (!select) return;
-    const current = state.currentOperator || select.value || "";
-    select.innerHTML = `<option value="">请选择人员</option>${pipelineOperatorOptions.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join("")}`;
-    select.value = current;
+    const people = activePeopleList();
+    const current = state.currentOperatorId || select.value || "";
+    const exists = people.some((person) => person.id === current);
+    if (current && !exists) {
+      state.currentOperatorId = "";
+      showMessage("当前操作人已被删除，请重新选择");
+    }
+    select.innerHTML = `<option value="">请选择人员</option>${people.map((person) => (
+      `<option value="${esc(person.id)}">${esc(`${person.name} / ${person.department || "未设置部门"} / ${personRoleLabel(person)}`)}</option>`
+    )).join("")}`;
+    select.value = exists ? current : "";
   }
 
   function requireCurrentOperator() {
-    if (state.currentOperator) return state.currentOperator;
+    const people = activePeopleList();
+    const selected = people.find((person) => person.id === state.currentOperatorId);
+    if (selected) return selected;
     const select = $("#current-operator-select");
     if (select?.value) {
-      state.currentOperator = select.value;
-      return state.currentOperator;
+      const person = people.find((item) => item.id === select.value);
+      if (person) {
+        state.currentOperatorId = person.id;
+        return person;
+      }
     }
     showMessage("请先选择当前操作人");
     select?.focus();
-    return "";
+    return null;
+  }
+
+  function operatorSnapshot(person) {
+    if (!person) return null;
+    return {
+      confirmedById: person.id,
+      confirmedByName: person.name,
+      confirmedByDepartment: person.department || "",
+      confirmedByRole: personRoleLabel(person),
+      confirmedAt: currentTimestamp(),
+      action: "确认"
+    };
   }
 
   function styleById(id) {
@@ -433,12 +446,19 @@
     const hiddenPeople = new Set(state.data?.settings?.hiddenPeople || []);
     const byName = new Map();
     defaultUsers.forEach((user) => {
-      if (!hiddenPeople.has(user.name)) byName.set(user.name, { ...user, isDefaultUser: true });
+      if (!hiddenPeople.has(user.name)) byName.set(user.name, { status: "active", ...user, isDefaultUser: true });
     });
     realUsers.forEach((user) => {
-      if (!hiddenPeople.has(user.name)) byName.set(user.name, { ...user, isDefaultUser: false });
+      if (!hiddenPeople.has(user.name)) byName.set(user.name, { status: user.status || (user.enabled === false ? "inactive" : "active"), ...user, isDefaultUser: false });
     });
     return Array.from(byName.values());
+  }
+
+  function activePeopleList() {
+    return allUsers().filter((user) => {
+      const status = String(user.status || (user.enabled === false ? "inactive" : "active"));
+      return user.enabled !== false && status === "active";
+    });
   }
 
   function hiddenPeopleNames() {
@@ -481,6 +501,11 @@
       "业务负责人": "业务负责人"
     };
     return map[role?.name] || map[name] || name;
+  }
+
+  function personRoleLabel(user) {
+    const roles = assignedRolesForUser(user).map(displayRoleName).filter(Boolean);
+    return roles[0] || user.currentResponsibility || user.role || "未分配角色";
   }
 
   function roleById(roleId) {
@@ -1335,22 +1360,22 @@
     return {
       ...saved,
       createStyle: saved.createStyle || (style?.createdAt ? {
-        confirmedBy: businessOwnerName(style),
+        confirmedByName: businessOwnerName(style),
         confirmedAt: style.createdAt,
         action: "创建"
       } : null),
       preparation: saved.preparation || (workflow.preparationConfirmedAt ? {
-        confirmedBy: workflow.preparationConfirmedBy,
+        confirmedByName: workflow.preparationConfirmedBy,
         confirmedAt: workflow.preparationConfirmedAt,
         action: "确认"
       } : null),
       dispatchSample: saved.dispatchSample || (workflow.sampleDispatchedAt ? {
-        confirmedBy: workflow.sampleDispatchedBy,
+        confirmedByName: workflow.sampleDispatchedBy,
         confirmedAt: workflow.sampleDispatchedAt,
         action: "确认"
       } : null),
       sampleCompleted: saved.sampleCompleted || (workflow.sampleCompletedAt ? {
-        confirmedBy: workflow.sampleCompletedBy,
+        confirmedByName: workflow.sampleCompletedBy,
         confirmedAt: workflow.sampleCompletedAt,
         action: "确认"
       } : null)
@@ -1358,8 +1383,9 @@
   }
 
   function confirmationText(record) {
-    if (!record?.confirmedBy || !record?.confirmedAt) return "";
-    return `${record.confirmedBy}${record.action || "确认"} · ${dateTimeText(record.confirmedAt)}`;
+    const name = record?.confirmedByName || record?.confirmedBy || "";
+    if (!name || !record?.confirmedAt) return "";
+    return `${name}${record.action || "确认"} · ${dateTimeText(record.confirmedAt)}`;
   }
 
   function roadmapNodes(style, sample, review, issues, shipment) {
@@ -1495,13 +1521,13 @@
         ${visual}
         <div class="style-card-main">
           <div class="style-title">
-            <h2>${esc(style.styleName)}</h2>
+            <h2><strong>${esc(style.styleNo || "未填款号")}</strong><span>/ ${esc(style.brand || "未填品牌")}</span></h2>
             <span class="badge ${esc(pipeline.tone)}">${esc(pipeline.label)}</span>
           </div>
-          <p>${esc(style.brand)} / ${esc(style.styleNo)}</p>
+          <p class="style-name-line">${esc(style.styleName || "未填款式名称")}</p>
           ${includeAction ? `
             <div class="mobile-pipeline-summary">
-              <div><strong>${esc(style.styleNo || "未填款号")}</strong><span>${esc(style.brand || "未填品牌")}</span></div>
+              <div><strong>${esc(style.styleNo || "未填款号")} / ${esc(style.brand || "未填品牌")}</strong><span>${esc(style.styleName || "未填款式名称")}</span></div>
               <div class="route-tags"><i>${esc(routeLabel(style))}</i><i class="${esc(routeState.tone)}">${esc(routeState.label)}</i></div>
             </div>
             <div class="pipeline-info-grid">
@@ -1603,7 +1629,7 @@
       $("#pipeline-list").innerHTML = `
         <div class="pipeline-table" role="table" aria-label="紧凑开发流水线">
           <div class="pipeline-row pipeline-row-head" role="row">
-            <span>款号</span><span>品牌</span><span>阶段</span><span>当前 Gate</span><span>状态</span><span>Blocking Issue</span><span>责任人</span><span>预计寄样</span><span>下一步</span><span>操作</span>
+            <span>款号 / 品牌</span><span>阶段</span><span>当前 Gate</span><span>状态</span><span>Blocking Issue</span><span>责任人</span><span>预计寄样</span><span>下一步</span><span>操作</span>
           </div>
           ${styles.map((style) => {
             const sample = state.data?.samples?.find((item) => item.styleId === style.id);
@@ -1614,8 +1640,7 @@
             const counts = pipelineIssueCounts(issues);
             return `
               <div class="pipeline-row" role="row">
-                <strong>${esc(style.styleNo || "未填")}</strong>
-                <span>${esc(style.brand || "未填")}</span>
+                <strong class="pipeline-style-identity"><span>${esc(style.styleNo || "未填款号")} / ${esc(style.brand || "未填品牌")}</span><small>${esc(style.styleName || "未填款式名称")}</small></strong>
                 <span>${esc(sampleStageLabel(style.samplePhase))}</span>
                 <span>${esc(gateLabel(style.currentGate))}</span>
                 <span><i class="pipeline-state ${esc(pipeline.tone)}">${esc(pipeline.label)}</i></span>
@@ -2574,6 +2599,7 @@
       permissions,
       scope,
       enabled: true,
+      status: "active",
       isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
       isFinalApprover: roleIds.includes("final_approver")
     };
@@ -2591,6 +2617,7 @@
       permissions,
       scope: userScopes(user),
       enabled: user.enabled !== false,
+      status: user.status || (user.enabled === false ? "inactive" : "active"),
       isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
       isFinalApprover: roleIds.includes("final_approver")
     };
@@ -2995,24 +3022,24 @@
 
   function confirmPreparation(styleId) {
     const style = styleById(styleId);
-    const actor = requireCurrentOperator();
-    if (!actor) return;
-    const confirmedAt = currentTimestamp();
+    const operator = requireCurrentOperator();
+    if (!operator) return;
+    const record = operatorSnapshot(operator);
     const confirmations = {
       ...nodeConfirmations(style),
-      preparation: { confirmedBy: actor, confirmedAt, action: "确认" }
+      preparation: record
     };
     return updateStyleWorkflow(styleId, {
       nodeConfirmations: confirmations,
-      preparationConfirmedAt: confirmedAt,
-      preparationConfirmedBy: actor,
+      preparationConfirmedAt: record.confirmedAt,
+      preparationConfirmedBy: record.confirmedByName,
       preparationManual: true
     }, {
       currentGate: "sample_dispatch_gate",
       nextAction: "业务负责人派发打样",
       blockerSummary: "",
       persist: false,
-      successMessage: `前期准备已确认：${actor}`
+      successMessage: `前期准备已确认：${record.confirmedByName}`
     });
   }
 
@@ -3020,23 +3047,23 @@
     const style = styleById(styleId);
     const sample = state.data?.samples?.find((item) => item.styleId === style?.id);
     if (!preparationComplete(style, sample)) return showMessage("资料未齐或未确认，不能派发打样。");
-    const actor = requireCurrentOperator();
-    if (!actor) return;
-    const confirmedAt = currentTimestamp();
+    const operator = requireCurrentOperator();
+    if (!operator) return;
+    const record = operatorSnapshot(operator);
     const confirmations = {
       ...nodeConfirmations(style),
-      dispatchSample: { confirmedBy: actor, confirmedAt, action: "确认" }
+      dispatchSample: record
     };
     return updateStyleWorkflow(styleId, {
       nodeConfirmations: confirmations,
-      sampleDispatchedAt: confirmedAt,
-      sampleDispatchedBy: actor
+      sampleDispatchedAt: record.confirmedAt,
+      sampleDispatchedBy: record.confirmedByName
     }, {
       currentGate: "sample_making_gate",
       nextAction: "等待打样反馈人确认打样完成",
       blockerSummary: "",
       persist: false,
-      successMessage: `已派发打样：${actor}`
+      successMessage: `已派发打样：${record.confirmedByName}`
     });
   }
 
@@ -3044,23 +3071,23 @@
     const style = styleById(styleId);
     const workflow = workflowInfo(style);
     if (!workflow.sampleDispatchedAt) return showMessage("请先由业务负责人派发打样。");
-    const actor = requireCurrentOperator();
-    if (!actor) return;
-    const confirmedAt = currentTimestamp();
+    const operator = requireCurrentOperator();
+    if (!operator) return;
+    const record = operatorSnapshot(operator);
     const confirmations = {
       ...nodeConfirmations(style),
-      sampleCompleted: { confirmedBy: actor, confirmedAt, action: "确认" }
+      sampleCompleted: record
     };
     return updateStyleWorkflow(styleId, {
       nodeConfirmations: confirmations,
-      sampleCompletedAt: confirmedAt,
-      sampleCompletedBy: actor
+      sampleCompletedAt: record.confirmedAt,
+      sampleCompletedBy: record.confirmedByName
     }, {
       currentGate: "sample_review_gate",
       nextAction: "进入样衣评审",
       blockerSummary: "",
       persist: false,
-      successMessage: `打样完成已记录：${actor}`
+      successMessage: `打样完成已记录：${record.confirmedByName}`
     });
   }
 
@@ -4430,7 +4457,7 @@
     document.addEventListener("change", (event) => {
       const operatorSelect = event.target.closest("#current-operator-select");
       if (operatorSelect) {
-        state.currentOperator = operatorSelect.value;
+        state.currentOperatorId = operatorSelect.value;
         return;
       }
 
