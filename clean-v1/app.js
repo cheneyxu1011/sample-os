@@ -4215,6 +4215,7 @@
     const selected = reviewMediaList().find((item) => item.id === state.selectedMediaId);
     const part = selected ? (mediaPartLabels[categoryFromLabel(selected)] || "未标注部位") : "未选择图片";
     const reviewer = departmentReviewerNames(row, style)[0] || "";
+    const annotationSnapshot = annotationSnapshotForMedia(selected);
     openIssueModal({
       title: `${row.department}评审问题 - ${part}`,
       description: row.opinion || "",
@@ -4226,8 +4227,8 @@
       mediaLabel: selected ? mediaNameForEdit(selected) : "",
       mediaUrl: selected?.url || "",
       mediaPart: part,
-      hasAnnotations: Boolean(selected?.annotations?.length),
-      annotationSnapshot: normalizeAnnotations(selected?.annotations || [])
+      hasAnnotations: Boolean(annotationSnapshot.length),
+      annotationSnapshot
     });
   }
 

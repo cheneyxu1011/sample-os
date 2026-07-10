@@ -2825,7 +2825,7 @@ textarea:focus {
 .issue-list-head,
 .issue-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 170px 120px 240px;
+  grid-template-columns: 48px minmax(260px, 1fr) 170px 120px 240px;
   gap: 12px;
   align-items: start;
 }
@@ -2850,9 +2850,55 @@ textarea:focus {
   background: var(--warn-bg);
 }
 
+.issue-evidence-button {
+  position: relative;
+  width: 44px;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f3f5;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-weight: 850;
+  justify-self: start;
+  font-size: 11px;
+}
+
+.issue-evidence-button:disabled {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.issue-evidence-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.issue-evidence-button i {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  border-radius: 999px;
+  padding: 2px 4px;
+  background: rgba(20, 20, 20, 0.72);
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+}
+
 .issue-info-cell {
   display: grid;
   gap: 4px;
+}
+
+.issue-fix-requirement {
+  color: var(--ink) !important;
+  font-weight: 760 !important;
 }
 
 .issue-info-cell small,
@@ -3974,61 +4020,36 @@ textarea:focus {
   }
 
   .mobile-menu-button {
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    z-index: 31;
-    width: 40px;
-    height: 40px;
-    min-height: 40px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    background: rgba(255, 255, 255, 0.9);
-    color: var(--ink);
-    box-shadow: var(--shadow-soft);
-    font-size: 20px;
-    font-weight: 900;
-  }
-
-  body.sidebar-drawer-open .mobile-menu-button {
     display: none;
   }
 
   .sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 29;
-    display: block;
-    background: rgba(29, 29, 31, 0.34);
-  }
-
-  .sidebar-backdrop[hidden] {
     display: none;
   }
 
   .sidebar,
   body.sidebar-collapsed .sidebar {
     position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 30;
-    width: min(80vw, 320px);
-    max-width: 320px;
-    padding: 18px 14px;
-    gap: 18px;
-    transform: translateX(-100%);
-    box-shadow: var(--shadow);
-    background: rgba(255, 255, 255, 0.94);
+    inset: auto 10px max(10px, env(safe-area-inset-bottom)) 10px;
+    z-index: 28;
+    width: auto;
+    max-width: none;
+    height: 64px;
+    padding: 6px;
+    gap: 0;
+    transform: none;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 14px 42px rgba(0, 0, 0, 0.16);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    overflow: visible;
   }
 
-  body.sidebar-drawer-open .sidebar {
-    transform: translateX(0);
-  }
-
+  .brand,
   body.sidebar-collapsed .brand {
-    display: flex;
-    justify-items: initial;
+    display: none;
   }
 
   body.sidebar-collapsed .brand-copy,
@@ -4050,21 +4071,54 @@ textarea:focus {
   }
 
   .nav {
-    grid-template-columns: 1fr;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .nav-item,
   body.sidebar-collapsed .nav-item {
-    min-height: 42px;
-    justify-content: flex-start;
-    padding: 8px 10px;
-    text-align: left;
+    min-height: 0;
+    height: 52px;
+    justify-content: center;
+    flex-direction: column;
+    gap: 3px;
+    padding: 5px 4px;
+    text-align: center;
+    border-radius: 14px;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .nav-item.disabled {
+    display: none;
+  }
+
+  .nav-icon {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+    border-radius: 9px;
+    font-size: 12px;
+  }
+
+  .nav-label,
+  body.sidebar-collapsed .nav-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 800;
   }
 
   .main {
     width: 100%;
     min-width: 0;
-    padding: 66px 14px 28px;
+    padding: 18px 14px calc(96px + env(safe-area-inset-bottom));
   }
 
   .topbar,
