@@ -2825,8 +2825,8 @@ textarea:focus {
 .issue-list-head,
 .issue-row {
   display: grid;
-  grid-template-columns: 48px minmax(260px, 1fr) 170px 120px 240px;
-  gap: 12px;
+  grid-template-columns: 124px minmax(260px, 1fr) 170px 120px 240px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -2852,8 +2852,8 @@ textarea:focus {
 
 .issue-evidence-button {
   position: relative;
-  width: 44px;
-  aspect-ratio: 4 / 3;
+  width: clamp(100px, 82%, 120px);
+  aspect-ratio: 1 / 1;
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
@@ -2864,7 +2864,10 @@ textarea:focus {
   cursor: pointer;
   font-weight: 850;
   justify-self: start;
-  font-size: 11px;
+  align-self: stretch;
+  max-height: 120px;
+  min-height: 100px;
+  font-size: 13px;
 }
 
 .issue-evidence-button:disabled {
@@ -2880,13 +2883,13 @@ textarea:focus {
 
 .issue-evidence-button i {
   position: absolute;
-  left: 3px;
-  bottom: 3px;
+  left: 6px;
+  bottom: 6px;
   border-radius: 999px;
-  padding: 2px 4px;
+  padding: 3px 6px;
   background: rgba(20, 20, 20, 0.72);
   color: #fff;
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 850;
 }
