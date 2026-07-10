@@ -2017,15 +2017,23 @@
     $("#issue-list").innerHTML = issues.length ? issues.map((issue) => {
       const blocked = isBlocking(issue);
       const canMarkVerify = issue.status !== "closed" && issue.status !== "pending_verification";
-      const evidenceLabel = issue.evidenceMediaId ? (issue.hasAnnotations ? "已关联标注图" : "已关联图片") : "未关联图片";
+      const evidence = issue.evidenceMediaId ? reviewMediaList().find((media) => String(media.id) === String(issue.evidenceMediaId)) : null;
+      const annotationCount = normalizeAnnotations(issue.annotationSnapshot || []).length;
+      const evidenceLabel = issue.evidenceMediaId ? (annotationCount ? `已关联 ${annotationCount} 条标注` : "已关联图片") : "未关联图片";
       return `
         <article class="issue-row ${blocked ? "blocked" : ""}">
+          <button class="issue-evidence-button" type="button" ${issue.evidenceMediaId ? `data-open-issue-evidence="${esc(issue.id)}"` : "disabled"} aria-label="查看 ${esc(issue.title)} 的证据图">
+            ${evidence?.url ? `<img src="${esc(evidence.url)}" alt="${esc(issue.evidenceMediaLabel || issue.title)}" />` : `<span>${issue.evidenceMediaId ? "IMG" : "无图"}</span>`}
+            ${annotationCount ? `<i>${esc(annotationCount)} 条标注</i>` : ""}
+          </button>
           <div class="issue-info-cell">
             <strong>${esc(issue.title)}</strong>
+            ${issue.description ? `<small>描述：${esc(issue.description)}</small>` : ""}
+            ${issue.fixRequirement ? `<small class="issue-fix-requirement">整改：${esc(issue.fixRequirement)}</small>` : ""}
             <small>发起：${esc(issue.sourceDepartment || "未指定部门")} / ${esc(issue.sourceReviewerName || issue.sourceReviewer || "未指定")}</small>
             <small>责任：${esc(issue.ownerDepartment || issue.responsibleDepartment || "未指定部门")} / ${esc(issue.ownerName || userName(issue.owner) || "未指定")}</small>
             <small>部位：${esc(issue.relatedArea || issue.mediaPart || "未标注部位")}</small>
-            <small>证据：${esc(evidenceLabel)} ${issue.evidenceMediaId ? `<button class="link-button" type="button" data-open-issue-evidence="${esc(issue.id)}">查看标注图</button>` : ""}</small>
+            <small>证据：${esc(evidenceLabel)}</small>
           </div>
           <span class="badge ${blocked ? "blocked" : "ok"}">${esc(levelLabels[issue.level] || issue.level)} / ${blocked ? "阻止寄样" : "不阻止"}</span>
           <span>${esc(statusLabels[issue.status] || issue.status)}</span>
@@ -2116,6 +2124,15 @@
     };
   }
 
+  function annotationSnapshotForMedia(media) {
+    const lightboxOpen = !$("#media-lightbox")?.hidden;
+    const lightboxMedia = reviewMediaList()[state.lightboxIndex];
+    if (lightboxOpen && media?.id && lightboxMedia?.id && String(media.id) === String(lightboxMedia.id)) {
+      return normalizeAnnotations(state.lightboxDraftAnnotations || []);
+    }
+    return normalizeAnnotations(media?.annotations || []);
+  }
+
   function renderIssueEvidencePreview(context = state.issueModalContext || {}) {
     const box = $("#issue-evidence-preview");
     if (!box) return;
@@ -2130,7 +2147,7 @@
       <div>
         <strong>${esc(context.mediaLabel || "当前图片")}</strong>
         <small>部位：${esc(context.mediaPart || "未标注")}</small>
-        <small>${context.hasAnnotations ? "已带入当前图片标注" : "当前图片暂无标注"}</small>
+        <small>${normalizeAnnotations(context.annotationSnapshot || []).length ? `已带入 ${esc(normalizeAnnotations(context.annotationSnapshot || []).length)} 条图片标注` : "当前图片暂无标注"}</small>
       </div>
     `;
   }
