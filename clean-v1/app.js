@@ -1862,9 +1862,6 @@
           <dl>
             <div><dt>原因</dt><dd>${esc(release.reason)}</dd></div>
             <div><dt>下一步</dt><dd>${esc(shipment.nextStep)}</dd></div>
-            <div><dt>Gate Owner</dt><dd>${esc(textOwner(style, review, "gateOwner", "未指定"))}</dd></div>
-            <div><dt>Final Approver</dt><dd>${esc(textOwner(style, review, "finalApprover", "杨总"))}</dd></div>
-            <div><dt>本轮目标</dt><dd>${esc(style.reviewObjective || "确认质量与工艺问题责任人，并判断是否允许寄样")}</dd></div>
           </dl>
         </div>
       </article>
