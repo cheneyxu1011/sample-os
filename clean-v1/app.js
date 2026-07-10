@@ -12,6 +12,7 @@
     lightboxTool: "",
     lightboxZoomIndex: 0,
     lightboxDraftAnnotations: [],
+    lightboxEvidenceContext: null,
     drawingAnnotation: null,
     selectedAnnotationId: null,
     draggingTextAnnotation: null,
@@ -2024,7 +2025,7 @@
             <small>发起：${esc(issue.sourceDepartment || "未指定部门")} / ${esc(issue.sourceReviewerName || issue.sourceReviewer || "未指定")}</small>
             <small>责任：${esc(issue.ownerDepartment || issue.responsibleDepartment || "未指定部门")} / ${esc(issue.ownerName || userName(issue.owner) || "未指定")}</small>
             <small>部位：${esc(issue.relatedArea || issue.mediaPart || "未标注部位")}</small>
-            <small>证据：${esc(evidenceLabel)} ${issue.evidenceMediaId ? `<button class="link-button" type="button" data-open-issue-evidence="${esc(issue.evidenceMediaId)}">查看标注图</button>` : ""}</small>
+            <small>证据：${esc(evidenceLabel)} ${issue.evidenceMediaId ? `<button class="link-button" type="button" data-open-issue-evidence="${esc(issue.id)}">查看标注图</button>` : ""}</small>
           </div>
           <span class="badge ${blocked ? "blocked" : "ok"}">${esc(levelLabels[issue.level] || issue.level)} / ${blocked ? "阻止寄样" : "不阻止"}</span>
           <span>${esc(statusLabels[issue.status] || issue.status)}</span>
@@ -2092,14 +2093,19 @@
     const operator = currentOperatorPerson();
     const sourceDepartment = normalizeIssueDepartment(row?.department || operator?.department || "品质部");
     const sourceReviewerName = operator?.name || departmentReviewerNames(row || {}, style)[0] || "";
+    const lightboxMedia = reviewMediaList()[state.lightboxIndex];
+    const draftAppliesToMedia = media?.id && lightboxMedia?.id && String(media.id) === String(lightboxMedia.id);
+    const draftAnnotations = draftAppliesToMedia ? normalizeAnnotations(state.lightboxDraftAnnotations || []) : [];
+    const mediaAnnotations = normalizeAnnotations(media?.annotations || []);
+    const annotationSnapshot = draftAnnotations.length ? draftAnnotations : mediaAnnotations;
     return {
       mediaId: media?.id || "",
       mediaLabel: media ? mediaNameForEdit(media) : "",
       mediaUrl: media?.url || "",
       mediaPart: media ? (mediaPartLabels[category] || "未标注") : "",
       mediaCategory: category || "",
-      hasAnnotations: Boolean(media?.annotations?.length),
-      annotationSnapshot: normalizeAnnotations(media?.annotations || []),
+      hasAnnotations: Boolean(annotationSnapshot.length),
+      annotationSnapshot,
       reviewRole: row?.role || "",
       sourceDepartment,
       sourceReviewerName,
@@ -3501,7 +3507,12 @@
     const item = mediaList[state.lightboxIndex];
     if (!item?.url) return;
     const isVideo = item.mediaKind === "video" || String(item.mimeType || "").startsWith("video/");
-    state.lightboxDraftAnnotations = normalizeAnnotations(item.annotations || []);
+    const evidenceContext = state.lightboxEvidenceContext && String(state.lightboxEvidenceContext.mediaId) === String(item.id)
+      ? state.lightboxEvidenceContext
+      : null;
+    state.lightboxDraftAnnotations = evidenceContext
+      ? normalizeAnnotations(evidenceContext.annotationSnapshot || [])
+      : normalizeAnnotations(item.annotations || []);
     state.drawingAnnotation = null;
     state.lightboxTool = "";
     state.lightboxZoomIndex = 0;
@@ -3518,10 +3529,11 @@
           <div class="annotation-text-layer" id="annotation-text-layer"></div>
         </div>
       `;
-    const part = mediaPartLabels[categoryFromLabel(item)] || "未标注部位";
-    $("#lightbox-caption").textContent = `${readableMediaLabel(item)} · ${part} · ${state.lightboxIndex + 1}/${mediaList.length}`;
-    $("#lightbox-prev").disabled = mediaList.length <= 1;
-    $("#lightbox-next").disabled = mediaList.length <= 1;
+    const part = evidenceContext?.mediaPart || mediaPartLabels[categoryFromLabel(item)] || "未标注部位";
+    const evidenceLabel = evidenceContext ? "Issue 证据标注" : `${state.lightboxIndex + 1}/${mediaList.length}`;
+    $("#lightbox-caption").textContent = `${evidenceContext?.mediaLabel || readableMediaLabel(item)} · ${part} · ${evidenceLabel}`;
+    $("#lightbox-prev").disabled = Boolean(evidenceContext) || mediaList.length <= 1;
+    $("#lightbox-next").disabled = Boolean(evidenceContext) || mediaList.length <= 1;
     $("#lightbox-tools").hidden = isVideo;
     updateLightboxToolState();
     renderAnnotations();
@@ -3739,6 +3751,30 @@
     state.lightboxIndex = index;
     state.selectedMediaId = mediaId;
     state.selectedMediaIndex = index;
+    state.lightboxEvidenceContext = null;
+    renderMedia();
+    renderLightboxMedia();
+    $("#media-lightbox").hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function openIssueEvidence(issueId) {
+    const issue = currentIssues().find((item) => String(item.id) === String(issueId));
+    const mediaId = issue?.evidenceMediaId;
+    if (!issue || !mediaId) return showMessage("这个 Issue 还没有关联证据图。");
+    const mediaList = reviewMediaList();
+    const index = mediaList.findIndex((media) => String(media.id) === String(mediaId));
+    if (index < 0) return showMessage("没有找到这个 Issue 的关联图片。");
+    state.lightboxIndex = index;
+    state.selectedMediaId = mediaId;
+    state.selectedMediaIndex = index;
+    state.lightboxEvidenceContext = {
+      issueId: issue.id,
+      mediaId,
+      mediaLabel: issue.evidenceMediaLabel || issue.title || mediaNameForEdit(mediaList[index]),
+      mediaPart: issue.evidenceMediaPart || issue.relatedArea || "",
+      annotationSnapshot: normalizeAnnotations(issue.annotationSnapshot || [])
+    };
     renderMedia();
     renderLightboxMedia();
     $("#media-lightbox").hidden = false;
@@ -3751,6 +3787,7 @@
     state.lightboxTool = "";
     state.lightboxZoomIndex = 0;
     state.lightboxDraftAnnotations = [];
+    state.lightboxEvidenceContext = null;
     state.drawingAnnotation = null;
     state.selectedAnnotationId = null;
     state.draggingTextAnnotation = null;
@@ -4626,8 +4663,12 @@
       const reviewToIssueButton = event.target.closest("[data-review-to-issue]");
       if (reviewToIssueButton) {
         const rawIndex = reviewToIssueButton.dataset.reviewToIssue;
-        if (!$("#media-lightbox")?.hidden) closeMediaLightbox();
+        const lightboxWasOpen = !$("#media-lightbox")?.hidden;
         fillIssueFromReview(rawIndex === undefined || rawIndex === "" ? null : Number(rawIndex));
+        if (lightboxWasOpen) {
+          closeMediaLightbox();
+          if (!$("#issue-modal")?.hidden) document.body.style.overflow = "hidden";
+        }
       }
 
       const openIssueModalButton = event.target.closest("#open-issue-modal");
@@ -4674,7 +4715,7 @@
       }
 
       const evidenceButton = event.target.closest("[data-open-issue-evidence]");
-      if (evidenceButton) openMediaLightbox(evidenceButton.dataset.openIssueEvidence);
+      if (evidenceButton) openIssueEvidence(evidenceButton.dataset.openIssueEvidence);
 
       const deleteMediaButton = event.target.closest("[data-delete-media]");
       if (deleteMediaButton) {
