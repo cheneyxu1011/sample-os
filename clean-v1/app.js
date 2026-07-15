@@ -1634,6 +1634,8 @@
       }
     }
     if (releasePill) {
+      releasePill.className = "status-pill";
+      releasePill.textContent = "";
       releasePill.hidden = true;
     }
   }
@@ -4334,7 +4336,11 @@
 
   function initViewFromHash() {
     const viewName = window.location.hash.replace("#", "");
-    if (viewName) switchView(viewName);
+    if (viewName && $(`#${viewName}-view`)) {
+      switchView(viewName);
+      return;
+    }
+    if (!$(".view.active")) switchView("pipeline");
   }
 
   function fillStyleForm(style) {
@@ -5155,6 +5161,7 @@
     window.addEventListener("resize", () => {
       if (!isMobileViewport()) closeSidebarDrawer();
     });
+    window.addEventListener("hashchange", initViewFromHash);
   }
 
   initSidebarState();

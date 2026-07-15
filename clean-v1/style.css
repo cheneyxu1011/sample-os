@@ -4011,15 +4011,29 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
+  html,
   body {
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
+  }
+
+  img,
+  video,
+  iframe,
+  canvas,
+  svg,
+  table {
+    max-width: 100%;
   }
 
   .app-shell,
   body.sidebar-collapsed .app-shell,
   body.sidebar-expanded .app-shell {
     display: block;
+    width: 100%;
     min-width: 0;
+    max-width: 100%;
   }
 
   .mobile-menu-button {
@@ -4121,7 +4135,29 @@ textarea:focus {
   .main {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     padding: 18px 14px calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .main > *,
+  .view,
+  .panel,
+  .style-card,
+  .review-workspace,
+  .settings-grid,
+  .role-template-grid,
+  .department-overview-grid,
+  .calendar-card,
+  .modal-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    min-width: 0;
   }
 
   .topbar,
@@ -4167,6 +4203,35 @@ textarea:focus {
 
   .department-overview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .people-head {
+    display: none;
+  }
+
+  .people-row,
+  .people-row-compact {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .people-row strong,
+  .people-row span,
+  .people-row em,
+  .people-row small,
+  .people-row div {
+    min-width: 0;
+  }
+
+  .row-actions-inline {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .row-actions-inline button {
+    padding: 9px 6px;
+    font-size: 12px;
   }
 
   .department-overview-head {
