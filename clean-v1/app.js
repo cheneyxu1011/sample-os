@@ -49,7 +49,11 @@
     settingsDepartmentFilter: "",
     selectedReviewTaskKeyByStyle: {},
     optionalDepartmentRoleIdsByStyle: {},
-    currentOperatorId: ""
+    currentOperatorId: "",
+    selectedMeasurementPhase: "second_sample",
+    selectedMeasurementPart: "胸围",
+    selectedPatternPart: "",
+    measurementImportName: ""
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -196,6 +200,52 @@
     { id: "juegang_factory", label: "掘港工厂" },
     { id: "shipped", label: "已寄出" },
     { id: "repair_pending", label: "待返修" }
+  ];
+
+  const developmentStages = [
+    { id: "style_init", label: "款式立项", ownerRole: "business_pm" },
+    { id: "sample_making", label: "样衣制作", ownerRole: "sample_feedback_owner" },
+    { id: "measurement_review", label: "尺寸评审", ownerRole: "measurement_reviewer" },
+    { id: "pattern_review", label: "版型评审", ownerRole: "pattern_reviewer" },
+    { id: "process_confirm", label: "工艺确认", ownerRole: "process_reviewer" },
+    { id: "ie_analysis", label: "IE分析", ownerRole: "ie_reviewer" },
+    { id: "bulk_review", label: "大货审查", ownerRole: "production_reviewer" },
+    { id: "factory_handoff", label: "移交Factory OS", ownerRole: "sample_review_gate_owner" }
+  ];
+
+  const measurementSamplePhases = [
+    { id: "first_sample", label: "1st" },
+    { id: "second_sample", label: "2nd" },
+    { id: "sms_sample", label: "SMS" },
+    { id: "pps_sample", label: "PPS" },
+    { id: "top_sample", label: "TOP" }
+  ];
+
+  const measurementReasonOptions = ["纸样问题", "缝制问题", "烫整问题", "面料缩率问题", "测量方式问题", "客户规格疑问", "其他"];
+
+  const measurementBaseRows = [
+    { part: "胸围", standard: 118, plus: 1, minus: 1, method: "平铺测量，腋下 2.5cm 横量", ownerRole: "measurement_reviewer" },
+    { part: "后中衣长", standard: 72, plus: 0.8, minus: 0.8, method: "后领中点至下摆直量", ownerRole: "pattern_reviewer" },
+    { part: "肩宽", standard: 48, plus: 0.7, minus: 0.7, method: "肩点到肩点水平量", ownerRole: "pattern_reviewer" },
+    { part: "袖长", standard: 64, plus: 0.8, minus: 0.8, method: "肩点至袖口外侧量", ownerRole: "measurement_reviewer" },
+    { part: "下摆", standard: 112, plus: 1, minus: 1, method: "下摆自然放平横量", ownerRole: "pattern_reviewer" },
+    { part: "领围", standard: 48, plus: 0.5, minus: 0.5, method: "领口成圈内径量", ownerRole: "process_reviewer" }
+  ];
+
+  const patternTemplate = [
+    { id: "collar", part: "领型", check: "领型是否顺直" },
+    { id: "hood", part: "帽型", check: "帽型是否饱满" },
+    { id: "front_zip", part: "前中", check: "前中拉链是否平服" },
+    { id: "chest_pocket", part: "胸袋", check: "胸袋是否平整" },
+    { id: "armhole", part: "袖笼", check: "袖笼是否顺畅" },
+    { id: "shoulder", part: "肩部", check: "肩部是否平服" },
+    { id: "symmetry", part: "左右对称", check: "左右是否对称" },
+    { id: "hem", part: "下摆", check: "下摆是否起吊" },
+    { id: "rib", part: "下摆螺纹", check: "下摆螺纹是否起皱" },
+    { id: "join", part: "拼接", check: "针织与梭织拼接是否顺直" },
+    { id: "bonding", part: "压胶", check: "压胶位置是否起皱" },
+    { id: "glue", part: "表面风险", check: "是否存在极光、渗胶、压痕" },
+    { id: "mobility", part: "活动量", check: "穿着活动量是否合理" }
   ];
 
   const departmentOverviewCards = [
@@ -1086,6 +1136,447 @@
       return `当前风险：${summary.blocked} 款不可寄样｜${summary.preparation} 款资料未齐｜${summary.overdue} 款交期逾期`;
     }
     return `当前风险：${summary.preparation} 款资料未齐｜${summary.near} 款交期临近｜${summary.exception} 款待例外放行`;
+  }
+
+  function addDaysText(value, offset) {
+    const text = dateOnly(value);
+    if (!text) return "";
+    const [year, month, day] = text.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + offset);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function ownerForRole(style, roleId, fallback = "未指定") {
+    return roleOwnerNames(style, roleId)[0] || fallback;
+  }
+
+  function sampleVersionsForStyle(style = currentStyle()) {
+    const samples = (state.data?.samples || []).filter((sample) => sample.styleId === style?.id);
+    return measurementSamplePhases.map((phase) => {
+      const sample = samples.find((item) => item.samplePhase === phase.id || item.versionName === phase.id);
+      return {
+        ...phase,
+        sample,
+        status: sample?.status || (phase.id === style?.samplePhase ? "current" : "not_started")
+      };
+    });
+  }
+
+  function selectedMeasurementPhase() {
+    const style = currentStyle();
+    const valid = measurementSamplePhases.some((phase) => phase.id === state.selectedMeasurementPhase);
+    if (valid) return state.selectedMeasurementPhase;
+    return style?.samplePhase || "second_sample";
+  }
+
+  function measurementDeltaFor(part, phaseId) {
+    const phaseIndex = measurementSamplePhases.findIndex((phase) => phase.id === phaseId);
+    const seed = String(currentStyle()?.styleNo || part).split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const base = {
+      "胸围": 1.15,
+      "后中衣长": -0.7,
+      "肩宽": 0.45,
+      "袖长": -0.55,
+      "下摆": 0.9,
+      "领围": 0.2
+    }[part] || 0;
+    const correction = Math.max(0, phaseIndex) * 0.22;
+    const direction = base >= 0 ? -1 : 1;
+    const noise = ((seed + phaseIndex * 7) % 5 - 2) * 0.05;
+    return Number((base + direction * correction + noise).toFixed(1));
+  }
+
+  function measurementJudgement(row) {
+    const tolerance = row.deviation >= 0 ? row.plus : row.minus;
+    const abs = Math.abs(row.deviation);
+    if (abs > tolerance) return { label: "不合格", tone: "blocked" };
+    if (abs >= tolerance * 0.75) return { label: "预警", tone: "pending" };
+    return { label: "合格", tone: "ok" };
+  }
+
+  function measurementRows(phaseId = selectedMeasurementPhase()) {
+    return measurementBaseRows.map((base) => {
+      const deviation = measurementDeltaFor(base.part, phaseId);
+      const row = {
+        ...base,
+        measured: Number((base.standard + deviation).toFixed(1)),
+        deviation,
+        reason: deviation > base.plus ? "纸样问题" : deviation < -base.minus ? "缝制问题" : deviation ? "烫整问题" : "",
+        remark: Math.abs(deviation) > Math.min(base.plus, base.minus) ? "下一样次重点复测" : "保持当前数据",
+        remeasure: Math.abs(deviation) >= Math.min(base.plus, base.minus) * 0.75
+      };
+      row.judgement = measurementJudgement(row);
+      return row;
+    });
+  }
+
+  function measurementSummary(rows = measurementRows()) {
+    const pass = rows.filter((row) => row.judgement.label === "合格").length;
+    const warn = rows.filter((row) => row.judgement.label === "预警").length;
+    const fail = rows.filter((row) => row.judgement.label === "不合格").length;
+    return {
+      pass,
+      warn,
+      fail,
+      passRate: rows.length ? Math.round((pass / rows.length) * 100) : 0
+    };
+  }
+
+  function patternRows() {
+    const issues = currentIssues();
+    return patternTemplate.map((item, index) => {
+      const matched = issues.find((issue) => {
+        const text = `${issue.title || ""} ${issue.description || ""} ${issue.relatedArea || ""}`;
+        return text.includes(item.part) || text.includes(item.check.slice(0, 2));
+      });
+      const status = matched
+        ? (isBlocking(matched) ? "重大风险" : "需修改")
+        : (index % 6 === 0 ? "可接受" : "合格");
+      return {
+        ...item,
+        status,
+        issue: matched,
+        owner: matched?.ownerName || ownerForRole(currentStyle(), "pattern_reviewer", "徐海燕"),
+        dueDate: matched?.dueDate || addDaysText(plannedDate(currentStyle(), currentSample()), -1),
+        verify: ["需修改", "重大风险"].includes(status) ? "下一样次必须复验" : "常规确认"
+      };
+    });
+  }
+
+  function patternTone(status) {
+    if (status === "合格") return "ok";
+    if (status === "可接受") return "pending";
+    if (status === "不适用") return "neutral";
+    return "blocked";
+  }
+
+  function developmentStageRows(style, sample, review, issues) {
+    const shipment = computeShipmentState(style, sample, review, issues);
+    const createdAt = style?.createdAt || sample?.createdAt || new Date().toISOString().slice(0, 10);
+    const phaseIndex = measurementSamplePhases.findIndex((phase) => phase.id === style?.samplePhase);
+    const currentIndex = shipment.release === "ready_to_send" ? 7 : Math.max(2, phaseIndex + 2);
+    return developmentStages.map((stage, index) => {
+      const status = index < currentIndex ? "已完成" : index === currentIndex ? "进行中" : "待开始";
+      const planDate = addDaysText(createdAt, index * 2) || plannedDate(style, sample);
+      const actualDate = status === "已完成" ? addDaysText(createdAt, index) : "";
+      return {
+        ...stage,
+        status,
+        planDate,
+        actualDate,
+        owner: ownerForRole(style, stage.ownerRole, index < 2 ? textOwner(style, review, "gateOwner", "未指定") : "未指定"),
+        overdue: status !== "已完成" && overdueDays(planDate) > 0
+      };
+    });
+  }
+
+  function renderStyleHeaderCard(style, sample, review, issues) {
+    const cover = findStyleCover(sample);
+    const shipment = computeShipmentState(style, sample, review, issues);
+    const release = releaseStatusCopy(shipment, issues);
+    return `
+      <section class="style-command-card panel">
+        <div class="command-cover">
+          ${cover?.url ? `<img src="${esc(cover.url)}" alt="${esc(style?.styleNo || "款式主图")}" />` : `<span>请上传样衣正面图</span>`}
+        </div>
+        <div class="command-main">
+          <span class="command-kicker">Style ID · ${esc(style?.id || style?.externalRef || "未保存")}</span>
+          <h2>${esc(style?.styleNo || "未填款号")} / ${esc(style?.styleName || "未填款式名称")}</h2>
+          <div class="command-meta-grid">
+            <span>品牌<strong>${esc(style?.brand || "未填品牌")}</strong></span>
+            <span>季节<strong>${esc(style?.season || "未设置")}</strong></span>
+            <span>客户交期<strong>${esc(style?.customerDeadline || "未设置")}</strong></span>
+            <span>目标工厂<strong>${esc(sample?.location || style?.sampleLocation || "未设置")}</strong></span>
+            <span>当前阶段<strong>${esc(gateLabel(style?.currentGate))}</strong></span>
+            <span>开发负责人<strong>${esc(ownerForRole(style, "business_pm", "未指定"))}</strong></span>
+            <span>版师<strong>${esc(ownerForRole(style, "pattern_reviewer", "未指定"))}</strong></span>
+            <span>工艺负责人<strong>${esc(ownerForRole(style, "process_reviewer", "未指定"))}</strong></span>
+            <span>IE负责人<strong>${esc(ownerForRole(style, "ie_reviewer", "未指定"))}</strong></span>
+          </div>
+        </div>
+        <aside class="command-side">
+          <span class="status-pill ${release.tone}">${esc(release.title)}</span>
+          <strong>${esc(release.reason)}</strong>
+          <small>${esc(shipment.nextStep)}</small>
+        </aside>
+      </section>
+    `;
+  }
+
+  function renderStageProgress(stages) {
+    return `
+      <section class="panel stage-progress-panel">
+        <div class="panel-head compact">
+          <div>
+            <h2>开发阶段进度</h2>
+            <p>围绕同一个 Style ID 推进尺寸、版型、工艺、IE 和大货移交。</p>
+          </div>
+        </div>
+        <div class="stage-progress-strip">
+          ${stages.map((stage, index) => `
+            <article class="stage-step ${stage.status === "已完成" ? "complete" : stage.status === "进行中" ? "current" : ""} ${stage.overdue ? "overdue" : ""}">
+              <span>${index + 1}</span>
+              <strong>${esc(stage.label)}</strong>
+              <small>${esc(stage.status)} · ${esc(stage.owner)}</small>
+              <em>计划 ${esc(stage.planDate || "未设置")}｜实际 ${esc(stage.actualDate || "未完成")}</em>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function topIssuesFor(keyword, limit = 5) {
+    return currentIssues()
+      .filter((issue) => !keyword || `${issue.title || ""} ${issue.description || ""} ${issue.relatedArea || ""}`.includes(keyword))
+      .slice(0, limit);
+  }
+
+  function renderTopList(title, items, fallback) {
+    return `
+      <section class="panel top-list-card">
+        <h3>${esc(title)}</h3>
+        <div class="top-list">
+          ${items.length ? items.map((item) => `
+            <article>
+              <strong>${esc(item.title || item.check || item.part || item)}</strong>
+              <small>${esc(item.description || item.status || item.remark || "")}</small>
+            </article>
+          `).join("") : `<div class="compact-empty">${esc(fallback)}</div>`}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderStyleOverview() {
+    const root = $("#overview-dashboard");
+    if (!root) return;
+    const style = currentStyle();
+    const sample = currentSample();
+    const review = currentReview();
+    const issues = currentIssues();
+    if (!style) {
+      root.classList.remove("skeleton");
+      root.innerHTML = '<div class="empty">暂无款式数据。</div>';
+      return;
+    }
+    const measurement = measurementSummary();
+    const patterns = patternRows();
+    const stages = developmentStageRows(style, sample, review, issues);
+    const completeRate = Math.round((stages.filter((stage) => stage.status === "已完成").length / stages.length) * 100);
+    const docs = styleDocumentList(style, sample);
+    const media = reviewMediaList();
+    const riskItems = issues.filter((issue) => issue.status !== "closed");
+    root.classList.remove("skeleton");
+    root.innerHTML = `
+      <div class="development-dashboard">
+        ${renderStyleHeaderCard(style, sample, review, issues)}
+        ${renderStageProgress(stages)}
+        <section class="metric-grid">
+          ${[
+            ["整体开发完成率", `${completeRate}%`, "已完成阶段 / 全流程"],
+            ["尺寸合格率", `${measurement.passRate}%`, `${measurement.pass} 合格 / ${measurement.fail} 不合格`],
+            ["版型问题数量", patterns.filter((item) => ["需修改", "重大风险"].includes(item.status)).length, "固定模板检查"],
+            ["工艺待确认数量", topIssuesFor("工艺").length, "来自当前 Issue"],
+            ["IE瓶颈工序数量", topIssuesFor("IE").length, "来自当前 Issue"],
+            ["当前风险数量", riskItems.length, "未关闭风险"]
+          ].map(([label, value, note]) => `<article class="metric-card"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(note)}</small></article>`).join("")}
+        </section>
+        <section class="sample-version-strip panel">
+          <h2>样衣版本列表</h2>
+          <div>
+            ${sampleVersionsForStyle(style).map((version) => `<span class="${version.sample ? "ready" : ""}">${esc(version.label)}<small>${esc(version.sample?.location || "未建样次")}</small></span>`).join("")}
+          </div>
+        </section>
+        <div class="overview-grid">
+          ${renderTopList("尺寸关键问题 Top 5", measurementRows().filter((row) => row.judgement.label !== "合格").slice(0, 5), "暂无尺寸异常")}
+          ${renderTopList("版型关键问题 Top 5", patterns.filter((row) => ["需修改", "重大风险"].includes(row.status)).slice(0, 5), "暂无版型重大异常")}
+          ${renderTopList("工艺待确认 Top 5", topIssuesFor("工艺"), "暂无工艺待确认")}
+          ${renderTopList("IE瓶颈工序 Top 5", topIssuesFor("IE"), "暂无 IE 瓶颈")}
+          ${renderTopList("风险预警 Top 5", riskItems.slice(0, 5), "暂无未关闭风险")}
+          ${renderTopList("相关文件", docs.slice(0, 5).map((doc) => ({ title: doc.fileName, status: fileCategoryLabels[doc.category] || doc.category })), "暂无文件")}
+        </div>
+        <section class="panel media-preview-panel">
+          <div class="panel-head compact"><h2>样衣照片</h2><span>${esc(media.length)} 个媒体</span></div>
+          <div class="media-preview-row">
+            ${media.slice(0, 6).map((item) => item.url ? `<img src="${esc(item.url)}" alt="${esc(item.fileName)}" />` : `<span>${esc(item.fileName)}</span>`).join("") || '<div class="compact-empty">暂无样衣照片</div>'}
+          </div>
+        </section>
+        <section class="panel next-task-card">
+          <span>下一个关键任务</span>
+          <strong>${esc(computeShipmentState(style, sample, review, issues).nextStep)}</strong>
+        </section>
+      </div>
+    `;
+  }
+
+  function renderMeasurementReview() {
+    const root = $("#measurement-dashboard");
+    if (!root) return;
+    const style = currentStyle();
+    const sample = currentSample();
+    if (!style) {
+      root.classList.remove("skeleton");
+      root.innerHTML = '<div class="empty">暂无款式数据。</div>';
+      return;
+    }
+    const phaseId = selectedMeasurementPhase();
+    const rows = measurementRows(phaseId);
+    const selected = rows.find((row) => row.part === state.selectedMeasurementPart) || rows[0];
+    state.selectedMeasurementPart = selected?.part || "";
+    const history = measurementSamplePhases.map((phase) => {
+      const row = measurementRows(phase.id).find((item) => item.part === state.selectedMeasurementPart);
+      return { phase: phase.label, measured: row?.measured, deviation: row?.deviation, judgement: row?.judgement };
+    });
+    root.classList.remove("skeleton");
+    root.innerHTML = `
+      <div class="business-workspace measurement-workspace">
+        ${renderStyleHeaderCard(style, sample, currentReview(), currentIssues())}
+        <div class="workspace-grid">
+          <aside class="panel sample-phase-panel">
+            <h2>样次列表</h2>
+            ${measurementSamplePhases.map((phase) => `<button class="${phase.id === phaseId ? "active" : ""}" type="button" data-measurement-phase="${esc(phase.id)}">${esc(phase.label)}</button>`).join("")}
+            <label class="import-box">
+              <input id="measurement-import-input" type="file" accept=".xls,.xlsx,.csv" />
+              <span>导入Excel尺寸表</span>
+              <small>${esc(state.measurementImportName || "未导入文件")}</small>
+            </label>
+            <button class="secondary-button" type="button" id="measurement-export">导出当前样次</button>
+          </aside>
+          <section class="panel measurement-table-panel">
+            <div class="panel-head compact">
+              <div>
+                <h2>${esc(measurementSamplePhases.find((phase) => phase.id === phaseId)?.label || "当前样次")} 尺寸评审</h2>
+                <p>偏差值 = 实测值 - 客户标准值，自动按公差判断。</p>
+              </div>
+              <span class="status-pill ok">合格率 ${esc(measurementSummary(rows).passRate)}%</span>
+            </div>
+            <div class="measurement-table">
+              <div class="measurement-row measurement-head">
+                <span>部位名称</span><span>客户标准值</span><span>正公差</span><span>负公差</span><span>实测值</span><span>偏差值</span><span>判定</span><span>问题原因</span><span>测量照片</span><span>备注</span><span>复测</span>
+              </div>
+              ${rows.map((row) => `
+                <button class="measurement-row ${row.part === state.selectedMeasurementPart ? "active" : ""}" type="button" data-measurement-part="${esc(row.part)}">
+                  <span>${esc(row.part)}</span><span>${esc(row.standard)}</span><span>+${esc(row.plus)}</span><span>-${esc(row.minus)}</span><span>${esc(row.measured)}</span><span>${esc(row.deviation > 0 ? `+${row.deviation}` : row.deviation)}</span><span><i class="status-pill ${row.judgement.tone}">${esc(row.judgement.label)}</i></span><span>${esc(row.reason || "-")}</span><span>${reviewMediaList()[0]?.url ? "已关联" : "待上传"}</span><span>${esc(row.remark)}</span><span>${row.remeasure ? "是" : "否"}</span>
+                </button>
+              `).join("")}
+            </div>
+          </section>
+          <aside class="panel measurement-detail-panel">
+            <h2>${esc(selected.part)} 详情</h2>
+            <div class="measurement-trend">
+              ${history.map((item) => `<span class="${item.judgement?.tone || ""}"><strong>${esc(item.phase)}</strong><em>${esc(item.deviation > 0 ? `+${item.deviation}` : item.deviation)}</em></span>`).join("")}
+            </div>
+            <dl class="detail-list">
+              <div><dt>测量方法</dt><dd>${esc(selected.method)}</dd></div>
+              <div><dt>责任人</dt><dd>${esc(ownerForRole(style, selected.ownerRole, "徐海燕"))}</dd></div>
+              <div><dt>改善要求</dt><dd>${esc(selected.remeasure ? "修正纸样/工艺后下一样次复测" : "保持当前尺寸控制")}</dd></div>
+              <div><dt>问题照片</dt><dd>${esc(reviewMediaList()[0]?.fileName || "暂无关联照片")}</dd></div>
+            </dl>
+          </aside>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPatternReview() {
+    const root = $("#pattern-dashboard");
+    if (!root) return;
+    const style = currentStyle();
+    const sample = currentSample();
+    if (!style) {
+      root.classList.remove("skeleton");
+      root.innerHTML = '<div class="empty">暂无款式数据。</div>';
+      return;
+    }
+    const rows = patternRows();
+    const parts = Array.from(new Set(rows.map((row) => row.part)));
+    const selectedPart = state.selectedPatternPart;
+    const visibleRows = selectedPart ? rows.filter((row) => row.part === selectedPart) : rows;
+    root.classList.remove("skeleton");
+    root.innerHTML = `
+      <div class="business-workspace pattern-workspace">
+        ${renderStyleHeaderCard(style, sample, currentReview(), currentIssues())}
+        <div class="workspace-grid pattern-grid">
+          <aside class="panel garment-map-panel">
+            <h2>服装部位</h2>
+            <div class="garment-map" aria-label="服装部位筛选">
+              ${parts.map((part) => `<button class="${part === selectedPart ? "active" : ""}" type="button" data-pattern-part="${esc(part)}">${esc(part)}</button>`).join("")}
+              <button class="${!selectedPart ? "active" : ""}" type="button" data-pattern-part="">全部</button>
+            </div>
+          </aside>
+          <section class="panel pattern-check-panel">
+            <div class="panel-head compact">
+              <div>
+                <h2>冲锋衣关键版型模板</h2>
+                <p>固定检查项：合格、可接受、需修改、重大风险、不适用。</p>
+              </div>
+            </div>
+            <div class="pattern-check-list">
+              ${visibleRows.map((row) => `
+                <article class="pattern-check-row ${patternTone(row.status)}">
+                  <div>
+                    <span>${esc(row.part)}</span>
+                    <strong>${esc(row.check)}</strong>
+                    <small>${esc(row.issue?.description || "固定版型检查记录")}</small>
+                  </div>
+                  <span class="status-pill ${patternTone(row.status)}">${esc(row.status)}</span>
+                  <dl>
+                    <div><dt>责任人</dt><dd>${esc(row.owner)}</dd></div>
+                    <div><dt>计划完成</dt><dd>${esc(row.dueDate || "未设置")}</dd></div>
+                    <div><dt>验证要求</dt><dd>${esc(row.verify)}</dd></div>
+                  </dl>
+                </article>
+              `).join("")}
+            </div>
+          </section>
+          <aside class="panel pattern-risk-panel">
+            <h2>异常关联</h2>
+            ${visibleRows.filter((row) => ["需修改", "重大风险"].includes(row.status)).map((row) => `
+              <article>
+                <strong>${esc(row.part)} · ${esc(row.status)}</strong>
+                <small>检查部位：${esc(row.check)}</small>
+                <small>样衣定位：${esc(reviewMediaList()[0]?.fileName || "待关联照片")}</small>
+                <small>修改建议：${esc(row.issue?.fixRequirement || "下一样次验证关键位置")}</small>
+              </article>
+            `).join("") || '<div class="compact-empty">当前筛选下暂无异常。</div>'}
+          </aside>
+        </div>
+      </div>
+    `;
+  }
+
+  function exportMeasurementCsv() {
+    const style = currentStyle();
+    const phase = measurementSamplePhases.find((item) => item.id === selectedMeasurementPhase());
+    const rows = measurementRows();
+    const header = ["Style ID", "款号", "样次", "部位名称", "客户标准值", "正公差", "负公差", "实测值", "偏差值", "自动判定结果", "问题原因", "备注", "下一样次是否需要复测"];
+    const lines = rows.map((row) => [
+      style?.id || "",
+      style?.styleNo || "",
+      phase?.label || "",
+      row.part,
+      row.standard,
+      row.plus,
+      row.minus,
+      row.measured,
+      row.deviation,
+      row.judgement.label,
+      row.reason,
+      row.remark,
+      row.remeasure ? "是" : "否"
+    ]);
+    const csv = [header, ...lines].map((line) => line.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${style?.styleNo || "sample-os"}-${phase?.label || "measurement"}-尺寸评审.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 
   function daysUntilDate(dateKey) {
@@ -2999,6 +3490,9 @@
 
   function renderAll() {
     renderOperatorSelect();
+    renderStyleOverview();
+    renderMeasurementReview();
+    renderPatternReview();
     renderPipeline();
     renderReviewSummary();
     renderDepartments();
@@ -4340,7 +4834,7 @@
       switchView(viewName);
       return;
     }
-    if (!$(".view.active")) switchView("pipeline");
+    if (!$(".view.active")) switchView("overview");
   }
 
   function fillStyleForm(style) {
@@ -4551,6 +5045,33 @@
 
       const nav = event.target.closest("[data-view]");
       if (nav) switchView(nav.dataset.view);
+
+      const measurementPhase = event.target.closest("[data-measurement-phase]");
+      if (measurementPhase) {
+        state.selectedMeasurementPhase = measurementPhase.dataset.measurementPhase || "second_sample";
+        renderMeasurementReview();
+        return;
+      }
+
+      const measurementPart = event.target.closest("[data-measurement-part]");
+      if (measurementPart) {
+        state.selectedMeasurementPart = measurementPart.dataset.measurementPart || "";
+        renderMeasurementReview();
+        return;
+      }
+
+      const measurementExport = event.target.closest("#measurement-export");
+      if (measurementExport) {
+        exportMeasurementCsv();
+        return;
+      }
+
+      const patternPart = event.target.closest("[data-pattern-part]");
+      if (patternPart) {
+        state.selectedPatternPart = patternPart.dataset.patternPart || "";
+        renderPatternReview();
+        return;
+      }
 
       const roadmapNode = event.target.closest("[data-roadmap-action]");
       if (roadmapNode) {
@@ -4890,6 +5411,13 @@
       createIssueFromModal(event.currentTarget);
     });
     document.addEventListener("change", (event) => {
+      const measurementImport = event.target.closest("#measurement-import-input");
+      if (measurementImport) {
+        state.measurementImportName = measurementImport.files?.[0]?.name || "";
+        renderMeasurementReview();
+        return;
+      }
+
       const operatorSelect = event.target.closest("#current-operator-select");
       if (operatorSelect) {
         state.currentOperatorId = operatorSelect.value;

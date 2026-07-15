@@ -20,29 +20,32 @@
           <button class="sidebar-toggle" type="button" id="sidebar-toggle" aria-label="收起侧栏" title="收起侧栏">‹</button>
         </div>
         <nav class="nav" aria-label="主导航">
-          <button class="nav-item active" type="button" data-view="pipeline" title="开发流水线"><span class="nav-icon">P</span><span class="nav-label">开发流水线</span></button>
-          <button class="nav-item" type="button" data-view="review" title="样衣评审"><span class="nav-icon">R</span><span class="nav-label">样衣评审</span></button>
-          <button class="nav-item" type="button" data-view="calendar" title="样衣日历"><span class="nav-icon">C</span><span class="nav-label">样衣日历</span></button>
-          <button class="nav-item" type="button" data-view="settings" title="设置"><span class="nav-icon">S</span><span class="nav-label">设置</span></button>
-          <button class="nav-item disabled" type="button" disabled title="转大货交接"><span class="nav-icon">H</span><span class="nav-label">转大货交接</span></button>
-          <button class="nav-item disabled" type="button" disabled title="沟通入口"><span class="nav-icon">M</span><span class="nav-label">沟通入口</span></button>
+          <button class="nav-item active" type="button" data-view="overview" title="款式总览"><span class="nav-icon">O</span><span class="nav-label">款式总览</span></button>
+          <button class="nav-item" type="button" data-view="measurement" title="尺寸评审"><span class="nav-icon">M</span><span class="nav-label">尺寸评审</span></button>
+          <button class="nav-item" type="button" data-view="pattern" title="关键版型"><span class="nav-icon">P</span><span class="nav-label">关键版型</span></button>
+          <button class="nav-item disabled" type="button" disabled title="工艺与参数"><span class="nav-icon">G</span><span class="nav-label">工艺与参数</span></button>
+          <button class="nav-item disabled" type="button" disabled title="IE工序分析"><span class="nav-icon">I</span><span class="nav-label">IE工序分析</span></button>
+          <button class="nav-item disabled" type="button" disabled title="大货审查"><span class="nav-icon">B</span><span class="nav-label">大货审查</span></button>
+          <button class="nav-item disabled" type="button" disabled title="开发时间轴"><span class="nav-icon">T</span><span class="nav-label">开发时间轴</span></button>
+          <button class="nav-item disabled" type="button" disabled title="Issue管理"><span class="nav-icon">!</span><span class="nav-label">Issue管理</span></button>
+          <button class="nav-item disabled" type="button" disabled title="文件中心"><span class="nav-icon">F</span><span class="nav-label">文件中心</span></button>
         </nav>
       </aside>
 
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">样衣开发 / 评审 / 寄样放行</p>
-            <h1 id="view-title">开发流水线</h1>
+            <p class="eyebrow">安踏 / 迪桑特开发阶段管理</p>
+            <h1 id="view-title">款式总览</h1>
           </div>
           <div class="top-actions">
-            <label class="operator-select view-action" data-hide-on="review calendar settings">
+            <label class="operator-select view-action" data-hide-on="calendar settings">
               <span>当前操作人</span>
               <select id="current-operator-select">
                 <option value="">请选择人员</option>
               </select>
             </label>
-            <button class="primary-button view-action" type="button" id="new-style-button" data-hide-on="review calendar settings">新建款式</button>
+            <button class="primary-button view-action" type="button" id="new-style-button" data-hide-on="measurement pattern review calendar settings">新建款式</button>
             <button class="secondary-button view-action ghost-action" type="button" id="reload-data" data-hide-on="pipeline review calendar settings">刷新数据</button>
             <div class="status-stack view-action" data-hide-on="settings" aria-live="polite">
               <div class="status-pill" id="risk-pill">风险：读取中</div>
@@ -54,7 +57,19 @@
         <div class="banner" id="message-banner" hidden></div>
         <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
-        <section class="view active" id="pipeline-view" data-title="开发流水线">
+        <section class="view active" id="overview-view" data-title="款式总览">
+          <div id="overview-dashboard" class="skeleton">正在加载款式总览...</div>
+        </section>
+
+        <section class="view" id="measurement-view" data-title="尺寸评审">
+          <div id="measurement-dashboard" class="skeleton">正在加载尺寸评审...</div>
+        </section>
+
+        <section class="view" id="pattern-view" data-title="关键版型">
+          <div id="pattern-dashboard" class="skeleton">正在加载关键版型...</div>
+        </section>
+
+        <section class="view" id="pipeline-view" data-title="开发流水线">
           <div class="section-toolbar">
             <div class="pipeline-filter-bar" aria-label="开发流水线筛选">
               <label class="pipeline-filter-select">品牌
