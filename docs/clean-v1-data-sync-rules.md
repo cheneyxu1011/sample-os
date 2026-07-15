@@ -24,6 +24,64 @@ S3 is the source of truth for binary media only:
 
 The browser must not store permanent business data except short-lived UI state.
 
+## Global Data Collaboration Contract
+
+Sample OS must behave as one connected operating system. Any future change made by the user or by Codex must assume full data linkage by default.
+
+One business fact may have many views, but only one source and one meaning:
+
+- Style identity, customer deadline, brand, season, sample phase, route, location, owner, stage, next action, and release state are shared style/sample facts.
+- Measurement values, tolerance results, selected sample phase, remeasure requirement, reason, and evidence must affect the style summary, Issue risk, review decision, and later bulk review where relevant.
+- Pattern checks, process checks, IE bottlenecks, and bulk review results must create or update shared Issue/risk/status data instead of living only inside their page.
+- Media and files are shared attachments. A file uploaded in one page must be discoverable from the style overview, review media, file center, and any linked Issue where relevant.
+- Roles and people are shared assignments. A new person, role assignment, or owner change must be reflected in the overview header, review cards, task ownership, filters, and settings.
+- Timeline entries are shared audit facts. Any meaningful workflow change should be represented in `audit_events` or a dedicated timeline source so later pages do not have to infer history from UI state.
+
+No new feature is allowed to keep its own private copy of shared data. Local UI state is allowed only for temporary controls such as the active tab, selected filter, unsaved draft text, or the name of a file before it is uploaded.
+
+## Change Impact Rule
+
+Before adding or changing any field, button, status, table, upload category, Issue type, role, page, or API action, Codex must write down the impacted entities and verify the matching pages.
+
+Required impact checklist:
+
+1. Identify the canonical entity: `style`, `sample`, `review`, `departmentReview`, `issue`, `media`, `person`, `roleTemplate`, `setting`, `auditEvent`, or future dedicated table.
+2. Identify the canonical writer: existing `POST /api/sampleos/sync`, media upload APIs, create/delete style APIs, or a new explicit API action.
+3. Identify all readers: 款式总览, 尺寸评审, 关键版型, 工艺与参数, IE工序分析, 大货审查, 开发时间轴, Issue管理, 文件中心, plus the old hidden pipeline/review/calendar/settings pages when they still rely on the same data.
+4. Define the refresh rule: after a successful write, reload `GET /api/sampleos/snapshot-p0` and render from the server response.
+5. Define the failure rule: if persistence fails, show a visible error and do not pretend the local screen is saved.
+6. Define the mobile rule: every affected page must still work at a narrow mobile width without page-level horizontal overflow.
+7. Define the deployment risk: if the feature is only partly linked or partly persisted, document it in the final response before shipping.
+
+If a new change cannot pass this checklist, it is a prototype only and must not be treated as production-ready Sample OS behavior.
+
+## Derived State Rule
+
+Status badges, risk counts, progress bars, release decisions, Top lists, and next actions are derived data. They must be calculated from shared entities instead of manually maintained per page.
+
+Canonical derived rules:
+
+- Development progress derives from style/sample/review/issue/audit data.
+- Shipment release derives from preparation completeness, department reviews, blocking Issues, final decision, owner assignment, and overdue planned ship date.
+- Measurement pass rate derives from measurement rows and tolerance rules.
+- Pattern/process/IE/bulk risk counts derive from shared checks and Issues.
+- Calendar risk derives from the same style/sample/review/issue state used by overview and review pages.
+- File counts derive from `sample_media` metadata and recognized categories.
+
+Do not add page-only counters or page-only status strings if the same meaning must appear elsewhere.
+
+## New Data Field Rule
+
+Every new data field must be classified before implementation:
+
+- Permanent business data: add or map to Supabase, sync API, snapshot response, and reload verification.
+- Binary file data: store in S3 only, then store metadata in Supabase.
+- Workflow history: store in `audit_events` or a future timeline table.
+- UI preference: keep in local state only if it does not affect business truth.
+- Temporary draft: keep local until the user saves; after save it must become permanent business data.
+
+When a field is temporarily stored in `audit_events.detail` because the schema has no dedicated column yet, the doc or code comment must name the future dedicated column/table expected later.
+
 ## Read Flow
 
 1. Page loads.
