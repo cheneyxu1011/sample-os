@@ -56,7 +56,8 @@
     selectedMeasurementPhase: "second_sample",
     selectedMeasurementPart: "胸围",
     selectedPatternPart: "",
-    measurementImportName: ""
+    measurementImportName: "",
+    sampleDemandOpen: false
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -183,7 +184,7 @@
     blocked_by_department_review: "禁止寄样：部门未评审完成",
     blocked_by_owner_missing: "禁止寄样：责任人未指定",
     blocked_by_preparation: "禁止寄样：评审资料未齐全",
-    overdue_pending_confirm: "寄样日期已逾期，需重新确认"
+    overdue_pending_confirm: "样衣日期已逾期，需重新确认"
   };
 
   const defaultBrands = [
@@ -193,16 +194,21 @@
   ];
 
   const defaultSampleLocations = [
-    { id: "development_workshop", label: "开发车间" },
-    { id: "sample_room", label: "样衣间" },
-    { id: "rudong_factory", label: "如东工厂" },
-    { id: "xinchangjiang_factory", label: "新长江工厂" },
-    { id: "office", label: "事务所" },
-    { id: "wanhang_factory", label: "万航工厂" },
-    { id: "outsourcing_factory", label: "外协工厂" },
-    { id: "juegang_factory", label: "掘港工厂" },
-    { id: "shipped", label: "已寄出" },
-    { id: "repair_pending", label: "待返修" }
+    { id: "office_sample_room", label: "事务所样衣间" },
+    { id: "xinchangjiang_sample_room", label: "新长江样衣间" },
+    { id: "rudong_sample_room", label: "如东样衣间" },
+    { id: "wanhang_sample_room", label: "万航样衣间" },
+    { id: "vietnam_sample_room", label: "越南样衣间" },
+    { id: "outsourcing_sample_room", label: "外协样衣间" }
+  ];
+
+  const defaultProductionFactories = [
+    { id: "rudong_wanyu", label: "如东万誉服饰" },
+    { id: "xinchangjiang_wanyu", label: "新长江万誉服饰" },
+    { id: "juegang_wanyu", label: "掘港万誉服饰" },
+    { id: "anhui_wanhang", label: "安徽万航服饰" },
+    { id: "vietnam_cuchi", label: "越南古芝 GOWELL" },
+    { id: "outsourcing_factory", label: "外协工厂" }
   ];
 
   const developmentStages = [
@@ -663,7 +669,8 @@
   function selectedValuesFromForm(form) {
     const roleOwners = {};
     $$("[data-role-owner-select]").forEach((select) => {
-      if (select.value) roleOwners[select.dataset.roleId] = select.value;
+      const values = Array.from(select.selectedOptions || []).map((option) => option.value).filter(Boolean);
+      if (values.length) roleOwners[select.dataset.roleId] = values;
     });
     return {
       roleOwners,
@@ -682,17 +689,21 @@
     const selectedForRole = (role, users, autoDefault) => {
       const legacyName = legacyOwnerFieldByRole[role.id];
       const current = roleOwners[role.id] || values[legacyName] || "";
-      if (current) return current;
-      return autoDefault ? users[0]?.name || "" : "";
+      if (Array.isArray(current)) return current;
+      if (current) return String(current).split(/[、,，/]/).map((item) => item.trim()).filter(Boolean);
+      return autoDefault && users[0]?.name ? [users[0].name] : [];
     };
     const roleField = (role, autoDefault) => {
       const users = ownerOptionsForRoles([role.id], brand, route);
       const current = selectedForRole(role, users, autoDefault);
       const options = users.map((user) => `<option value="${esc(user.name)}">${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("");
-      const saved = current && !users.some((user) => user.name === current) ? `<option value="${esc(current)}">${esc(current)} / 已保存</option>` : "";
+      const saved = current
+        .filter((name) => !users.some((user) => user.name === name))
+        .map((name) => `<option value="${esc(name)}">${esc(name)} / 已保存</option>`)
+        .join("");
       return `
         <label>${esc(roleShortName(role))}
-          <select name="roleOwner_${esc(role.id)}" data-role-owner-select data-role-id="${esc(role.id)}" data-legacy-owner="${esc(legacyOwnerFieldByRole[role.id] || "")}">
+          <select name="roleOwner_${esc(role.id)}" data-role-owner-select data-role-id="${esc(role.id)}" data-legacy-owner="${esc(legacyOwnerFieldByRole[role.id] || "")}" multiple size="3">
             <option value="">${autoDefault ? "未指定" : "按需添加"}</option>
             ${options}
             ${saved}
@@ -705,7 +716,10 @@
     $$("[data-role-owner-select]").forEach((select) => {
       const role = roleById(select.dataset.roleId);
       const users = ownerOptionsForRoles([select.dataset.roleId], brand, route);
-      select.value = selectedForRole(role, users, isDefaultReviewRole(role));
+      const selectedNames = new Set(selectedForRole(role, users, isDefaultReviewRole(role)));
+      Array.from(select.options).forEach((option) => {
+        option.selected = Boolean(option.value && selectedNames.has(option.value));
+      });
     });
     const hasOptionalValue = optional.some((role) => {
       const legacyName = legacyOwnerFieldByRole[role.id];
@@ -727,13 +741,15 @@
     const roleOwners = {};
     $$("[data-role-owner-select]").forEach((select) => {
       const roleId = select.dataset.roleId;
-      if (roleId && select.value) roleOwners[roleId] = select.value;
+      const values = Array.from(select.selectedOptions || []).map((option) => option.value).filter(Boolean);
+      if (roleId && values.length) roleOwners[roleId] = values;
     });
     return roleOwners;
   }
 
   function legacyOwnersFromRoleOwners(roleOwners) {
-    const pick = (...roleIds) => roleIds.map((roleId) => roleOwners[roleId]).find(Boolean) || "";
+    const text = (value) => Array.isArray(value) ? value.join("、") : String(value || "");
+    const pick = (...roleIds) => text(roleIds.map((roleId) => roleOwners[roleId]).find(Boolean));
     return {
       businessOwner: pick("business_pm"),
       sampleOwner: pick("sample_keeper", "sample_feedback_owner"),
@@ -879,14 +895,15 @@
     const owners = style?.owners || profile.owners || {};
     const dbValue = field === "gateOwner" ? (style?.gateOwner || review?.gateOwner) : (style?.finalApprover || review?.finalApprover);
     const textValue = owners[field] || profile[field] || "";
-    return dbValue ? userName(dbValue) : (textValue || fallback);
+    return dbValue ? userName(dbValue) : (Array.isArray(textValue) ? textValue.join("、") : (textValue || fallback));
   }
 
   function roleOwnerText(style, roleId) {
     const owners = style?.owners || style?.profile?.owners || {};
     const roleOwners = owners.roleOwners || {};
     const legacyName = legacyOwnerFieldByRole[roleId];
-    return roleOwners[roleId] || owners[legacyName] || "";
+    const value = roleOwners[roleId] || owners[legacyName] || "";
+    return Array.isArray(value) ? value.join("、") : value;
   }
 
   function uniqueNames(names) {
@@ -907,7 +924,8 @@
       || defaultRoleDepartmentById[roleId] === operator.department
       || row.department === operator.department
     );
-    return uniqueNames([operatorMatches ? operator.name : "", selected, row.reviewerName, userName(row.reviewer), ...templatePeople, ...assigned]);
+    const selectedNames = String(selected || "").split(/[、,，/]/).map((item) => item.trim()).filter(Boolean);
+    return uniqueNames([operatorMatches ? operator.name : "", ...selectedNames, row.reviewerName, userName(row.reviewer), ...templatePeople, ...assigned]);
   }
 
   function departmentReviewerNames(row, style) {
@@ -1290,8 +1308,12 @@
           <div class="command-meta-grid">
             <span>品牌<strong>${esc(style?.brand || "未填品牌")}</strong></span>
             <span>季节<strong>${esc(style?.season || "未设置")}</strong></span>
-            <span>客户交期<strong>${esc(style?.customerDeadline || "未设置")}</strong></span>
-            <span>目标工厂<strong>${esc(sample?.location || style?.sampleLocation || "未设置")}</strong></span>
+            <span>样衣日期<strong>${esc(plannedDate(style, sample) || "未设置")}</strong></span>
+            <span>大货交期<strong>${esc(style?.customerDeadline || "未设置")}</strong></span>
+            <span>订货会日期<strong>${esc(style?.orderMeetingDate || "未设置")}</strong></span>
+            <span>大货生产工厂<strong>${esc(style?.productionFactory || style?.profile?.productionFactory || "未设置")}</strong></span>
+            <span>样衣位置<strong>${esc(sample?.location || style?.sampleLocation || "未设置")}</strong></span>
+            <button class="command-meta-action" type="button" data-toggle-sample-demand>样衣需求件数<strong>${esc(sampleVariantTotal(style?.sampleVariants || []) || style?.quantity || 0)} 件</strong></button>
             <span>当前阶段<strong>${esc(gateLabel(style?.currentGate))}</strong></span>
             <span>开发负责人<strong>${esc(ownerForRole(style, "business_pm", "未指定"))}</strong></span>
             <span>版师<strong>${esc(ownerForRole(style, "pattern_reviewer", "未指定"))}</strong></span>
@@ -1391,6 +1413,7 @@
     const cover = findStyleCover(sample);
     const openIssues = issues.filter((issue) => issue.status !== "closed");
     const blocking = issues.filter(isBlocking);
+    const demandTotal = sampleVariantTotal(style.sampleVariants || []) || style.quantity || 0;
     return `
       <button class="overview-style-card" type="button" data-overview-open-style="${esc(style.id)}">
         <span class="overview-card-cover">
@@ -1402,6 +1425,7 @@
           <span class="overview-card-meta">
             <i>${esc(sampleStageLabel(style.samplePhase))}</i>
             <i>${esc(sample?.location || style.sampleLocation || "未设置位置")}</i>
+            <i>${esc(demandTotal)} 件</i>
             <i>${esc(ownerForRole(style, "business_pm", "未指定"))}</i>
           </span>
         </span>
@@ -1411,6 +1435,22 @@
           <small>${esc(openIssues.length)} 未关闭 / ${esc(blocking.length)} Blocking</small>
         </span>
       </button>
+    `;
+  }
+
+  function renderSampleDemandTable(style) {
+    const rows = normalizeSampleVariants(style?.sampleVariants || []);
+    const total = sampleVariantTotal(rows) || style?.quantity || 0;
+    return `
+      <section class="panel sample-demand-panel" ${state.sampleDemandOpen ? "" : "hidden"}>
+        <div class="panel-head compact"><h2>样衣需求明细</h2><span>${esc(total)} 件</span></div>
+        <div class="sample-demand-table">
+          <div class="sample-demand-row sample-demand-head"><span>颜色</span><span>尺码</span><span>件数</span></div>
+          ${rows.length ? rows.map((row) => `
+            <div class="sample-demand-row"><span>${esc(row.color || "-")}</span><span>${esc(row.size || "-")}</span><span>${esc(row.quantity)}</span></div>
+          `).join("") : '<div class="compact-empty">暂无样衣需求明细</div>'}
+        </div>
+      </section>
     `;
   }
 
@@ -1480,6 +1520,7 @@
       <div class="development-dashboard">
         <button class="secondary-button overview-back-button" type="button" data-overview-back>返回款式列表</button>
         ${renderStyleHeaderCard(style, sample, review, issues)}
+        ${renderSampleDemandTable(style)}
         ${renderStageProgress(stages)}
         <section class="metric-grid">
           ${[
@@ -1844,7 +1885,7 @@
     const finalApproverText = textOwner(style, review, "finalApprover", "");
 
     if (overdue && !isFinalApproved(review)) {
-      return { risk: `寄样已逾期 ${overdue} 天`, release: "overdue_pending_confirm", nextStep: "重新确认预计寄样日期和寄样结论", tone: "amber", overdue };
+      return { risk: `样衣已逾期 ${overdue} 天`, release: "overdue_pending_confirm", nextStep: "重新确认样衣日期和寄样结论", tone: "amber", overdue };
     }
     if (blockers.length) {
       return { risk: "存在阻塞 Issue", release: "blocked_by_issue", nextStep: "整改并复核阻塞 Issue", tone: "red", overdue };
@@ -2177,7 +2218,7 @@
               <section>
                 <span>关键日期</span>
                 <strong>${esc(dateText(plannedDate(style, sample)))}</strong>
-                <p>客户交期 ${esc(dateText(style.customerDeadline))}</p>
+                <p>大货交期 ${esc(dateText(style.customerDeadline))}</p>
               </section>
             </div>
           ` : ""}
@@ -2191,8 +2232,8 @@
               ${meta("当前 Gate", gateLabel(style.currentGate))}
               ${meta("样品阶段", sampleStageLabel(style.samplePhase))}
               ${meta("样衣位置", sample?.location || style.sampleLocation)}
-              ${meta("预计寄样", plannedDate(style, sample))}
-              ${meta("客户交期", style.customerDeadline)}
+              ${meta("样衣日期", plannedDate(style, sample))}
+              ${meta("大货交期", style.customerDeadline)}
               ${meta("订货会日期", style.orderMeetingDate)}
               ${meta("本轮目标", style.reviewObjective)}
               ${meta("Gate Owner", textOwner(style, review, "gateOwner", "未指定"))}
@@ -2285,7 +2326,7 @@
       $("#pipeline-list").innerHTML = `
         <div class="pipeline-table" role="table" aria-label="紧凑开发流水线">
           <div class="pipeline-row pipeline-row-head" role="row">
-            <span>款号 / 品牌</span><span>阶段</span><span>当前 Gate</span><span>状态</span><span>Blocking Issue</span><span>责任人</span><span>预计寄样</span><span>下一步</span><span>操作</span>
+            <span>款号 / 品牌</span><span>阶段</span><span>当前 Gate</span><span>状态</span><span>Blocking Issue</span><span>责任人</span><span>样衣日期</span><span>下一步</span><span>操作</span>
           </div>
           ${styles.map((style) => {
             const sample = state.data?.samples?.find((item) => item.styleId === style.id);
@@ -2360,6 +2401,41 @@
     }
   }
 
+  function serializeDirectory(items = []) {
+    return items.map((item, index) => ({
+      id: item.id || String(item.label || item.name || `item_${index}`).toLowerCase().replace(/\s+/g, "_"),
+      label: item.label || item.name || item.value || ""
+    })).filter((item) => item.label);
+  }
+
+  async function saveSampleLocations(locations, message = "样衣位置目录已保存") {
+    try {
+      await syncData("updateSetting", {
+        key: "sampleLocations",
+        value: serializeDirectory(locations)
+      });
+      await loadSnapshot();
+      showMessage(message, "ok");
+    } catch (error) {
+      console.error("保存样衣位置失败", { locations, error });
+      showMessage(`保存样衣位置失败：${error.message}`);
+    }
+  }
+
+  async function saveProductionFactories(factories, message = "生产工厂目录已保存") {
+    try {
+      await syncData("updateSetting", {
+        key: "productionFactories",
+        value: serializeDirectory(factories)
+      });
+      await loadSnapshot();
+      showMessage(message, "ok");
+    } catch (error) {
+      console.error("保存生产工厂失败", { factories, error });
+      showMessage(`保存生产工厂失败：${error.message}`);
+    }
+  }
+
   function normalizeLocation(item, index = 0) {
     if (typeof item === "string") return { id: `location_${index}`, label: item };
     if (item && typeof item === "object") {
@@ -2384,7 +2460,20 @@
     return defaultSampleLocations;
   }
 
-  function populateLocationSelect(value = "样衣间") {
+  function configuredProductionFactories() {
+    const raw = state.data?.settings?.productionFactories;
+    if (Array.isArray(raw) && raw.length) {
+      const factories = raw.map(normalizeLocation).filter((item) => item.label);
+      const existing = new Set(factories.map((item) => item.label));
+      defaultProductionFactories.forEach((item) => {
+        if (!existing.has(item.label)) factories.push(item);
+      });
+      return factories;
+    }
+    return defaultProductionFactories;
+  }
+
+  function populateLocationSelect(value = "事务所样衣间") {
     const select = $("#sample-location-select");
     if (!select) return;
     const locations = configuredSampleLocations();
@@ -2392,7 +2481,61 @@
     if (value && !locations.some((item) => item.label === value)) {
       select.insertAdjacentHTML("beforeend", `<option value="${esc(value)}">${esc(value)} / 已保存</option>`);
     }
-    select.value = value || "样衣间";
+    select.value = value || "事务所样衣间";
+  }
+
+  function populateProductionFactorySelect(value = "") {
+    const select = $("#production-factory-select");
+    if (!select) return;
+    const factories = configuredProductionFactories();
+    select.innerHTML = `<option value="">未指定</option>${factories.map((item) => `<option value="${esc(item.label)}">${esc(item.label)}</option>`).join("")}`;
+    if (value && !factories.some((item) => item.label === value)) {
+      select.insertAdjacentHTML("beforeend", `<option value="${esc(value)}">${esc(value)} / 已保存</option>`);
+    }
+    select.value = value || "";
+  }
+
+  function normalizeSampleVariants(rows = []) {
+    return (Array.isArray(rows) ? rows : [])
+      .map((item) => ({
+        color: String(item?.color || "").trim(),
+        size: String(item?.size || "").trim(),
+        quantity: Math.max(1, Number(item?.quantity || 1))
+      }))
+      .filter((item) => item.color || item.size || item.quantity > 0);
+  }
+
+  function sampleVariantTotal(rows = []) {
+    return normalizeSampleVariants(rows).reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  function renderSampleVariantEditor(rows = []) {
+    const root = $("#sample-variant-editor");
+    if (!root) return;
+    const variants = normalizeSampleVariants(rows);
+    const displayRows = variants.length ? variants : [{ color: "", size: "", quantity: 1 }];
+    root.innerHTML = `
+      <div class="sample-variant-row sample-variant-head"><span>颜色</span><span>尺码</span><span>件数</span><span>操作</span></div>
+      ${displayRows.map((row, index) => `
+        <div class="sample-variant-row" data-sample-variant-row>
+          <input name="sampleVariantColor" value="${esc(row.color)}" placeholder="颜色" />
+          <input name="sampleVariantSize" value="${esc(row.size)}" placeholder="尺码" />
+          <input name="sampleVariantQuantity" type="number" min="1" value="${esc(row.quantity)}" />
+          <button class="secondary-button compact-button" type="button" data-remove-sample-variant="${index}">删除</button>
+        </div>
+      `).join("")}
+      <div class="sample-variant-total">合计 ${esc(sampleVariantTotal(displayRows))} 件</div>
+    `;
+  }
+
+  function sampleVariantsFromForm(form) {
+    return Array.from(form.querySelectorAll("[data-sample-variant-row]"))
+      .map((row) => ({
+        color: row.querySelector('[name="sampleVariantColor"]')?.value || "",
+        size: row.querySelector('[name="sampleVariantSize"]')?.value || "",
+        quantity: row.querySelector('[name="sampleVariantQuantity"]')?.value || 1
+      }))
+      .filter((item) => String(item.color || item.size || "").trim());
   }
 
   function styleMatchesReviewFilter(style) {
@@ -2462,8 +2605,8 @@
             <div><dt>样品阶段</dt><dd>${esc(sampleStageLabel(style.samplePhase))}</dd></div>
             <div><dt>季节</dt><dd>${esc(style.season || "未设置")}</dd></div>
             <div><dt>样衣位置</dt><dd>${esc(sample?.location || style.sampleLocation || "未设置")}</dd></div>
-            <div><dt>预计寄样</dt><dd>${esc(plannedDate(style, sample) || "未设置")}</dd></div>
-            <div><dt>客户交期</dt><dd>${esc(style.customerDeadline || "未设置")}</dd></div>
+            <div><dt>样衣日期</dt><dd>${esc(plannedDate(style, sample) || "未设置")}</dd></div>
+            <div><dt>大货交期</dt><dd>${esc(style.customerDeadline || "未设置")}</dd></div>
           </dl>
         </div>
         <div class="review-judgement">
@@ -3131,7 +3274,7 @@
     const weekDue = entries.filter((entry) => isThisWeekDate(entry.dateKey)).length;
     const blocked = entries.filter((entry) => entry.daysUntil < 0 || entry.shipment.release !== "ready_to_send").length;
     $("#calendar-stats").innerHTML = [
-      ["今日到期", todayDue, "今天预计寄样的款式"],
+      ["今日到期", todayDue, "今天样衣日期到期的款式"],
       ["本周到期", weekDue, "本周需要跟进的交期"],
       ["逾期 / 阻塞", blocked, "逾期或当前不可寄样"]
     ].map(([label, value, help]) => `
@@ -3396,7 +3539,8 @@
       ["普通打样", "不需要张部长 / 夏红霞作为必要节点。"],
       ["压胶 / 新长江", "需要经过张部长和夏红霞。"]
     ].map(([title, text]) => `<article><strong>${esc(title)}</strong><p>${esc(text)}</p></article>`).join("");
-    $("#location-list").innerHTML = configuredSampleLocations().map((item) => `<span>${esc(item.label)}</span>`).join("");
+    $("#location-list").innerHTML = configuredSampleLocations().map((item) => `<button type="button" data-delete-sample-location="${esc(item.label)}">${esc(item.label)} ×</button>`).join("");
+    $("#factory-list").innerHTML = configuredProductionFactories().map((item) => `<button type="button" data-delete-production-factory="${esc(item.label)}">${esc(item.label)} ×</button>`).join("");
   }
 
   function renderPersonModalOptions(person = null) {
@@ -3799,7 +3943,8 @@
       customer: String(fields.get("customer") || "").trim(),
       route: String(fields.get("route") || "normal"),
       samplePhase: String(fields.get("samplePhase") || "first_sample"),
-      sampleLocation: String(fields.get("sampleLocation") || "样衣间").trim(),
+      sampleLocation: String(fields.get("sampleLocation") || "事务所样衣间").trim(),
+      productionFactory: String(fields.get("productionFactory") || "").trim(),
       plannedShipDate: String(fields.get("plannedShipDate") || ""),
       customerDeadline: String(fields.get("customerDeadline") || ""),
       orderMeetingDate: String(fields.get("orderMeetingDate") || ""),
@@ -3807,7 +3952,8 @@
       roleOwners,
       ...legacyOwners,
       versionName: String(fields.get("samplePhase") || "first_sample"),
-      quantity: 1,
+      sampleVariants: normalizeSampleVariants(sampleVariantsFromForm(form)),
+      quantity: sampleVariantTotal(sampleVariantsFromForm(form)) || 1,
       highRisk: false
     };
   }
@@ -3833,6 +3979,7 @@
       route: style.route || "normal",
       samplePhase: style.samplePhase || sample?.samplePhase || "first_sample",
       sampleLocation: sample?.location || style.sampleLocation || "未设置",
+      productionFactory: style.productionFactory || style.profile?.productionFactory || "",
       plannedShipDate: plannedDate(style, sample) === "未设置" ? "" : (style.plannedShipDate || sample?.plannedShipDate || ""),
       customerDeadline: style.customerDeadline || "",
       orderMeetingDate: style.orderMeetingDate || "",
@@ -4969,7 +5116,8 @@
       customer: style?.customer || style?.profile?.customer || "",
       route: style?.route || "normal",
       samplePhase: style?.samplePhase || sample?.samplePhase || "second_sample",
-      sampleLocation: sample?.location || style?.sampleLocation || "样衣间",
+      sampleLocation: sample?.location || style?.sampleLocation || "事务所样衣间",
+      productionFactory: style?.productionFactory || style?.profile?.productionFactory || "",
       plannedShipDate: dateOnly(plannedDate(style, sample)),
       customerDeadline: dateOnly(style?.customerDeadline || style?.profile?.customerDeadline),
       orderMeetingDate: dateOnly(style?.orderMeetingDate || style?.profile?.orderMeetingDate),
@@ -4986,7 +5134,9 @@
     };
     populateBrandSelect(values.brand);
     populateLocationSelect(values.sampleLocation);
+    populateProductionFactorySelect(values.productionFactory);
     populateOwnerSelects(values);
+    renderSampleVariantEditor(style?.sampleVariants || []);
     Object.entries(values).forEach(([name, value]) => {
       if (form.elements[name]) form.elements[name].value = value || "";
     });
@@ -5021,10 +5171,12 @@
       fillStyleForm(style);
     } else {
       populateBrandSelect("萨洛蒙");
-      populateLocationSelect("样衣间");
+      populateLocationSelect("事务所样衣间");
+      populateProductionFactorySelect("");
       populateOwnerSelects({
         finalApprover: "杨总"
       });
+      renderSampleVariantEditor([]);
     }
     setStyleModalTab(tab);
     renderStyleMaterialFiles();
@@ -5038,9 +5190,11 @@
     populateBrandSelect("萨洛蒙");
     $("#style-form").season.value = "SS27";
     $("#style-form").samplePhase.value = "second_sample";
-    populateLocationSelect("样衣间");
+    populateLocationSelect("事务所样衣间");
+    populateProductionFactorySelect("");
     $("#style-form").reviewObjective.value = "确认质量与工艺问题责任人，判断是否可寄样";
     populateOwnerSelects({ finalApprover: "杨总" });
+    renderSampleVariantEditor([]);
     state.styleInitFiles = {};
     state.editingStyleId = null;
     setStyleModalMode("create");
@@ -5183,6 +5337,28 @@
         return;
       }
 
+      const demandToggle = event.target.closest("[data-toggle-sample-demand]");
+      if (demandToggle) {
+        state.sampleDemandOpen = !state.sampleDemandOpen;
+        renderStyleOverview();
+        return;
+      }
+
+      const addSampleVariant = event.target.closest("#add-sample-variant");
+      if (addSampleVariant) {
+        const form = $("#style-form");
+        renderSampleVariantEditor([...sampleVariantsFromForm(form), { color: "", size: "", quantity: 1 }]);
+        return;
+      }
+
+      const removeSampleVariant = event.target.closest("[data-remove-sample-variant]");
+      if (removeSampleVariant) {
+        const index = Number(removeSampleVariant.dataset.removeSampleVariant || 0);
+        const next = sampleVariantsFromForm($("#style-form")).filter((_, rowIndex) => rowIndex !== index);
+        renderSampleVariantEditor(next);
+        return;
+      }
+
       const measurementPhase = event.target.closest("[data-measurement-phase]");
       if (measurementPhase) {
         state.selectedMeasurementPhase = measurementPhase.dataset.measurementPhase || "second_sample";
@@ -5279,6 +5455,48 @@
 
       const editBrandButton = event.target.closest("[data-edit-brand]");
       if (editBrandButton) openBrandModal(editBrandButton.dataset.editBrand);
+
+      const addSampleLocationButton = event.target.closest("#add-sample-location");
+      if (addSampleLocationButton) {
+        const input = $("#new-sample-location");
+        const label = String(input?.value || "").trim();
+        if (!label) return;
+        const next = [
+          ...configuredSampleLocations().filter((item) => item.label !== label),
+          { id: label.toLowerCase().replace(/\s+/g, "_"), label }
+        ];
+        if (input) input.value = "";
+        await saveSampleLocations(next, "样衣位置已新增。");
+        return;
+      }
+
+      const deleteSampleLocationButton = event.target.closest("[data-delete-sample-location]");
+      if (deleteSampleLocationButton) {
+        const label = deleteSampleLocationButton.dataset.deleteSampleLocation;
+        await saveSampleLocations(configuredSampleLocations().filter((item) => item.label !== label), "样衣位置已删除。");
+        return;
+      }
+
+      const addProductionFactoryButton = event.target.closest("#add-production-factory");
+      if (addProductionFactoryButton) {
+        const input = $("#new-production-factory");
+        const label = String(input?.value || "").trim();
+        if (!label) return;
+        const next = [
+          ...configuredProductionFactories().filter((item) => item.label !== label),
+          { id: label.toLowerCase().replace(/\s+/g, "_"), label }
+        ];
+        if (input) input.value = "";
+        await saveProductionFactories(next, "生产工厂已新增。");
+        return;
+      }
+
+      const deleteProductionFactoryButton = event.target.closest("[data-delete-production-factory]");
+      if (deleteProductionFactoryButton) {
+        const label = deleteProductionFactoryButton.dataset.deleteProductionFactory;
+        await saveProductionFactories(configuredProductionFactories().filter((item) => item.label !== label), "生产工厂已删除。");
+        return;
+      }
 
       const removePermissionButton = event.target.closest("[data-role-remove-permission]");
       if (removePermissionButton) {

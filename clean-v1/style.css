@@ -2640,6 +2640,17 @@ textarea:focus {
   font-size: 12px;
 }
 
+.owner-grid select[multiple] {
+  min-height: 92px;
+}
+
+.sample-demand-editor {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(242, 242, 247, 0.58);
+}
+
 .style-create-layout {
   display: grid;
   gap: 14px;
@@ -3671,13 +3682,15 @@ textarea:focus {
 }
 
 .command-meta-grid span,
+.command-meta-grid button,
 .detail-list div,
 .measurement-table span,
 .pattern-check-row dl div {
   min-width: 0;
 }
 
-.command-meta-grid span {
+.command-meta-grid span,
+.command-meta-grid button {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 9px 10px;
@@ -3687,12 +3700,67 @@ textarea:focus {
   font-weight: 760;
 }
 
+.command-meta-grid button {
+  text-align: left;
+}
+
+.command-meta-grid button:hover {
+  border-color: rgba(0, 113, 227, 0.34);
+  background: rgba(0, 113, 227, 0.07);
+}
+
 .command-meta-grid strong {
   display: block;
   margin-top: 4px;
   color: var(--ink);
   font-size: 14px;
   overflow-wrap: anywhere;
+}
+
+.sample-demand-panel {
+  margin-top: 12px;
+}
+
+.sample-demand-table,
+.sample-variant-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.sample-demand-row,
+.sample-variant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 92px;
+  gap: 8px;
+  align-items: center;
+}
+
+.sample-variant-row {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 92px auto;
+}
+
+.sample-demand-row span,
+.sample-variant-row span {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: rgba(248, 248, 250, 0.82);
+  overflow-wrap: anywhere;
+}
+
+.sample-demand-head span,
+.sample-variant-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.sample-variant-total {
+  justify-self: end;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
 }
 
 .command-side {
@@ -4515,6 +4583,29 @@ button.measurement-row:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.chip-list button {
+  min-height: 32px;
+  border: 1px solid rgba(0, 113, 227, 0.18);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(0, 113, 227, 0.09);
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.chip-list button:hover {
+  border-color: rgba(215, 0, 21, 0.34);
+  color: var(--warn);
+  background: rgba(215, 0, 21, 0.08);
+}
+
+.inline-directory-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin: 10px 0 12px;
 }
 
 .assignment-role-list,

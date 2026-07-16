@@ -415,6 +415,14 @@ async function updateStyleInfo(supabase, orgId, body) {
   const hasFinalApproverId = body.finalApproverId !== undefined;
   const gateOwnerId = profileIdOrNull(body.gateOwnerId || body.reviewOwnerId);
   const finalApproverId = profileIdOrNull(body.finalApproverId);
+  const sampleVariants = Array.isArray(body.sampleVariants)
+    ? body.sampleVariants.map((item) => ({
+      color: String(item?.color || "").trim(),
+      size: String(item?.size || "").trim(),
+      quantity: Math.max(1, Number(item?.quantity || 1)),
+    })).filter((item) => item.color || item.size || item.quantity > 0)
+    : [];
+  const quantity = sampleVariants.reduce((sum, item) => sum + item.quantity, 0) || Math.max(1, Number(body.quantity || 1));
 
   const stylePayload = {
     style_no: textOrNull(body.styleNo),
@@ -424,6 +432,8 @@ async function updateStyleInfo(supabase, orgId, body) {
     route: body.route || "normal",
     sample_phase: body.samplePhase || "first_sample",
     planned_ship_date: body.plannedShipDate || null,
+    sample_variants: sampleVariants,
+    quantity,
     gate_owner_id: hasGateOwnerId ? gateOwnerId : undefined,
     final_approver_id: hasFinalApproverId ? finalApproverId : undefined,
     current_gate: body.currentGate || undefined,
@@ -436,13 +446,25 @@ async function updateStyleInfo(supabase, orgId, body) {
   });
   if (!stylePayload.style_no || !stylePayload.style_name) throw new Error("款号和款式名称不能为空");
 
-  const { data: style, error: styleError } = await supabase
+  let { data: style, error: styleError } = await supabase
     .from("styles")
     .update(stylePayload)
     .eq("org_id", orgId)
     .eq("id", styleId)
     .select("id, external_ref")
     .single();
+  if (styleError && /sample_variants|quantity/i.test(styleError.message || "")) {
+    const { sample_variants: _sampleVariants, quantity: _quantity, ...legacyStylePayload } = stylePayload;
+    const legacyResult = await supabase
+      .from("styles")
+      .update(legacyStylePayload)
+      .eq("org_id", orgId)
+      .eq("id", styleId)
+      .select("id, external_ref")
+      .single();
+    style = legacyResult.data;
+    styleError = legacyResult.error;
+  }
   if (styleError) throw syncError("update styles", styleError, { styleId, stylePayload });
 
   let sampleId = body.sampleId ? await resolveEntityId(supabase, orgId, "samples", body.sampleId) : null;
@@ -502,6 +524,7 @@ async function updateStyleInfo(supabase, orgId, body) {
   const profileDetail = {
     customer: textOrNull(body.customer),
     customerDeadline: textOrNull(body.customerDeadline),
+    productionFactory: textOrNull(body.productionFactory),
     orderMeetingDate: textOrNull(body.orderMeetingDate),
     reviewObjective: textOrNull(body.reviewObjective),
     owners: {
@@ -521,6 +544,30 @@ async function updateStyleInfo(supabase, orgId, body) {
     reviewId,
   };
   if (profileDetail.workflow === undefined) delete profileDetail.workflow;
+
+  const sampleVariantDetail = { sampleVariants, quantity };
+  const { data: existingVariants, error: existingVariantsError } = await supabase
+    .from("audit_events")
+    .select("id")
+    .eq("org_id", orgId)
+    .eq("entity_type", "style")
+    .eq("entity_id", styleId)
+    .eq("action", "sample_variants")
+    .maybeSingle();
+  if (existingVariantsError) throw syncError("check sample variants audit", existingVariantsError, { styleId });
+  if (existingVariants?.id) {
+    const { error } = await supabase.from("audit_events").update({ detail: sampleVariantDetail }).eq("id", existingVariants.id);
+    if (error) throw syncError("update sample variants audit", error, { styleId, sampleVariantDetail });
+  } else if (sampleVariants.length) {
+    const { error } = await supabase.from("audit_events").insert({
+      org_id: orgId,
+      entity_type: "style",
+      entity_id: styleId,
+      action: "sample_variants",
+      detail: sampleVariantDetail,
+    });
+    if (error) throw syncError("insert sample variants audit", error, { styleId, sampleVariantDetail });
+  }
 
   const { data: existingProfile, error: existingProfileError } = await supabase
     .from("audit_events")
@@ -691,6 +738,7 @@ async function updateSetting(supabase, orgId, body) {
     "trainingCards",
     "roleTemplates",
     "brands",
+    "productionFactories",
     "hiddenPeople",
   ]);
   const key = String(body.key || "").trim();

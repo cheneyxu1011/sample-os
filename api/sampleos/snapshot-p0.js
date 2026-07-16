@@ -209,6 +209,7 @@ export default async function handler(req, res) {
         updatedAt: cleanDateTime(style.updated_at),
         customer: profile.customer || "",
         customerDeadline: profile.customerDeadline || "",
+        productionFactory: profile.productionFactory || "",
         orderMeetingDate: profile.orderMeetingDate || "",
         reviewObjective: profile.reviewObjective || "",
         owners,

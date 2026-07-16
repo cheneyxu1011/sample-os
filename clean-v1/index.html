@@ -256,7 +256,7 @@
             <div class="panel-head compact">
               <div>
                 <h2>近期交期</h2>
-                <p>按预计寄样日期排序，显示 Gate、责任人和下一步。</p>
+                <p>按样衣日期排序，显示 Gate、责任人和下一步。</p>
               </div>
             </div>
             <div id="calendar-list" class="calendar-list"></div>
@@ -266,7 +266,7 @@
             <div class="month-calendar-head">
               <div>
                 <h2 id="calendar-month-title">月历</h2>
-                <p>按预计寄样日期显示样衣节点。</p>
+                <p>按样衣日期显示样衣节点。</p>
               </div>
               <span id="calendar-month-count" class="badge ok">0 个节点</span>
             </div>
@@ -345,7 +345,19 @@
             </section>
             <section class="panel location-panel">
               <h2>样衣位置设置</h2>
+              <div class="inline-directory-add">
+                <input id="new-sample-location" placeholder="新增样衣位置" />
+                <button class="secondary-button compact-button" type="button" id="add-sample-location">添加</button>
+              </div>
               <div id="location-list" class="chip-list"></div>
+            </section>
+            <section class="panel factory-panel">
+              <h2>大货生产工厂目录</h2>
+              <div class="inline-directory-add">
+                <input id="new-production-factory" placeholder="新增生产工厂" />
+                <button class="secondary-button compact-button" type="button" id="add-production-factory">添加</button>
+              </div>
+              <div id="factory-list" class="chip-list"></div>
             </section>
             <section class="panel issue-rule-panel">
               <h2>问题等级规则</h2>
@@ -480,10 +492,18 @@
                 <small data-field-error="samplePhase"></small>
               </label>
               <label>样衣位置<select name="sampleLocation" id="sample-location-select"></select></label>
-              <label>预计寄样日期<input name="plannedShipDate" type="date" /></label>
-              <label>客户交期<input name="customerDeadline" type="date" /></label>
+              <label>大货生产工厂<select name="productionFactory" id="production-factory-select"></select></label>
+              <label>样衣日期<input name="plannedShipDate" type="date" /></label>
+              <label>大货交期<input name="customerDeadline" type="date" /></label>
               <label>订货会日期<input name="orderMeetingDate" type="date" /></label>
               <label class="wide-field">本轮评审目标<textarea name="reviewObjective" rows="2">确认质量与工艺问题责任人，判断是否可寄样</textarea></label>
+            </div>
+            <div class="sample-demand-editor">
+              <div class="panel-head compact">
+                <h3>打样需求</h3>
+                <button class="secondary-button compact-button" type="button" id="add-sample-variant">新增行</button>
+              </div>
+              <div id="sample-variant-editor" class="sample-variant-editor"></div>
             </div>
           </section>
 

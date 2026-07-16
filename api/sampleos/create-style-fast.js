@@ -244,7 +244,7 @@ async function ensurePreparationChecklist(supabase, orgId, style, body) {
     { id: "tech_pack", label: "技术包 / 款式资料", done: false },
     { id: "bom", label: "面辅料 / BOM", done: false },
     { id: "sample_route", label: "打样路线", done: Boolean(body.route) },
-    { id: "ship_date", label: "预计寄样日期", done: Boolean(body.plannedShipDate) },
+    { id: "ship_date", label: "样衣日期", done: Boolean(body.plannedShipDate) },
   ];
 
   const { error } = await supabase.from("audit_events").insert({
@@ -287,6 +287,7 @@ async function ensureStyleProfileAudit(supabase, orgId, style, sample, review, b
   const detail = {
     customer: textOrNull(body.customer),
     customerDeadline: textOrNull(body.customerDeadline),
+    productionFactory: textOrNull(body.productionFactory),
     orderMeetingDate: textOrNull(body.orderMeetingDate),
     reviewObjective: textOrNull(body.reviewObjective),
     owners: {
@@ -305,7 +306,7 @@ async function ensureStyleProfileAudit(supabase, orgId, style, sample, review, b
     reviewId: review.id,
   };
 
-  const hasUsefulDetail = detail.customer || detail.customerDeadline || detail.orderMeetingDate || detail.reviewObjective || Object.values(detail.owners).some(Boolean);
+  const hasUsefulDetail = detail.customer || detail.customerDeadline || detail.productionFactory || detail.orderMeetingDate || detail.reviewObjective || Object.values(detail.owners).some(Boolean);
   if (!hasUsefulDetail) return;
 
   const { data: existing, error: existingError } = await supabase
