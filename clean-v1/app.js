@@ -1283,7 +1283,10 @@
         </div>
         <div class="command-main">
           <span class="command-kicker">Style ID · ${esc(style?.id || style?.externalRef || "未保存")}</span>
-          <h2>${esc(style?.styleNo || "未填款号")} / ${esc(style?.styleName || "未填款式名称")}</h2>
+          <div class="command-title-row">
+            <h2>${esc(style?.styleNo || "未填款号")} / ${esc(style?.styleName || "未填款式名称")}</h2>
+            <button class="secondary-button compact-button" type="button" data-open-style-editor="${esc(style?.id || "")}">编辑款式</button>
+          </div>
           <div class="command-meta-grid">
             <span>品牌<strong>${esc(style?.brand || "未填品牌")}</strong></span>
             <span>季节<strong>${esc(style?.season || "未设置")}</strong></span>

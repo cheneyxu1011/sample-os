@@ -3645,10 +3645,23 @@ textarea:focus {
   font-weight: 800;
 }
 
+.command-title-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .command-main h2 {
   margin: 4px 0 14px;
   font-size: 28px;
   letter-spacing: 0;
+  min-width: 0;
+}
+
+.command-title-row .compact-button {
+  flex: 0 0 auto;
+  margin-top: 4px;
 }
 
 .command-meta-grid {
@@ -5018,6 +5031,15 @@ button.measurement-row:hover {
 
   .command-main h2 {
     font-size: 23px;
+  }
+
+  .command-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .command-title-row .compact-button {
+    width: 100%;
   }
 
   .measurement-table {
