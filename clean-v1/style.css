@@ -138,6 +138,12 @@ body.sidebar-collapsed .app-shell {
   gap: 10px;
 }
 
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
 .nav-item {
   min-height: 38px;
   border: 0;
@@ -184,6 +190,10 @@ body.sidebar-collapsed .app-shell {
 
 .nav-item.active .nav-icon {
   background: rgba(0, 113, 227, 0.14);
+}
+
+.settings-nav-item {
+  width: 100%;
 }
 
 .nav-label {
@@ -561,14 +571,34 @@ h3 {
 .settings-hero {
   margin-bottom: 16px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 16px;
-  align-items: flex-start;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-hero span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-hero h2 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
 }
 
 .settings-hero p {
-  margin-bottom: 0;
+  margin: 6px 0 0;
   color: var(--muted);
+  max-width: 720px;
 }
 
 .settings-actions {
@@ -4644,6 +4674,9 @@ button.measurement-row:hover {
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
     overflow: visible;
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    align-items: stretch;
   }
 
   .brand,
@@ -4672,8 +4705,16 @@ button.measurement-row:hover {
   .nav {
     height: 100%;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
+  }
+
+  .sidebar-footer {
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 4px;
+    border-top: 0;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
   }
 
   .nav-item,
