@@ -668,9 +668,11 @@
 
   function selectedValuesFromForm(form) {
     const roleOwners = {};
-    $$("[data-role-owner-select]").forEach((select) => {
-      const values = Array.from(select.selectedOptions || []).map((option) => option.value).filter(Boolean);
-      if (values.length) roleOwners[select.dataset.roleId] = values;
+    $$("[data-role-owner-field]").forEach((field) => {
+      const values = Array.from(field.querySelectorAll("[data-role-owner-checkbox]:checked"))
+        .map((input) => input.value)
+        .filter(Boolean);
+      if (values.length) roleOwners[field.dataset.roleId] = values;
     });
     return {
       roleOwners,
@@ -696,31 +698,32 @@
     const roleField = (role, autoDefault) => {
       const users = ownerOptionsForRoles([role.id], brand, route);
       const current = selectedForRole(role, users, autoDefault);
-      const options = users.map((user) => `<option value="${esc(user.name)}">${esc(user.name)} / ${esc(user.department || "未设置")}</option>`).join("");
-      const saved = current
-        .filter((name) => !users.some((user) => user.name === name))
-        .map((name) => `<option value="${esc(name)}">${esc(name)} / 已保存</option>`)
-        .join("");
+      const selectedNames = new Set(current);
+      const options = users.map((user) => `
+        <label class="role-owner-option">
+          <input type="checkbox" name="roleOwner_${esc(role.id)}" value="${esc(user.name)}" data-role-owner-checkbox data-role-id="${esc(role.id)}" ${selectedNames.has(user.name) ? "checked" : ""} />
+          <span>${esc(user.name)} / ${esc(user.department || "未设置")}</span>
+        </label>
+      `).join("");
+      const saved = current.filter((name) => !users.some((user) => user.name === name)).map((name) => `
+        <label class="role-owner-option">
+          <input type="checkbox" name="roleOwner_${esc(role.id)}" value="${esc(name)}" data-role-owner-checkbox data-role-id="${esc(role.id)}" checked />
+          <span>${esc(name)} / 已保存</span>
+        </label>
+      `).join("");
       return `
-        <label>${esc(roleShortName(role))}
-          <select name="roleOwner_${esc(role.id)}" data-role-owner-select data-role-id="${esc(role.id)}" data-legacy-owner="${esc(legacyOwnerFieldByRole[role.id] || "")}" multiple size="3">
-            <option value="">${autoDefault ? "未指定" : "按需添加"}</option>
+        <fieldset class="role-owner-field" data-role-owner-field data-role-id="${esc(role.id)}" data-legacy-owner="${esc(legacyOwnerFieldByRole[role.id] || "")}">
+          <legend>${esc(roleShortName(role))}</legend>
+          <div class="role-owner-options">
             ${options}
             ${saved}
-          </select>
-        </label>
+            ${!options && !saved ? `<span class="role-owner-empty">${autoDefault ? "未指定" : "按需添加"}</span>` : ""}
+          </div>
+        </fieldset>
       `;
     };
     $("#default-owner-grid").innerHTML = defaults.map((role) => roleField(role, true)).join("");
     $("#optional-owner-grid").innerHTML = optional.map((role) => roleField(role, false)).join("");
-    $$("[data-role-owner-select]").forEach((select) => {
-      const role = roleById(select.dataset.roleId);
-      const users = ownerOptionsForRoles([select.dataset.roleId], brand, route);
-      const selectedNames = new Set(selectedForRole(role, users, isDefaultReviewRole(role)));
-      Array.from(select.options).forEach((option) => {
-        option.selected = Boolean(option.value && selectedNames.has(option.value));
-      });
-    });
     const hasOptionalValue = optional.some((role) => {
       const legacyName = legacyOwnerFieldByRole[role.id];
       return Boolean(roleOwners[role.id] || values[legacyName]);
@@ -739,9 +742,12 @@
 
   function roleOwnersFromForm() {
     const roleOwners = {};
-    $$("[data-role-owner-select]").forEach((select) => {
-      const roleId = select.dataset.roleId;
-      const values = Array.from(select.selectedOptions || []).map((option) => option.value).filter(Boolean);
+    $$("[data-role-owner-field]").forEach((field) => {
+      const roleId = field.dataset.roleId;
+      const values = Array.from(field.querySelectorAll("[data-role-owner-checkbox]:checked"))
+        .map((input) => input.value)
+        .filter(Boolean)
+        .slice(0, 2);
       if (roleId && values.length) roleOwners[roleId] = values;
     });
     return roleOwners;
@@ -1169,7 +1175,9 @@
   }
 
   function ownerForRole(style, roleId, fallback = "未指定") {
-    return roleOwnerNames(style, roleId)[0] || fallback;
+    const explicit = roleOwnerText(style, roleId);
+    const names = uniqueNames(String(explicit || "").split(/[、,，/]/).map((item) => item.trim()));
+    return names.length ? names.join("、") : fallback;
   }
 
   function sampleVersionsForStyle(style = currentStyle()) {
@@ -5786,6 +5794,17 @@
         const styleKey = currentStyle()?.id || "";
         if (styleKey) delete state.selectedReviewTaskKeyByStyle[styleKey];
         renderAll();
+        return;
+      }
+
+      const roleOwnerCheckbox = event.target.closest("[data-role-owner-checkbox]");
+      if (roleOwnerCheckbox) {
+        const field = roleOwnerCheckbox.closest("[data-role-owner-field]");
+        const checked = Array.from(field?.querySelectorAll("[data-role-owner-checkbox]:checked") || []);
+        if (checked.length > 2) {
+          roleOwnerCheckbox.checked = false;
+          showMessage("每个负责人角色最多选择 2 个人。");
+        }
         return;
       }
 

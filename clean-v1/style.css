@@ -2640,8 +2640,62 @@ textarea:focus {
   font-size: 12px;
 }
 
-.owner-grid select[multiple] {
-  min-height: 92px;
+.role-owner-field {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.role-owner-field legend {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.role-owner-options {
+  min-height: 112px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.role-owner-option {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--ink);
+  font-weight: 760;
+}
+
+.role-owner-option:hover,
+.role-owner-option:has(input:checked) {
+  background: rgba(0, 113, 227, 0.09);
+  color: var(--accent);
+}
+
+.role-owner-option input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.role-owner-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.role-owner-empty {
+  color: var(--muted);
+  font-weight: 760;
 }
 
 .sample-demand-editor {
