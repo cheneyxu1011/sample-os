@@ -50,6 +50,9 @@
     selectedReviewTaskKeyByStyle: {},
     optionalDepartmentRoleIdsByStyle: {},
     currentOperatorId: "",
+    overviewDetailOpen: false,
+    overviewBrandFilter: "",
+    overviewSearch: "",
     selectedMeasurementPhase: "second_sample",
     selectedMeasurementPart: "胸围",
     selectedPatternPart: "",
@@ -1273,8 +1276,6 @@
 
   function renderStyleHeaderCard(style, sample, review, issues) {
     const cover = findStyleCover(sample);
-    const shipment = computeShipmentState(style, sample, review, issues);
-    const release = releaseStatusCopy(shipment, issues);
     return `
       <section class="style-command-card panel">
         <div class="command-cover">
@@ -1295,11 +1296,6 @@
             <span>IE负责人<strong>${esc(ownerForRole(style, "ie_reviewer", "未指定"))}</strong></span>
           </div>
         </div>
-        <aside class="command-side">
-          <span class="status-pill ${release.tone}">${esc(release.title)}</span>
-          <strong>${esc(release.reason)}</strong>
-          <small>${esc(shipment.nextStep)}</small>
-        </aside>
       </section>
     `;
   }
@@ -1349,6 +1345,109 @@
     `;
   }
 
+  function sampleForStyle(style) {
+    return state.data?.samples?.find((sample) => sample.styleId === style?.id) || null;
+  }
+
+  function reviewForStyle(style, sample = sampleForStyle(style)) {
+    return state.data?.reviews?.find((review) => review.styleId === style?.id || review.sampleId === sample?.id) || null;
+  }
+
+  function issuesForStyle(style, sample = sampleForStyle(style), review = reviewForStyle(style, sample)) {
+    return [...(state.data?.issues || []), ...(state.localIssues || [])].filter((issue) => (
+      issue.styleId === style?.id || issue.sampleId === sample?.id || issue.reviewId === review?.id
+    ));
+  }
+
+  function overviewFilteredStyles() {
+    const search = String(state.overviewSearch || "").trim().toLowerCase();
+    return (state.data?.styleList || [])
+      .filter((style) => !state.overviewBrandFilter || style.brand === state.overviewBrandFilter)
+      .filter((style) => {
+        if (!search) return true;
+        return [
+          style.styleNo,
+          style.styleName,
+          style.brand,
+          style.season,
+          style.category,
+          style.customer,
+          style.sampleLocation,
+          ownerForRole(style, "business_pm", "")
+        ].some((value) => String(value || "").toLowerCase().includes(search));
+      });
+  }
+
+  function renderOverviewListCard(style) {
+    const sample = sampleForStyle(style);
+    const review = reviewForStyle(style, sample);
+    const issues = issuesForStyle(style, sample, review);
+    const shipment = computeShipmentState(style, sample, review, issues);
+    const stages = developmentStageRows(style, sample, review, issues);
+    const completeRate = stages.length ? Math.round((stages.filter((stage) => stage.status === "已完成").length / stages.length) * 100) : 0;
+    const cover = findStyleCover(sample);
+    const openIssues = issues.filter((issue) => issue.status !== "closed");
+    const blocking = issues.filter(isBlocking);
+    return `
+      <button class="overview-style-card" type="button" data-overview-open-style="${esc(style.id)}">
+        <span class="overview-card-cover">
+          ${cover?.url ? `<img src="${esc(cover.url)}" alt="${esc(style.styleNo || "款式主图")}" />` : "<i>无主图</i>"}
+        </span>
+        <span class="overview-card-main">
+          <span class="overview-card-kicker">${esc(style.brand || "未填品牌")} · ${esc(style.season || "未设置季节")}</span>
+          <strong>${esc(style.styleNo || "未填款号")} / ${esc(style.styleName || "未填款式名称")}</strong>
+          <span class="overview-card-meta">
+            <i>${esc(sampleStageLabel(style.samplePhase))}</i>
+            <i>${esc(sample?.location || style.sampleLocation || "未设置位置")}</i>
+            <i>${esc(ownerForRole(style, "business_pm", "未指定"))}</i>
+          </span>
+        </span>
+        <span class="overview-card-side">
+          <span class="badge ${esc(shipment.tone === "red" ? "blocked" : shipment.tone === "green" ? "ok" : "pending")}">${esc(gateLabel(style.currentGate))}</span>
+          <small>${esc(completeRate)}% 完成</small>
+          <small>${esc(openIssues.length)} 未关闭 / ${esc(blocking.length)} Blocking</small>
+        </span>
+      </button>
+    `;
+  }
+
+  function renderOverviewList(root) {
+    const styles = overviewFilteredStyles();
+    const brands = configuredBrands();
+    const total = state.data?.styleList?.length || 0;
+    const blocked = (state.data?.styleList || []).filter((style) => {
+      const sample = sampleForStyle(style);
+      const review = reviewForStyle(style, sample);
+      const issues = issuesForStyle(style, sample, review);
+      return issues.some(isBlocking);
+    }).length;
+    root.innerHTML = `
+      <div class="overview-list-dashboard">
+        <section class="panel overview-list-toolbar">
+          <div>
+            <span>款式库</span>
+            <h2>全部款式预览</h2>
+            <p>${esc(total)} 个款式 · ${esc(blocked)} 个存在 Blocking Issue</p>
+          </div>
+          <div class="overview-list-filters">
+            <label>品牌
+              <select id="overview-brand-filter">
+                <option value="">全部品牌</option>
+                ${brands.map((brand) => `<option value="${esc(brand.name)}" ${state.overviewBrandFilter === brand.name ? "selected" : ""}>${esc(brand.name)}</option>`).join("")}
+              </select>
+            </label>
+            <label>搜索
+              <input id="overview-style-search" type="search" value="${esc(state.overviewSearch)}" placeholder="款号、名称、负责人" />
+            </label>
+          </div>
+        </section>
+        <section class="overview-style-grid">
+          ${styles.length ? styles.map(renderOverviewListCard).join("") : '<div class="empty">当前筛选下暂无款式。</div>'}
+        </section>
+      </div>
+    `;
+  }
+
   function renderStyleOverview() {
     const root = $("#overview-dashboard");
     if (!root) return;
@@ -1361,6 +1460,11 @@
       root.innerHTML = '<div class="empty">暂无款式数据。</div>';
       return;
     }
+    if (!state.overviewDetailOpen) {
+      root.classList.remove("skeleton");
+      renderOverviewList(root);
+      return;
+    }
     const measurement = measurementSummary();
     const patterns = patternRows();
     const stages = developmentStageRows(style, sample, review, issues);
@@ -1371,6 +1475,7 @@
     root.classList.remove("skeleton");
     root.innerHTML = `
       <div class="development-dashboard">
+        <button class="secondary-button overview-back-button" type="button" data-overview-back>返回款式列表</button>
         ${renderStyleHeaderCard(style, sample, review, issues)}
         ${renderStageProgress(stages)}
         <section class="metric-grid">
@@ -2112,13 +2217,20 @@
     const riskPill = $("#risk-pill");
     const releasePill = $("#release-pill");
     if (riskPill) {
-      if ($("#pipeline-view")?.classList.contains("active")) {
+      if ($("#overview-view")?.classList.contains("active")) {
+        riskPill.className = "status-pill";
+        riskPill.textContent = "";
+        riskPill.hidden = true;
+      } else if ($("#pipeline-view")?.classList.contains("active")) {
+        riskPill.hidden = false;
         riskPill.className = "status-pill overview";
         riskPill.textContent = pipelineOverview();
       } else if ($("#calendar-view")?.classList.contains("active")) {
+        riskPill.hidden = false;
         riskPill.className = "status-pill overview";
         riskPill.textContent = calendarRiskSummary(calendarEntries(state.data?.styleList || []));
       } else {
+        riskPill.hidden = false;
         const copy = releaseStatusCopy(shipment);
         riskPill.className = `status-pill ${copy.tone}`;
         riskPill.textContent = copy.title === "当前可寄样" ? "当前可寄样" : `${copy.title}｜原因：${copy.reason}`;
@@ -5044,7 +5156,29 @@
       }
 
       const nav = event.target.closest("[data-view]");
-      if (nav) switchView(nav.dataset.view);
+      if (nav) {
+        if (nav.dataset.view === "overview") state.overviewDetailOpen = false;
+        switchView(nav.dataset.view);
+        if (nav.dataset.view === "overview") renderStyleOverview();
+      }
+
+      const overviewOpenStyle = event.target.closest("[data-overview-open-style]");
+      if (overviewOpenStyle) {
+        state.selectedStyleId = overviewOpenStyle.dataset.overviewOpenStyle;
+        state.overviewDetailOpen = true;
+        renderAll();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      const overviewBack = event.target.closest("[data-overview-back]");
+      if (overviewBack) {
+        state.overviewDetailOpen = false;
+        renderStyleOverview();
+        updateStatus();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
 
       const measurementPhase = event.target.closest("[data-measurement-phase]");
       if (measurementPhase) {
@@ -5411,6 +5545,13 @@
       createIssueFromModal(event.currentTarget);
     });
     document.addEventListener("change", (event) => {
+      const overviewBrandSelect = event.target.closest("#overview-brand-filter");
+      if (overviewBrandSelect) {
+        state.overviewBrandFilter = overviewBrandSelect.value;
+        renderStyleOverview();
+        return;
+      }
+
       const measurementImport = event.target.closest("#measurement-import-input");
       if (measurementImport) {
         state.measurementImportName = measurementImport.files?.[0]?.name || "";
@@ -5452,6 +5593,18 @@
       if (issueLevelSelect) {
         const form = $("#issue-modal-form");
         form.elements.shipmentBlocking.checked = ["major", "critical"].includes(issueLevelSelect.value);
+      }
+    });
+
+    document.addEventListener("input", (event) => {
+      const overviewSearchInput = event.target.closest("#overview-style-search");
+      if (overviewSearchInput) {
+        const caret = overviewSearchInput.selectionStart || 0;
+        state.overviewSearch = overviewSearchInput.value;
+        renderStyleOverview();
+        const nextInput = $("#overview-style-search");
+        nextInput?.focus();
+        nextInput?.setSelectionRange(caret, caret);
       }
     });
 
