@@ -276,6 +276,11 @@ body.sidebar-collapsed .nav-item {
   font-weight: 760;
 }
 
+.operator-select span {
+  min-width: 60px;
+  white-space: nowrap;
+}
+
 .operator-select select {
   min-width: 128px;
   border: 0;
