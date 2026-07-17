@@ -557,12 +557,12 @@
           <div>
             <span>人员库</span>
             <h2 id="person-modal-title">新增人员</h2>
-            <p>先设置人员所属部门、适用范围和固定角色，创建款式时按条件筛选。</p>
+            <p>先设置人员所属部门和固定角色，创建款式时直接按角色选择负责人。</p>
           </div>
           <button class="modal-close" type="button" id="person-modal-close" aria-label="关闭">×</button>
         </div>
         <div class="modal-section">
-          <div class="modal-grid">
+          <div class="modal-grid person-basic-grid">
             <label>人员姓名<input name="name" required data-required-message="请输入人员姓名" /><small data-field-error="name"></small></label>
             <label>所属部门
               <select name="department" id="person-department-select">
@@ -580,10 +580,6 @@
         <div class="modal-section">
           <h3>可分配角色</h3>
           <div id="person-role-list" class="assignment-role-list"></div>
-        </div>
-        <div class="modal-section">
-          <h3>适用品牌 / 路线</h3>
-          <div class="scope-checks" id="person-scope-list"></div>
         </div>
         <div class="upload-status" id="person-save-status" role="status"></div>
         <div class="modal-actions">

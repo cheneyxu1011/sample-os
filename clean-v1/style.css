@@ -2624,6 +2624,7 @@ textarea:focus {
 }
 
 .basic-info-grid,
+.person-basic-grid,
 .owner-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -4579,7 +4580,7 @@ button.measurement-row:hover {
 }
 
 .people-row-compact {
-  grid-template-columns: 120px 110px minmax(160px, 1.2fr) minmax(150px, 1fr) minmax(160px, 1fr) 150px;
+  grid-template-columns: 120px 110px minmax(180px, 1.4fr) minmax(180px, 1fr) 150px;
 }
 
 .people-head {
@@ -4684,8 +4685,7 @@ button.measurement-row:hover {
   margin: 10px 0 12px;
 }
 
-.assignment-role-list,
-.scope-checks {
+.assignment-role-list {
   display: grid;
   gap: 8px;
 }
@@ -4696,8 +4696,7 @@ button.measurement-row:hover {
   overflow: auto;
 }
 
-.assignment-role-list label,
-.scope-checks label {
+.assignment-role-list label {
   display: flex;
   gap: 10px;
   align-items: flex-start;
@@ -4707,8 +4706,7 @@ button.measurement-row:hover {
   background: rgba(255, 255, 255, 0.72);
 }
 
-.assignment-role-list input,
-.scope-checks input {
+.assignment-role-list input {
   width: auto;
   min-height: 0;
   margin-top: 3px;
@@ -5432,6 +5430,7 @@ button.measurement-row:hover {
   }
 
   .basic-info-grid,
+  .person-basic-grid,
   .owner-grid {
     grid-template-columns: 1fr;
   }

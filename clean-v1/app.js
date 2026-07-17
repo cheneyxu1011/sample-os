@@ -637,32 +637,29 @@
     return allUsers().filter((user) => assignedRolesForUser(user).some((role) => role.id === roleId));
   }
 
-  function routeScopeLabels(route) {
-    const label = routeLabels[route] || route || "";
-    if (route === "bonding_xinchangjiang") return ["压胶 / 新长江", "压胶路线", label];
-    return ["普通打样", label];
-  }
-
-  function personMatchesContext(user, brand, route) {
-    const scopes = userScopes(user);
-    if (!scopes.length) return true;
-    const brandOk = !brand || scopes.includes(brand) || scopes.includes("样衣评审") || scopes.includes("全部品牌");
-    const routeLabelsForStyle = routeScopeLabels(route);
-    const routeOk = routeLabelsForStyle.some((label) => scopes.includes(label)) || scopes.includes("样衣评审") || scopes.includes("全部路线");
-    return brandOk && routeOk;
-  }
-
-  function ownerOptionsForRoles(roleIds, brand, route) {
+  function ownerOptionsForRoles(roleIds) {
     const roleSet = new Set(roleIds);
-    const users = allUsers().filter((user) => {
+    const userByName = new Map(allUsers().map((user) => [user.name, user]));
+    const templatePeople = activeRoleTemplates()
+      .filter((role) => roleSet.has(role.id))
+      .flatMap((role) => (role.people || []).map((name) => {
+        const user = userByName.get(name);
+        return user || {
+          id: `role_person_${role.id}_${name}`,
+          name,
+          department: roleDepartment(role),
+          enabled: true,
+          scope: []
+        };
+      }));
+    const users = [...allUsers(), ...templatePeople].filter((user) => {
       if (user.enabled === false) return false;
       const hasRole = assignedRolesForUser(user).some((role) => roleSet.has(role.id));
-      return hasRole && personMatchesContext(user, brand, route);
+      return hasRole || templatePeople.some((person) => person.name === user.name);
     });
-    if (users.length) return users;
-    return allUsers().filter((user) => {
-      if (user.enabled === false) return false;
-      return assignedRolesForUser(user).some((role) => roleSet.has(role.id));
+    const uniqueUsers = Array.from(new Map(users.map((user) => [user.name, user])).values());
+    return uniqueUsers.sort((a, b) => {
+      return String(a.name || "").localeCompare(String(b.name || ""), "zh-Hans-CN");
     });
   }
 
@@ -683,8 +680,6 @@
   function populateOwnerSelects(values = {}) {
     const form = $("#style-form");
     if (!form) return;
-    const brand = form.elements.brand?.value || "";
-    const route = form.elements.route?.value || "normal";
     const defaults = activeRoleTemplates().filter(isDefaultReviewRole);
     const optional = activeRoleTemplates().filter((role) => !isDefaultReviewRole(role));
     const roleOwners = values.roleOwners || {};
@@ -696,7 +691,7 @@
       return autoDefault && users[0]?.name ? [users[0].name] : [];
     };
     const roleField = (role, autoDefault) => {
-      const users = ownerOptionsForRoles([role.id], brand, route);
+      const users = ownerOptionsForRoles([role.id]);
       const current = selectedForRole(role, users, autoDefault);
       const selectedNames = new Set(current);
       const options = users.map((user) => `
@@ -3515,16 +3510,14 @@
     }).join("") : '<div class="empty">当前部门暂无匹配角色模板。</div>';
 
     $("#people-library-list").innerHTML = users.length ? `
-      <div class="people-row people-head people-row-compact"><strong>人员姓名</strong><span>所属部门</span><em>已分配角色</em><small>适用品牌 / 路线</small><div>关键权限</div><div>操作</div></div>
+      <div class="people-row people-head people-row-compact"><strong>人员姓名</strong><span>所属部门</span><em>已分配角色</em><div>关键权限</div><div>操作</div></div>
       ${users.map((user) => {
         const assigned = assignedRolesForUser(user);
         const permissions = Array.from(new Set(assigned.flatMap((role) => role.permissions))).slice(0, 4);
-        const scopes = user.scope?.length ? user.scope : ["样衣评审"];
         return `<div class="people-row people-row-compact">
           <strong>${esc(user.name)}</strong>
           <span>${esc(user.department || "未设置")}</span>
           <em>${esc(assigned.map(roleShortName).join(" / ") || "未分配固定角色")}</em>
-          <small>${esc(scopes.join(" / "))}</small>
           <div class="permission-tags">${permissions.length ? permissions.map((item) => `<i>${esc(item)}</i>`).join("") : "<i>待分配</i>"}</div>
           <div class="row-actions-inline">
             <button type="button" data-edit-person="${esc(user.id)}">分配</button>
@@ -3553,18 +3546,14 @@
 
   function renderPersonModalOptions(person = null) {
     const selectedRoleIds = new Set(person ? assignedRolesForUser(person).map((role) => role.id) : []);
-    const selectedScopes = new Set(person ? userScopes(person) : ["样衣评审"]);
     $("#person-role-list").innerHTML = activeRoleTemplates().map((role) => `
       <label><input type="checkbox" name="roleIds" value="${esc(role.id)}" ${selectedRoleIds.has(role.id) ? "checked" : ""}><span><strong>${esc(role.name)}</strong><small>${esc(role.type)} · ${esc(role.permissions.slice(0, 3).join(" / "))}</small></span></label>
     `).join("");
-    const scopes = ["萨洛蒙", "SUPREME", "迪桑特", "普通打样", "压胶 / 新长江", "样衣评审", "例外放行", "全部品牌", "全部路线"];
-    $("#person-scope-list").innerHTML = scopes.map((scope) => `<label><input type="checkbox" name="scope" value="${esc(scope)}" ${selectedScopes.has(scope) ? "checked" : ""}><span>${esc(scope)}</span></label>`).join("");
   }
 
   function personPayloadFromForm(form, basePerson = null) {
     const fields = new FormData(form);
     const roleIds = fields.getAll("roleIds").map(String);
-    const scope = fields.getAll("scope").map(String);
     const permissions = Array.from(new Set(roleIds.flatMap((roleId) => roleById(roleId)?.permissions || [])));
     return {
       id: basePerson?.isDefaultUser ? undefined : basePerson?.id,
@@ -3574,7 +3563,7 @@
       currentResponsibility: roleIds.map((roleId) => roleShortName(roleById(roleId))).filter(Boolean).join(" / "),
       reviewResponsibility: roleIds.some((roleId) => roleById(roleId)?.reviewDefault === "是") ? "参与样衣评审" : "",
       permissions,
-      scope,
+      scope: [],
       enabled: true,
       status: "active",
       isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
@@ -3592,7 +3581,7 @@
       currentResponsibility: roleIds.map((roleId) => roleShortName(roleById(roleId))).filter(Boolean).join(" / "),
       reviewResponsibility: roleIds.some((roleId) => roleById(roleId)?.reviewDefault === "是") ? "参与样衣评审" : "",
       permissions,
-      scope: userScopes(user),
+      scope: [],
       enabled: user.enabled !== false,
       status: user.status || (user.enabled === false ? "inactive" : "active"),
       isGateOwner: roleIds.includes("sample_review_gate_owner") || roleIds.includes("preparation_gate_owner"),
